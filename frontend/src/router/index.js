@@ -4,7 +4,7 @@ import Education from "@/views/Education.vue";
 import Events from "@/views/Events.vue";
 
 export default createRouter({
-    history: createWebHistory("/MyCODA/"),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
             path: '/',
