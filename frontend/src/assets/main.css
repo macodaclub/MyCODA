@@ -1,0 +1,38 @@
+@import './base.css';
+
+#app {
+    margin: 0 0;
+    padding: 0 0;
+    font-weight: normal;
+}
+
+a {
+    text-decoration: none;
+    color: var(--color-orange);
+    transition: 0.4s;
+}
+
+@media (hover: hover) {
+    a:hover {
+        background-color: var(--color-orange-alpha-33);
+    }
+}
+
+main h1 {
+    color: var(--color-heading);
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+main p {
+    margin-bottom: 1rem;
+}
+
+ul {
+    margin-bottom: 1rem;
+    padding-left: 20px;
+}
+
+b {
+    font-weight: bold;
+}
