@@ -41,6 +41,8 @@ jobs:
           cache-dependency-path: './frontend/package-lock.json'
       - name: Install dependencies
         run: npm install
+      - name: Copy index.html to 404.html
+        run: cp index.html 404.html
       - name: Build
         run: npm run build -- --base=/MyCODA/
       - name: Setup Pages
