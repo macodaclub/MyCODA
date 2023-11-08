@@ -1,0 +1,680 @@
+<!-- wp:html -->
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8"/>
+    <title>MyCODA Ontology Queries</title>
+    <!--  <link href="https://unpkg.com/tabulator-tables@4.8.4/dist/css/tabulator.min.css" rel="stylesheet">  -->
+    <link href="https://vbasto-gmail.github.io/mycoda/tabulator.min.css" rel="stylesheet">
+    <!--  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.4/dist/js/tabulator.min.js"></script>  -->
+    <script type="text/javascript" src="https://vbasto-gmail.github.io/mycoda/tabulator.min.js"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script> -->
+    <script src="https://vbasto-gmail.github.io/mycoda/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="https://vbasto-gmail.github.io/mycoda/xmlToJson.min.js"></script>
+</head>
+<body>
+<br>
+<i><H4>Browse and Filter the Ontology by Type of Entity</H4></i>
+<div id="entity-table" style="margin:30px;"></div>
+<br>
+<i><H4 font-style="italic">Browse the Ontology Taxonomy</H4></i>
+<div id="taxonomy-table" style="margin:30px;"></div>
+<br>
+<i><H4>Query the Ontology (select a predefined query or create your own query)</H4></i>
+<div id="query-table-buttons" style="margin:30px;">
+    <button id="add-row">Add new row to query table</button>
+    <!-- <button id="del-row">Remove row (1)</button> -->
+    <button id="clear">Reset the query table</button>
+    <select id="predefinedqueries" onchange="predefinedqueriesSelectEvent(this.value)"
+            style="height:35px; width:580px;">
+        <option value="0" selected>Select a predefined query ...</option>
+        <option value="1">What are the metaheuristics published after 2015 ?</option>
+        <option value="2">What are the Java libraries implementing pNSGA-II ?</option>
+        <option value="3">What are the metaheuristics that were tested in Knapsack problem ?</option>
+        <option value="4">What are the metaheuristics that were tested in ZDT problem having Java libraries
+            implementations ?
+        </option>
+        <option value="5">Which order relations have been proposed to many-objective optimisation ?</option>
+        <option value="6">Who are the researchers working both in decomposition-based and indicator-based metaheuristics
+            ?
+        </option>
+    </select>
+    <button id="generate-query">Generate the query</button>
+    <form id="query-result-form" action="https://springboot-mycoda-queries.herokuapp.com/queryapi" method="POST"
+          target="myframe">
+        <input type="text" name="query" id="formgeneratedqueryfield" style="height:30px; width:954px;margin-top:1.0em;"><input
+            type="submit" style="text-align:center;margin-top:1.0em;margin-left:0.25em;" value="     Run the query    ">
+    </form>
+</div>
+<b><i><p align="center">Query construction interactive table</p></b></i>
+<div id="query-table" style="margin:30px;"></div>
+<!--	<b><i><p align="center">Query results</p></b></I> -->
+<!--	<div id="queryresults-table" style="margin:30px;"></div> -->
+<div>
+    <iframe id="myframe" name="myframe" width="1500" height="250" scrolling="auto"></iframe>
+</div>
+<script type="text/javascript">
+
+    var hashmapEntitytype = new Map(); // key: entity_label , value: {entity_label, entity_type, comment}
+    var hashmapTaxonomy = new Map(); // key: entity_label , value: {class_label, {class label, class comment, class axioms, children_ [children classes]}
+
+    var tableEntityData = []; // Declared in global scope because its data is used (read) also in query table
+
+    function receiveQueryAnswer() {
+        alert("http.responseText: ");
+    }
+
+    function nsResolver(prefix) { // function to handle xml namespaces
+        var ns = {
+            'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+            'owl': 'http://www.w3.org/2002/07/owl#',
+            'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+            'xhtml': 'http://www.w3.org/1999/xhtml',
+            'mathml': 'http://www.w3.org/1998/Math/MathML'
+        };
+        return ns[prefix] || null;
+    }
+
+    function evaluateXPathQuery(pXPathExpression, pContextNode, pIterate) {
+        // pIterates false means that evaluateXPathQuery function returns only one result
+        // pIterates true returns the iterator to be iterated outside the function
+        // ATTENTION: pIterates true RAISES PROBLEMS INSIDE OTHER FUNCTIONS BECAUSE OF PARAMETERS BY VALUE VS BY REFERENCE !!! BETTER NOT TO USE pIterate true inside other functions
+
+        var xpathQueryResultIterator = document.evaluate(pXPathExpression, pContextNode, nsResolver, XPathResult.ANY_TYPE, null);
+        if (pIterate) {
+            return xpathQueryResultIterator;
+        } else {
+            var thisResult = xpathQueryResultIterator.iterateNext();
+            return thisResult ? thisResult.textContent : "";
+        }
+    }
+
+    function populateHashMapEntityType(pContextNode, pXmlDoc) {
+        var strEntityId = evaluateXPathQuery("@rdf:about", pContextNode, false);
+        var strEntityLabel = evaluateXPathQuery("rdfs:label", pContextNode, false);
+        if (!strEntityLabel) strEntityLabel = strEntityId.substring(strEntityId.indexOf('#') + 1);
+        var strEntityComment = evaluateXPathQuery("rdfs:comment", pContextNode, false);
+        var strEntityType = "" + pContextNode.nodeName;
+        var strEntityTypeToBeVisualizedInEntityTable = strEntityType.replaceAll("owl:Class", "Class").replaceAll("owl:DatatypeProperty", "DatatypeProperty").replaceAll("owl:ObjectProperty", "ObjectProperty").replaceAll("owl:NamedIndividual", "Individual");
+
+        var objClass = {};
+        objClass = {
+            "name": strEntityLabel,
+            "comment": strEntityComment,
+            "type": strEntityTypeToBeVisualizedInEntityTable
+        };
+        objClass["details"] = "";
+        // Iterate through details (classes that the individual belongs) of owl:NamedIndividual and create a listIndividualDetails
+        if (strEntityType == "owl:NamedIndividual") {
+            var listIndividualDetails = [];
+            var strParentClassId = evaluateXPathQuery("rdf:type/@rdf:resource", pContextNode, false);
+            while (strParentClassId) {
+                var strParentClassLabel = evaluateXPathQuery("//owl:Class[@rdf:about='" + strParentClassId + "']/rdfs:label", pContextNode, false);
+                if (!strParentClassLabel) strParentClassLabel = strParentClassId.substring(strParentClassId.indexOf('#') + 1);
+                listIndividualDetails.push(strParentClassLabel);
+                strParentClassId = evaluateXPathQuery("//owl:Class[@rdf:about='" + strParentClassId + "']/rdfs:subClassOf/@rdf:resource", pContextNode, false);
+            }
+            if (listIndividualDetails.length) objClass["details"] = JSON.stringify({ascendentClassesHierarchy: listIndividualDetails}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " ").replaceAll("}", " ");
+        }
+
+        // Iterate through details (individuals) of owl:Class and create a listClassDetails
+        if (strEntityType == "owl:Class") {
+            // AscendentClasseshierarchy of the current class
+            var listAscendentClasses = [];
+            var strSuperClassId = evaluateXPathQuery("//owl:Class[@rdf:about='" + strEntityId + "']/rdfs:subClassOf/@rdf:resource", pContextNode, false);
+            while (strSuperClassId) {
+                strSuperClassLabel = evaluateXPathQuery("//owl:Class[@rdf:about='" + strSuperClassId + "']/rdfs:label", pContextNode, false);
+                if (!strSuperClassLabel) strSuperClassLabel = strSuperClassId.substring(strSuperClassId.indexOf('#') + 1);
+                listAscendentClasses.push(strSuperClassLabel);
+                strSuperClassId = evaluateXPathQuery(
+                    "//owl:Class[@rdf:about='" + strSuperClassId + "']/rdfs:subClassOf/@rdf:resource", pContextNode, false);
+            }
+            if (listAscendentClasses.length) objClass["details"] = JSON.stringify({ascendentClassesHierarchy: listAscendentClasses}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " ").replaceAll("}", " ");
+
+            // Direct SubClasses of the current class
+            var listDirectSubClasses = [];
+            var xpathQueryResultIterator = document.evaluate("//owl:Class[rdfs:subClassOf/@rdf:resource='" + strEntityId + "']/@rdf:about", pContextNode, nsResolver, XPathResult.ANY_TYPE, null);
+            var thisResult = xpathQueryResultIterator.iterateNext();
+            while (thisResult) {
+                strSubClassId = thisResult.textContent;
+                strSubClassLabel = evaluateXPathQuery("//owl:Class[@rdf:about='" + strSubClassId + "']/rdfs:label", pContextNode, false);
+                if (!strSubClassLabel) strSubClassLabel = strSubClassId.substring(strSubClassId.indexOf('#') + 1);
+                listDirectSubClasses.push(strSubClassLabel);
+                thisResult = xpathQueryResultIterator.iterateNext();
+            }
+            if (listDirectSubClasses.length) objClass["details"] = objClass["details"] + " " + JSON.stringify({directSubClasses: listDirectSubClasses}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " \n\n").replaceAll("}", " ");
+
+            // Class Individuals
+            var listClassIndividuals = [];
+            var xpathQueryResultIterator = document.evaluate("//owl:NamedIndividual/rdf:type[@rdf:resource='" + strEntityId + "']/../@rdf:about", pContextNode, nsResolver, XPathResult.ANY_TYPE, null);
+            var thisResult = xpathQueryResultIterator.iterateNext();
+            while (thisResult) {
+                var strIndividualId = thisResult.textContent;
+                strIndividualLabel = evaluateXPathQuery("//owl:NamedIndividual[@rdf:about='" + strIndividualId + "']/rdfs:label", pContextNode, false);
+                if (!strIndividualLabel) strIndividualLabel = strIndividualId.substring(strIndividualId.indexOf('#') + 1);
+                listClassIndividuals.push(strIndividualLabel);
+                thisResult = xpathQueryResultIterator.iterateNext();
+            }
+            if (listClassIndividuals.length) objClass["details"] = objClass["details"] + " " + JSON.stringify({classIndividuals: listClassIndividuals}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " \n\n").replaceAll("}", " ");
+        }
+
+        // Iterate through details (domain and range) of owl:ObjectProperty and create a listObjectPropertyDomainDetails and listObjectPropertyRangeDetails
+        if (strEntityType == "owl:ObjectProperty") {
+            // owl:ObjectProperty Domain
+            var listObjectPropertyDomainDetails = [];
+            var strObjectPropertyDomainClassId = evaluateXPathQuery("rdfs:domain/@rdf:resource", pContextNode, false);
+            var strObjectPropertyDomainClassLabel = evaluateXPathQuery("/rdf:RDF/owl:Class[@rdf:about='" + strObjectPropertyDomainClassId + "']/rdfs:label", pXmlDoc, false);
+            if (!strObjectPropertyDomainClassLabel) strObjectPropertyDomainClassLabel = strObjectPropertyDomainClassId.substring(strObjectPropertyDomainClassId.indexOf('#') + 1);
+            if (strObjectPropertyDomainClassLabel) listObjectPropertyDomainDetails.push(strObjectPropertyDomainClassLabel);
+            if (listObjectPropertyDomainDetails.length) objClass["details"] = JSON.stringify({classDomain: listObjectPropertyDomainDetails}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " ").replaceAll("}", " ");
+
+            // owl:ObjectProperty Range
+            var listObjectPropertyRangeDetails = [];
+            var strObjectPropertyRangeClassId = evaluateXPathQuery("rdfs:range/@rdf:resource", pContextNode, false);
+            var strObjectPropertyRangeClassLabel = evaluateXPathQuery("/rdf:RDF/owl:Class[@rdf:about='" + strObjectPropertyRangeClassId + "']/rdfs:label", pXmlDoc, false);
+            if (!strObjectPropertyRangeClassLabel) strObjectPropertyRangeClassLabel = strObjectPropertyRangeClassId.substring(strObjectPropertyRangeClassId.indexOf('#') + 1);
+            if (strObjectPropertyRangeClassLabel) listObjectPropertyRangeDetails.push(strObjectPropertyRangeClassLabel);
+            if (listObjectPropertyRangeDetails.length) objClass["details"] = objClass["details"] + " " + JSON.stringify({classRange: listObjectPropertyRangeDetails}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " \n\n").replaceAll("}", " ");
+        }
+
+        // Iterate through details (domain and range) of owl:DatatypeProperty and create a listDatatypePropertyDomainDetails and listDatatypePropertyRangeDetails
+        if (strEntityType == "owl:DatatypeProperty") {
+            // owl:DatatypeProperty Domain
+            var listDatatypePropertyDomainDetails = [];
+            var strDatatypePropertyDomainClassId = evaluateXPathQuery("rdfs:domain/@rdf:resource", pContextNode, false);
+            var strDatatypePropertyDomainClassLabel = evaluateXPathQuery("/rdf:RDF/owl:Class[@rdf:about='" + strDatatypePropertyDomainClassId + "']/rdfs:label", pXmlDoc, false);
+            if (!strDatatypePropertyDomainClassLabel) strDatatypePropertyDomainClassLabel = strDatatypePropertyDomainClassId.substring(strDatatypePropertyDomainClassId.indexOf('#') + 1);
+            if (strDatatypePropertyDomainClassLabel) listDatatypePropertyDomainDetails.push(strDatatypePropertyDomainClassLabel);
+            if (listDatatypePropertyDomainDetails.length)
+                objClass["details"] = JSON.stringify({classDomain: listDatatypePropertyDomainDetails}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " ").replaceAll("}", " ");
+
+            // owl:DatatypeProperty Range
+            var listDatatypePropertyRangeDetails = [];
+            var strDatatypePropertyRangeClassId = evaluateXPathQuery("rdfs:range/@rdf:resource", pContextNode, false);
+            var strDatatypePropertyRangeDatatypeLabel = strDatatypePropertyRangeClassId.substring(strDatatypePropertyRangeClassId.indexOf('#') + 1);
+            if (strDatatypePropertyRangeDatatypeLabel) listDatatypePropertyRangeDetails.push(strDatatypePropertyRangeDatatypeLabel);
+            if (listDatatypePropertyRangeDetails.length)
+                objClass["details"] = objClass["details"] + " " + JSON.stringify({dataTypeRange: listDatatypePropertyRangeDetails}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " \n\n").replaceAll("}", " ");
+        }
+//alert("strClassLabel: " + strClassLabel + "\n length:  " + listClassDetails.length + "\n" + JSON.stringify(listClassDetails).replaceAll("\"",""));
+        return objClass;
+    }
+
+    function buildTaxonomyOfClass(pContextNode, pXmlDoc) {
+        //Given a node to a class in pContextNode and the root node of the document, buildTaxonomyOfClass builds the entire hierarchy branch (subclasses) of this node (class)
+        // First: extract data of this class such as id (iri), label and axioms (e.g. disjointwith)
+        // Second: iterate through subclasses
+        var strClassId = evaluateXPathQuery("@rdf:about", pContextNode, false);
+        var strClassLabel = evaluateXPathQuery("rdfs:label", pContextNode, false);
+        if (!strClassLabel) strClassLabel = strClassId.substring(strClassId.indexOf('#') + 1);
+        var strClassComment = evaluateXPathQuery("rdfs:comment", pContextNode, false);
+
+        // Iterate through DisjointClasses and create a listDisjointClasses
+        var listDisjointClasses = [];
+
+        var xpathQueryResultIterator = document.evaluate("owl:disjointWith/@rdf:resource", pContextNode, nsResolver, XPathResult.ANY_TYPE, null);
+        var thisResult = xpathQueryResultIterator.iterateNext();
+        while (thisResult) {
+            var strDisjointWithClassLabel = evaluateXPathQuery("/rdf:RDF/owl:Class[@rdf:about='" + thisResult.textContent + "']/rdfs:label", pXmlDoc, false);
+            listDisjointClasses.push(strDisjointWithClassLabel);
+            thisResult = xpathQueryResultIterator.iterateNext();
+        }
+
+        // Create a JSON object with this class data
+        var objClass = {};
+        objClass = {"name": strClassLabel, "comment": strClassComment};
+        if (listDisjointClasses.length) objClass["axioms"] = JSON.stringify({disjointWith: listDisjointClasses}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " ").replaceAll("}", " ");
+
+        // If current Class has subclasses, add its children to subClassesList and insert _children field (list of subclass objects) in the class JSON object
+        var subClassesList = [];
+        /*var thisIterator = evaluateXPathQuery("//rdfs:subClassOf[@rdf:resource='" + strClassId + "']/..", pXmlDoc, true);
+  while (thisResult = thisIterator.iterateNext()) {
+    var strSubClassLabel = evaluateXPathQuery("rdfs:label", thisResult, false);
+    subClassesList.push(buildTaxonomyOfClass(thisResult, pXmlDoc));
+    objClass["_children"] = subClassesList;
+  }*/
+        var xpathQueryResultIterator = document.evaluate("//rdfs:subClassOf[@rdf:resource='" + strClassId + "']/..", pContextNode, nsResolver, XPathResult.ANY_TYPE, null);
+        var thisResult = xpathQueryResultIterator.iterateNext();
+        while (thisResult) {
+//				var strSubClassId = evaluateXPathQuery("@rdf:resource", thisResult, false);
+//				var strSubClassLabel = evaluateXPathQuery("rdfs:label", thisResult, false);
+//				var strSubClassId = thisResult.textContent;
+//				if (! strSubClassLabel) strSubClassLabel = strSubClassId.substring(strSubClassId.indexOf('#') + 1);
+            subClassesList.push(buildTaxonomyOfClass(thisResult, pXmlDoc));
+            objClass["_children"] = subClassesList;
+            thisResult = xpathQueryResultIterator.iterateNext();
+        }
+        return objClass;
+    }
+
+    // Iterate through all entities present in the ontology and create 2 hashmaps, one for the entities table and other to the taxonomy table. These hashmaps will be converted into 2 JSON objects to be assigned to the (Tabulator library) tables
+
+    fetch('https://vbasto-gmail.github.io/mycoda/MaCODA.owl')
+        .then(response => response.text())
+        .then(commits => {
+            if (true /*window.DOMParser*/) {
+                var parser = new DOMParser();
+                xmlDoc = parser.parseFromString(commits, "text/xml");
+                // Iterate through all entity types (Classes, [data|object]-properties, individuals)
+                //var strQuery = "/rdf:RDF/owl:Class[rdfs:label] | /rdf:RDF/owl:ObjectProperty[rdfs:label] | /rdf:RDF/owl:DatatypeProperty[rdfs:label] | /rdf:RDF/owl:NamedIndividual[rdfs:label]";
+                var strQuery = "/rdf:RDF/owl:Class | /rdf:RDF/owl:ObjectProperty | /rdf:RDF/owl:DatatypeProperty | /rdf:RDF/owl:NamedIndividual";
+                var thisIterator = evaluateXPathQuery(strQuery, xmlDoc, true);
+                while (thisResult = thisIterator.iterateNext()) {
+                    // Create hashmapEntitytype (and later tableEntityData from hashmapEntitytype)
+                    //var strClassLabel = evaluateXPathQuery("rdfs:label", thisResult, false);
+                    var strEntityId = evaluateXPathQuery("@rdf:about", thisResult, false);
+                    var strEntityLabel = strEntityId.substring(strEntityId.indexOf('#') + 1);
+
+                    //alert(JSON.stringify(populateHashMapEntityType(thisResult, xmlDoc)));
+
+                    hashmapEntitytype.set(strEntityLabel, populateHashMapEntityType(thisResult, xmlDoc));
+
+                    // If entity is of "owl:Class" type, create hashmapTaxonomy (and later tableTaxonomyData from hashmapTaxonomy
+                    if (thisResult.nodeName == "owl:Class") {
+                        // If it is a first level class (has no subclasses), add to the hashmapTaxonomy, including its subclasses tree (recursively)
+                        if (!evaluateXPathQuery("rdfs:subClassOf/@rdf:resource", thisResult, false)) {
+                            hashmapTaxonomy.set(strEntityLabel, buildTaxonomyOfClass(thisResult, xmlDoc));
+                        }
+                    }
+                }
+            } else // Internet Explorer
+            {
+                xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+                xmlDoc.async = false;
+                xmlDoc.loadXML(txt);
+            }
+
+            //var tableEntityData = [];
+            tableEntityData = []; // Declared in global scope because its data is used (read) also in query table
+            for (var [key, value] of hashmapEntitytype) {
+                tableEntityData.push(value);
+            }
+
+            var tableTaxonomyData = [];
+            for (var [key, value] of hashmapTaxonomy) {
+                tableTaxonomyData.push(value);
+            }
+
+//				document.getElementById("mytext").innerHTML += "<br><pre>" + JSON.stringify(tableTaxonomyData, null, 5) + "</pre>";
+//				document.getElementById("mytext").innerHTML += "<br><br><pre>" + JSON.stringify(tableEntityData, null, 5) + "</pre>";
+
+            var tableentity = new Tabulator("#entity-table", {
+                data: tableEntityData,     //load row data from array
+                layout: "fitColumns",      //fit columns to width of table
+                responsiveLayout: "hide",  //hide columns that dont fit on the table
+                tooltips: true,            //show tool tips on cells
+                addRowPos: "top",          //when adding a new row, add it to the top of the table
+                history: true,             //allow undo and redo actions on the table
+                pagination: "local",       //paginate the data
+                paginationSize: 10,         //allow 7 rows per page of data
+                movableColumns: true,      //allow column order to be changed
+                resizableRows: true,       //allow row order to be changed
+                initialSort: [             //set the initial sort order of the data
+                    {column: "name", dir: "asc"},
+                ],
+                columns: [                 //define the table columns
+                    {
+                        title: "Type",
+                        field: "type",
+                        editor: "select",
+                        headerFilter: true,
+                        headerFilterParams: {
+                            values: {
+                                "": "All Entity Types",
+                                "Class": "Classes",
+                                "DatatypeProperty": "Data Properties",
+                                "ObjectProperty": "Object Properties",
+                                "Individual": "Individuals"
+                            }
+                        }
+                    },
+                    {title: "Name", field: "name", editor: "false", headerFilter: "input"},
+                    {title: "Details", field: "details", editor: "false", headerFilter: "input"}, {
+                        title: "Comment",
+                        field: "comment",
+                        editor: "false",
+                        headerFilter: "input"
+                    },
+                ],
+            });
+
+            var tabletaxonomy = new Tabulator("#taxonomy-table", {
+                data: tableTaxonomyData,
+                layout: "fitDataStretch",
+                tooltips: true,            //show tool tips on cells
+                dataTree: true,
+                dataTreeStartExpanded: false,
+                columns: [
+                    {title: "Classes Hierarchy (Taxonomy)", field: "name", width: 290, responsive: 0}, //never hide this column
+                    {title: "Axioms", field: "axioms", width: 290},
+                    {title: "Comment", field: "comment", width: 290},
+                ],
+            });
+        });
+
+    var tablequery = new Tabulator("#query-table", {
+        height: "190px",
+        addRowPos: "bottom",
+        columns: [
+            {
+                title: "Delete row",
+                field: "deleterow",
+                formatter: "buttonCross",
+                width: 40,
+                align: "center",
+                cellClick: function (e, cell) {
+                    cell.getRow().delete();
+                },
+                width: 110
+            },
+            {
+                title: "Entity Type",
+                field: "entitytype",
+                editor: "select",
+                editorParams: {
+                    values: {
+                        "Class": "Class",
+                        "Individual": "Individual",
+                        "DatatypeProperty": "Data Property",
+                        "ObjectProperty": "Object Property",
+                        "RelationalOperator": "Relational Operator",
+                        "Literal": "Literal"
+                    }
+                },
+                width: 150
+            },
+            {
+                title: "Entity", field: "entity", editor: "select", editorParams:
+                    function (cell) {
+                        var jsondata = JSON.stringify(cell.getData());
+                        var jsonjavascriptobject = JSON.parse(jsondata);
+                        var entities = tableEntityData.filter(obj => obj.type == jsonjavascriptobject.entitytype).map(res => res.name).sort(function (a, b) {
+                            if (a.toLowerCase() < b.toLowerCase()) return -1;
+                            if (a.toLowerCase() > b.toLowerCase()) return 1;
+                            return 0;
+                        }); // filter filters data, map selects the resulting fields, sort orders (the functions implements case insensitive ordering)
+                        var result;
+                        switch (jsonjavascriptobject.entitytype) {
+                            case 'Class':
+                            case 'Individual':
+                            case 'DatatypeProperty':
+                            case 'ObjectProperty':
+                                result = entities;
+                                break;
+                            case 'RelationalOperator':
+                                result = ["swrlb:equal", "swrlb:notEqual", "swrlb:lessThan", "swrlb:lessThanOrEqual", "swrlb:greaterThan", "swrlb:greaterThanOrEqual", "swrlb:stringEqualIgnoreCase", "swrlb:booleanNot"];
+                                break;
+                            case 'Literal':
+                                cell.setValue(prompt("Please insert a literal to create your query:"));
+                                break;
+                            default:
+                                result = ["Please select an entity type before selecting the entity ..."];
+                        }
+                        return result
+                    },
+                width: 630
+            },
+            {
+                title: "In Output",
+                field: "inoutput",
+                hozAlign: "center",
+                editor: "select",
+                editorParams: {values: {true: "Yes", false: "No"}},
+                formatter: "tick",
+                width: 110
+            },
+            {
+                title: "Ordered By",
+                field: "orderedby",
+                hozAlign: "center",
+                editor: "select",
+                editorParams: {values: {true: "Yes", false: "No"}},
+                formatter: "tick",
+                width: 110
+            },
+//				{title:"Composed Statement", field:"composedstatement", editor:"select", editorParams:{values:{"AND":"AND","":""}}, defaultValue:"and", width:180},
+        ],
+    });
+
+    //Add row on "Add Row" button click
+    document.getElementById("add-row").addEventListener("click", function () {
+        tablequery.addRow({});
+    });
+    //Delete row on "Delete Row" button click
+    //document.getElementById("del-row").addEventListener("click", function(){
+    //	tablequery.deleteRow(1);
+    //});
+    //Clear table on "Empty the table" button click
+    document.getElementById("clear").addEventListener("click", function () {
+        tablequery.clearData();
+        document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+        var sel = document.getElementById('predefinedqueries');
+        sel.selectedIndex = 0;
+    });
+
+    var tablepredefinedqueries0 = [
+        {"entitytype": "", "entity": "", "orderedby": ""},
+    ];
+    var tablepredefinedqueries1 = [
+        {"entitytype": "Class", "entity": "MetaHeuristic", "orderedby": false, "inoutput": true},
+        {"entitytype": "DatatypeProperty", "entity": "hasDevelopingYear", "orderedby": true, "inoutput": true},
+        {"entitytype": "RelationalOperator", "entity": "swrlb:greaterThanOrEqual", "orderedby": false},
+        {"entitytype": "Literal", "entity": "2015", "orderedby": false},
+    ];
+    var tablepredefinedqueries2 = [
+        {"entitytype": "Class", "entity": "ImplementationLibrary", "orderedby": true, "inoutput": true},
+        {"entitytype": "ObjectProperty", "entity": "hasImplementationLanguage", "orderedby": false},
+        {"entitytype": "Individual", "entity": "Java", "orderedby": false},
+        {"entitytype": "ObjectProperty", "entity": "hasSearchAlgorithm", "orderedby": false},
+        {"entitytype": "Individual", "entity": "pNSGA-II", "orderedby": false},
+    ];
+    var tablepredefinedqueries3 = [
+        {"entitytype": "Class", "entity": "MetaHeuristic", "orderedby": true, "inoutput": true},
+        {"entitytype": "ObjectProperty", "entity": "canSolve", "orderedby": false},
+        {"entitytype": "Class", "entity": "Knapsack", "orderedby": false},
+    ];
+    var tablepredefinedqueries4 = [
+        {"entitytype": "Class", "entity": "MetaHeuristic", "orderedby": true, "inoutput": true},
+        {"entitytype": "ObjectProperty", "entity": "canSolve", "orderedby": false},
+        {"entitytype": "Class", "entity": "ZDT", "orderedby": false},
+        {"entitytype": "Class", "entity": "MetaHeuristic", "orderedby": false},
+        {"entitytype": "ObjectProperty", "entity": "useLibrary", "orderedby": false},
+        {"entitytype": "Class", "entity": "ImplementationLibrary", "orderedby": true, "inoutput": true},
+        {"entitytype": "ObjectProperty", "entity": "hasImplementationLanguage", "orderedby": false},
+        {"entitytype": "Individual", "entity": "Java", "orderedby": false},
+    ];
+    var tablepredefinedqueries5 = [
+        {"entitytype": "Class", "entity": "MetaHeuristic", "orderedby": false, "inoutput": true},
+        {"entitytype": "DatatypeProperty", "entity": "isManyObjectiveOptimization", "orderedby": false},
+        {"entitytype": "Literal", "entity": true, "orderedby": false},
+        {"entitytype": "Class", "entity": "MetaHeuristic", "orderedby": false},
+        {"entitytype": "ObjectProperty", "entity": "usesOrderRelation", "orderedby": false, "inoutput": false},
+        {"entitytype": "Class", "entity": "OrderRelation", "orderedby": true, "inoutput": true},
+    ];
+    var tablepredefinedqueries6 = [
+        {"entitytype": "Class", "entity": "Decomposition_based", "orderedby": false},
+        {"entitytype": "ObjectProperty", "entity": "hasAuthor", "orderedby": false},
+        {"entitytype": "Class", "entity": "Researcher", "orderedby": true, "inoutput": true},
+        {"entitytype": "Class", "entity": "Indicator_based", "orderedby": false},
+        {"entitytype": "ObjectProperty", "entity": "hasAuthor", "orderedby": false},
+        {"entitytype": "Class", "entity": "Researcher",},
+    ];
+
+    function predefinedqueriesSelectEvent(predefinequeryIndex) {
+        switch (predefinequeryIndex) {
+            case "1":
+                tablequery.setData(tablepredefinedqueries1);
+                document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+                break;
+            case "2":
+                tablequery.setData(tablepredefinedqueries2);
+                document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+                break;
+            case "3":
+                tablequery.setData(tablepredefinedqueries3);
+                document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+                break;
+            case "4":
+                tablequery.setData(tablepredefinedqueries4);
+                document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+                break;
+            case "5":
+                tablequery.setData(tablepredefinedqueries5);
+                document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+                break;
+            case "6":
+                tablequery.setData(tablepredefinedqueries6);
+                document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+                break;
+            default:
+                tablequery.clearData();
+                document.getElementById("formgeneratedqueryfield").setAttribute('value', "");
+                break;
+        }
+//			tablequeryresults.clearData();
+    }
+
+    var tablequeryresults = new Tabulator("#queryresults-table", {
+        height: "190px",
+        addRowPos: "bottom",
+        columns: [
+            {title: "Entity Type", field: "entitytype", width: 170, editor: "input"},
+            {title: "Entity", field: "entity", width: 939, editor: "input"},
+        ],
+    });
+    //Clear table on "Clear the table" button click
+    document.getElementById("clear").addEventListener("click", function () {
+        tablequeryresults.clearData()
+    });
+    var tablepredefinedqueryresults = [
+        {"entitytype": "...under construction...", "entity": "...under construction..."},
+        {"entitytype": "...", "entity": "..."},
+    ];
+    //Run the query on "Run the query" button click
+
+    document.getElementById("generate-query").addEventListener("click", function () {
+//			tablequeryresults.clearData();
+//			tablequeryresults.setData(tablepredefinedqueryresults);
+        document.getElementById('myframe').contentWindow.document.write("");
+
+        var jsondata = JSON.stringify(tablequery.getData());
+        var tablelineobject = JSON.parse(jsondata);
+
+        var finalquery = "";
+        var finalqueryoutput = "";
+        var finalqueryordering = "";
+        var subject = "";
+        var object = "";
+        var querylines = "";  // THIS VARIABLE IS ONLY FOR DEBUGIING PURPOSES
+        for (var i = 0; i < tablelineobject.length; i++) {
+            querylines = querylines + (tablelineobject[i].entitytype + " " + tablelineobject[i].entity + " " + tablelineobject[i].entitype + " " + tablelineobject[i].orderedby + " " + tablelineobject[i].inoutput) + "\n"; // THIS LINE IS ONLY FOR DEBUGIING PURPOSES
+
+//		for (var key in jsonjavascriptobject[i]) {
+//       for (var j= 0; j<jsonjavascriptobject.jsonData[i][key].length; j++) {
+//           querylines = querylines + "Linha " + i + ": " + key + "=" + jsonjavascriptobject[i][key] + "\n";
+            switch (tablelineobject[i].entitytype) {
+                case 'Class': //subject = "_" + tablelineobject[i].entity.toLowerCase() + "_";
+                    subject = "_" + tablelineobject[i].entity + "_";
+                    if (!((finalquery.indexOf(tablelineobject[i].entity + "(") == 0) || (finalquery.includes(" " + tablelineobject[i].entity + "(")))) {
+                        // || OPERATOR WAS USED IN THIS CONDITION BECAUSE THE && OPERATOR IS CONFUSED WITH OTHER SPECIAL CHARACTERS IN WORDPRESS (IN WORDPRESS THIS CONDITION DOESN'T WORK WITH &&)
+                        // This class variable must be added to the query only if it is not already in the query.
+                        // Checking has to ensure that other entities names including this class name do not match (e.g class OrderRelation and object property usesOrderRelation.
+                        // The class name (class variable) may appear at the beginning of the string or may appear preceded by a space, and followed by "(". This checking ensures that it is really this class name (variable) that is presented in the query
+                        finalquery = finalquery + (finalquery == "" ? "" : " ^ ") + tablelineobject[i].entity + "(?" + subject + ")";
+                    }
+                    if (tablelineobject[i].inoutput) {
+                        finalqueryoutput = finalqueryoutput + (finalqueryoutput == "" ? "" : " ^ ") + "sqwrl:select(?" + subject + ")";
+                    }
+                    if (tablelineobject[i].orderedby) {
+                        finalqueryordering = finalqueryordering + (finalqueryordering == "" ? "" : " ^ ") + "sqwrl:orderBy(?" + subject + ")";
+                    }
+                    break;
+                case 'DatatypeProperty':
+                    if (tablelineobject[i + 1].entitytype == "RelationalOperator") {
+//											object = "_object_" + tablelineobject[i].entity.toLowerCase() + "_";
+                        object = "_" + tablelineobject[i].entity + "_";
+                        finalquery = finalquery + (finalquery == "" ? "" : " ^ ") + tablelineobject[i].entity +
+                            "(?" + subject + " , " + "?" + object + ")";
+                        if (tablelineobject[i].inoutput) {
+                            finalqueryoutput = finalqueryoutput + (finalqueryoutput == "" ? "" : " ^ ") + "sqwrl:select(?" + object + ")";
+                        }
+                        if (tablelineobject[i].orderedby) {
+                            finalqueryordering = finalqueryordering + (finalqueryordering == "" ? "" : " ^ ") + "sqwrl:orderBy(?" + object + ")";
+                        }
+                    }
+                    if (tablelineobject[i + 1].entitytype == "Literal") {
+                        finalquery = finalquery + (finalquery == "" ? "" : " ^ ") + tablelineobject[i].entity +
+                            "(?" + subject + " , " + tablelineobject[i + 1].entity + ")";
+                        if (tablelineobject[i].inoutput) {
+                            finalqueryoutput = finalqueryoutput + (finalqueryoutput == "" ? "" : " ^ ") + "sqwrl:select(?" + subject + " , ?" + object + ")";
+                        }
+                        if (tablelineobject[i].orderedby) {
+                            finalqueryordering = finalqueryordering + (finalqueryordering == "" ? "" : " ^ ") + "sqwrl:orderBy(?" + object + ")";
+                        }
+                    }
+                    break;
+                case 'ObjectProperty':
+                    if (tablelineobject[i + 1].entitytype == "Class") {
+//											object = "_" + tablelineobject[i+1].entity.toLowerCase() + "_";
+                        object = "_" + tablelineobject[i + 1].entity + "_";
+                        finalquery = finalquery + (finalquery == "" ? "" : " ^ ") + tablelineobject[i].entity +
+                            "(?" + subject + " , " + "?" + object + ")";
+                        if (tablelineobject[i].inoutput) {
+                            finalqueryoutput = finalqueryoutput + (finalqueryoutput == "" ? "" : " ^ ") + "sqwrl:select(?" + object + ")";
+                        }
+                        if (tablelineobject[i].orderedby) {
+                            finalqueryordering = finalqueryordering + (finalqueryordering == "" ? "" : " ^ ") + "sqwrl:orderBy(?" + object + ")";
+                        }
+                    }
+                    if (tablelineobject[i + 1].entitytype == "Individual") {
+                        finalquery = finalquery + (finalquery == "" ? "" : " ^ ") + tablelineobject[i].entity +
+                            "(?" + subject + " , " + tablelineobject[i + 1].entity + ")";
+                        if (tablelineobject[i].inoutput) {
+                            finalqueryoutput = finalqueryoutput + (finalqueryoutput == "" ? "" : " ^ ") + "sqwrl:select(?" + subject + " , ?" + object + ")";
+                        }
+                        if (tablelineobject[i].orderedby) {
+                            finalqueryordering = finalqueryordering + (finalqueryordering == "" ? "" : " ^ ") + "sqwrl:orderBy(?" + object + ")";
+                        }
+                    }
+                    break;
+                case 'RelationalOperator':
+                    if (tablelineobject[i + 1].entitytype == "Literal") {
+                        finalquery = finalquery + (finalquery == "" ? "" : " ^ ") + tablelineobject[i].entity +
+                            "(?" + object + " , " + tablelineobject[i + 1].entity + ")";
+                        i++; // Literal is processed with look ahead procedure and i (query line) pointer moves to the next atom
+                    }
+                    break;
+                case 'Individual': // Literal is processed in previous atoms with look ahead procedure
+                    break;
+                case 'Literal':	// Literal is processed in RelationalOperator atom with look ahead procedure
+                    break;
+                default:
+                    ;
+            }
+        }
+        finalquery = finalquery + " -> " + finalqueryoutput + (finalqueryordering ? " ^ " + finalqueryordering : "");
+
+//alert("jsondata: \n" + jsondata);
+//alert("querylines: \n" + querylines);
+//alert("finalquery: \n" + finalquery);
+
+
+        document.getElementById("formgeneratedqueryfield").setAttribute('value', finalquery);
+
+    });
+
+</script>
+</body>
+</html>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->
