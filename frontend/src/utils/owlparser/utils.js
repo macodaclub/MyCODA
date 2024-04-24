@@ -156,8 +156,8 @@ export function buildTaxonomyOfClass(pContextNode, pXmlDoc) {
 
     // Create a JSON object with this class data
     var objClass = {};
-    objClass = {"name": strClassLabel, "comment": strClassComment};
-    if (listDisjointClasses.length) objClass["axioms"] = JSON.stringify({disjointWith: listDisjointClasses}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " ").replaceAll("}", " ");
+    objClass = {"key": strClassLabel, data: {"name": strClassLabel, "comment": strClassComment}};
+    if (listDisjointClasses.length) objClass["data"]["axioms"] = JSON.stringify({disjointWith: listDisjointClasses}).replaceAll("\"", "").replaceAll(",", ", ").replaceAll(":", ": ").replaceAll("{", " ").replaceAll("}", " ");
 
     // If current Class has subclasses, add its children to subClassesList and insert _children field (list of subclass objects) in the class JSON object
     var subClassesList = [];
@@ -175,7 +175,7 @@ objClass["_children"] = subClassesList;
 //				var strSubClassId = thisResult.textContent;
 //				if (! strSubClassLabel) strSubClassLabel = strSubClassId.substring(strSubClassId.indexOf('#') + 1);
         subClassesList.push(buildTaxonomyOfClass(thisResult, pXmlDoc));
-        objClass["_children"] = subClassesList;
+        objClass["children"] = subClassesList;
         thisResult = xpathQueryResultIterator.iterateNext();
     }
     return objClass;

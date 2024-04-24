@@ -1,4 +1,4 @@
-import 'primevue/resources/themes/aura-light-amber/theme.css'
+import 'primevue/resources/themes/aura-light-noir/theme.css'
 import 'primeicons/primeicons.css'
 import './assets/main.css'
 
@@ -9,4 +9,4 @@ import App from './App.vue'
 import router from "@/router";
 
 
-createApp(App).use(PrimeVue).use(router).use(createPinia()).mount('#app')
+createApp(App).use(createPinia()).use(router).use(PrimeVue).mount('#app')

@@ -31,3 +31,13 @@
     padding: 0 2rem;
   }
 }*/
+
+.p-treetable .p-treetable-tbody > tr {
+  &:nth-child(odd):not(.ui-state-highlight) {
+    background-color: #f8fafc;
+  }
+
+  &:nth-child(even):not(.ui-state-highlight) {
+    background-color: #ffffff;
+  }
+}

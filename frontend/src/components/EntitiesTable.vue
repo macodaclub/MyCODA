@@ -1,3 +1,4 @@
+a
 <script setup>
 import {onMounted, ref} from "vue";
 import DataTable from 'primevue/datatable';
@@ -43,10 +44,12 @@ const updateTypesAutoComplete = event => {
     <template #header>
       Browse and Filter the Ontology by Type of Entity
     </template>
-    <DataTable v-model:filters="filters" :value="entities" paginator :rows="rows" :rowsPerPageOptions="[10, 20, 50]"
+    <DataTable v-model:filters="filters" stripedRows :value="entities" paginator :rows="rows"
+               :rowsPerPageOptions="[10, 20, 50]"
                removableSort filterDisplay="row" resizableColumns columnResizeMode="fit" showGridlines
+               sortMode="multiple"
                :tableStyle="{width:'100%', tableLayout: 'fixed'}">
-      <Column field="type" header="Type" sortable :showFilterMenu="false"
+      <Column field="type" header="Type" :sortable="true" :showFilterMenu="false"
               :style="{whiteSpace: 'nowrap', width: '15rem'}">
         <template #filter="{ filterModel, filterCallback }">
           <AutoComplete v-model="filterModel.value" :suggestions="typeSuggestions"
@@ -56,19 +59,19 @@ const updateTypesAutoComplete = event => {
                         :autoOptionFocus="true"/>
         </template>
       </Column>
-      <Column field="name" header="Name" sortable :showFilterMenu="false"
+      <Column field="name" header="Name" :sortable="true" :showFilterMenu="false"
               :style="{whiteSpace: 'nowrap', width: '18rem'}">
         <template #filter="{ filterModel, filterCallback }">
           <InputText v-model="filterModel.value" @input="filterCallback"/>
         </template>
       </Column>
-      <Column field="details" header="Details" sortable :showFilterMenu="false"
+      <Column field="details" header="Details" :sortable="true" :showFilterMenu="false"
               :style="{whiteSpace: 'nowrap'}">
         <template #filter="{ filterModel, filterCallback }">
           <InputText v-model="filterModel.value" @input="filterCallback"/>
         </template>
       </Column>
-      <Column field="comment" header="Comment" sortable :showFilterMenu="false"
+      <Column field="comment" header="Comment" :sortable="true" :showFilterMenu="false"
               :style="{whiteSpace: 'nowrap'}">
         <template #filter="{ filterModel, filterCallback }">
           <InputText v-model="filterModel.value" @input="filterCallback"/>

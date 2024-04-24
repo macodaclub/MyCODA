@@ -3,18 +3,18 @@
 </script>
 
 <template>
-  <article>
+  <div class="card">
     <h2><slot name="header"/></h2>
     <slot />
-  </article>
+  </div>
 </template>
 
 <style scoped>
-article {
+div.card {
   margin: 20px;
-  padding: 16px 24px;
-  border-radius: 16px;
+  padding: 16px;
+  border-radius: 10px;
   background-color: var(--color-content-background);
-  box-shadow: 0 20px 27px 0 rgba(0,0,0,.05);;
+  border: 1px solid #e2e8f0;
 }
 </style>
