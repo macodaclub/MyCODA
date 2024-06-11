@@ -1,6 +1,5 @@
-a
 <script setup>
-import {onMounted, ref} from "vue";
+import {ref} from "vue";
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
@@ -15,12 +14,22 @@ defineProps({
     type: Number,
     required: false,
     default: 10
-  }
+  },
+  headerTitle: {
+    type: String,
+    required: false,
+    default: "Browse and Filter the Ontology by Type of Entity"
+  },
+  entities: {
+    type: Array,
+    required: true,
+  },
 });
 
+// TODO: Fix long text cells (e.g. entity details)
+
 const ontologyStore = useOntologyStore();
-const {entities, entityTypes} = storeToRefs(ontologyStore)
-const {updateEntities} = ontologyStore
+const {entityTypes} = storeToRefs(ontologyStore);
 
 const filters = ref({
   type: {value: '', matchMode: 'contains'},
@@ -29,20 +38,16 @@ const filters = ref({
   comment: {value: '', matchMode: 'contains'},
 });
 
-onMounted(() => {
-  updateEntities();
-});
-
 const typeSuggestions = ref([]);
-const updateTypesAutoComplete = event => {
-  typeSuggestions.value = entityTypes.value.filter(it => it.toLowerCase().includes(event.query.toLowerCase()));
+const updateTypesAutoComplete = () => {
+  typeSuggestions.value = [...entityTypes.value];
 };
 </script>
 
 <template>
   <Article>
     <template #header>
-      Browse and Filter the Ontology by Type of Entity
+      {{ headerTitle }}
     </template>
     <DataTable v-model:filters="filters" stripedRows :value="entities" paginator :rows="rows"
                :rowsPerPageOptions="[10, 20, 50]"

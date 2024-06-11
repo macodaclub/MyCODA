@@ -12,8 +12,8 @@ export const useOntologyStore = defineStore('ontology', () => {
 
     const entityTypes = computed(() => entities.value.map(it => it.type).filter((value, index, self) => self.indexOf(value) === index));
 
-    async function updateEntities() {
-        const response = await fetch('https://vbasto-gmail.github.io/mycoda/MaCODA.owl');
+    async function fetchEntities() {
+        const response = await fetch('http://127.0.0.1:8081/static/MaCODA.owl');
         if (!response.ok) return console.error('Failed to fetch ontology', response);
         const text = await response.text();
         const parser = new DOMParser();
@@ -53,5 +53,5 @@ export const useOntologyStore = defineStore('ontology', () => {
         taxonomy.value = tableTaxonomyData;
     }
 
-    return {entities, taxonomy, entityTypes, updateEntities}
+    return {entities, taxonomy, entityTypes, fetchEntities}
 })
