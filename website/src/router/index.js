@@ -1,9 +1,10 @@
 import {createRouter, createWebHistory} from "vue-router";
-import Tools from "@/views/Tools.vue";
+import Browse from "@/views/Browse.vue";
 import MarkdownPage from "@/views/MarkdownPage.vue";
 import homeMd from "@/assets/markdown/home.md?raw";
 import educationMd from "@/assets/markdown/education.md?raw";
 import eventsMd from "@/assets/markdown/events.md?raw";
+import SubmissionForm from "@/views/ArticleSubmission.vue";
 
 export default createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,9 +28,14 @@ export default createRouter({
             props: {md: eventsMd}
         },
         {
-            path: '/tools',
-            name: 'tools',
-            component: Tools
+            path: '/browse',
+            name: 'browse',
+            component: Browse
+        },
+        {
+            path: '/submission-form',
+            name: 'submissionForm',
+            component: SubmissionForm
         }
     ]
 })

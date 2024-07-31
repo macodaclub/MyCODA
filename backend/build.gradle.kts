@@ -47,7 +47,4 @@ dependencies {
     //implementation("net.sourceforge.owlapi:owlapi-api:5.5.0")
     implementation("edu.stanford.swrl:swrlapi:2.1.2")
     implementation("edu.stanford.swrl:swrlapi-drools-engine:2.1.2")
-
-    testImplementation("io.ktor:ktor-server-tests-jvm")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }

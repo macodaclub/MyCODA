@@ -8,12 +8,12 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-    val ontology = configureOntology()
-    val queryEngine = configureSQWRL(ontology)
+    val (ontology, mergedOntology, reasoner) = configureOntology()
+    val queryEngine = configureSQWRL(mergedOntology)
     configureSession()
     configureHTTP()
     configureMonitoring()
     configureSerialization()
     configureDatabases()
-    configureRouting(ontology, queryEngine)
+    configureRouting(ontology, mergedOntology, reasoner, queryEngine)
 }

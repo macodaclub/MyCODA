@@ -2,9 +2,5 @@
 cd website || exit
 yarn install
 yarn run build
-cd ../frontend || exit
-yarn install
-yarn run build --base=/frontend
 cd ..
-cp website/dist backend/src/main/resources/website
-cp frontend/dist backend/src/main/resources/frontend
+cp -r website/dist backend/src/main/resources/website

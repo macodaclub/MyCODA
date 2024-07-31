@@ -3,3 +3,6 @@ ktor:
     modules:
       - "io.github.macodaclub.ApplicationKt.module"
   development: true
+  deployment:
+    port: 8081
+  frontendPort: 5173

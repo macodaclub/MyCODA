@@ -16,13 +16,7 @@ const html = computed(() => mdConverter.makeHtml(props.md));
 </script>
 
 <template>
-  <div class="md-content" v-html="html"/>
+  <div class="flex justify-center">
+    <div class="prose max-w-none w-11/12 border rounded-xl bg-surface-0 p-8 m-4 mt-5" v-html="html"/>
+  </div>
 </template>
-
-<style scoped>
-.md-content {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 16px;
-}
-</style>

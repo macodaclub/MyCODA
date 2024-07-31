@@ -1,38 +1,56 @@
 @import './base.css';
 
+@layer tailwind-base, primevue, tailwind-utilities;
+
+@layer tailwind-base {
+    @tailwind base;
+}
+
+@layer tailwind-utilities {
+    @tailwind components;
+    @tailwind utilities;
+}
+
+html {
+    > body {
+        min-height: 100vh;
+        color: var(--color-text);
+        background: var(--color-background);
+        line-height: 1.6;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        margin: 0;
+        background-color: #f8fafc;
+    }
+}
+
 #app {
     margin: 0 0;
     padding: 0 0;
-    font-weight: normal;
 }
 
 a {
     text-decoration: none;
-    color: var(--color-orange);
-    transition: 0.4s;
+    color: var(--p-primary-color);
+    transition: var(--p-transition-duration);
 }
 
-@media (hover: hover) {
-    a:hover {
-        background-color: var(--color-orange-alpha-33);
+a:hover {
+    background-color: var(--p-highlight-focus-background);
+}
+
+.capitalize::first-letter {
+    text-transform: capitalize;
+}
+
+/*
+.p-treetable .p-treetable-tbody > tr {
+    &:nth-child(odd):not(.ui-state-highlight) {
+        background-color: #f8fafc;
     }
-}
 
-main h1 {
-    color: var(--color-heading);
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-}
-
-main p {
-    margin-bottom: 1rem;
-}
-
-ul {
-    margin-bottom: 1rem;
-    padding-left: 20px;
-}
-
-b {
-    font-weight: bold;
-}
+    &:nth-child(even):not(.ui-state-highlight) {
+        background-color: #ffffff;
+    }
+}*/
