@@ -1,9 +1,15 @@
 # MyCODA
 
-Install NPM
+## How to run the project locally
 
-Install yarn
+### Pre-Requisites
 
-Run dev-setup
+- [Install Node.js](https://nodejs.org/en/download/package-manager) (Recommended: v20.14.0)
+- [Install yarn](https://classic.yarnpkg.com/lang/en/docs/install)
+- [Install Docker](https://docs.docker.com/engine/install/)
 
-Run Dockerfile with -p 8081
+### Build and run docker image
+```shell
+docker build -t mycoda .
+docker run -p 8081 mycoda
+```
