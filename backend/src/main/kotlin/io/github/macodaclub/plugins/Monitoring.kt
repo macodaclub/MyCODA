@@ -1,16 +1,11 @@
 package io.github.macodaclub.plugins
 
-import com.codahale.metrics.*
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.metrics.dropwizard.*
 import io.ktor.server.plugins.callid.*
 import io.ktor.server.plugins.callloging.*
 import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import java.util.concurrent.TimeUnit
-import org.slf4j.event.*
+import org.slf4j.event.Level
 
 fun Application.configureMonitoring() {
     install(CallLogging) {

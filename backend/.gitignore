@@ -4,6 +4,8 @@ build/
 **/src/test/**/build/
 **/src/main/resources/frontend
 **/src/main/resources/website
+libs/**
+**/.github
 
 ### STS ###
 .apt_generated

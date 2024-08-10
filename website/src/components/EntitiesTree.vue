@@ -203,8 +203,8 @@ defineExpose({
              :class="{'selected-entity': node.data.iri === selectedIri}"
              :href="node.data.iri">{{ node.label }}</a>
           <span class="tree-children-count" v-if="!node.leaf">({{ node.data.allChildrenCount }})</span>
-          <Badge v-if="!node.data.iri.startsWith('http://localhost:8081/ontologies/')" value="Imported"
-                 size="small" severity="contrast"/>
+<!--          <Badge v-if="!node.data.iri.startsWith('http://localhost/ontologies/')" value="Imported"
+                 size="small" severity="contrast"/>-->
           <Button @click="onTreeNodeExpand(node)"
                   v-if="node.children && node.data.directChildrenCount > node.children.length && expandedKeys && expandedKeys[node.key] === true"
                   size="small" label="…"
@@ -262,6 +262,26 @@ defineExpose({
                  @click.prevent="onSelectEntity(type.iri, type.type)">{{
                   type.label
                 }}</a>
+            </div>
+            <div
+                v-if="selectedEntityInfo.individualInfo.properties && selectedEntityInfo.individualInfo.properties.length > 0"
+                class="info-field">
+              <h4 class="capitalize font-semibold">Properties</h4>
+              <div v-for="property in selectedEntityInfo.individualInfo.properties">
+                <a :href="property.iri"
+                   class="font-medium"
+                   @click.prevent="onSelectEntity(property.iri, property.type)">{{
+                    property.label
+                  }}</a>:
+                <template v-for="(entity, index) in property.rangeEntities">
+                  <a :href="entity.iri"
+                     @click.prevent="onSelectEntity(entity.iri, entity.type)">{{
+                      entity.label
+                    }}
+                  </a>
+                  <span v-if="index < property.rangeEntities.length - 1" class="font-medium">, </span>
+                </template>
+              </div>
             </div>
           </template>
         </template>

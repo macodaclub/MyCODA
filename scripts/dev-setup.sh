@@ -1,5 +1,5 @@
 #!/bin/sh
-cd website || exit
+cd ../website || exit
 yarn install
 yarn run build
 cd ..

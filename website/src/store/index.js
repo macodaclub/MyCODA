@@ -8,6 +8,9 @@ import {nonNulls} from "@/utils/utils/utils.js";
 // and `Store` (e.g. `useUserStore`, `useCartStore`, `useProductStore`)
 // the first argument is a unique id of the store across your application
 export const useOntologyStore = defineStore('ontology', () => {
+
+    const backendHost = import.meta.env.DEV ? `http://localhost:${import.meta.env.VITE_BACKEND_PORT ? import.meta.env.VITE_BACKEND_PORT : "8081"}` : location.origin
+
     const entities = ref([]);
     const taxonomy = ref([]);
     const taxonomyTree = ref([]);
@@ -15,7 +18,7 @@ export const useOntologyStore = defineStore('ontology', () => {
     const entityTypes = computed(() => entities.value.map(it => it.type).filter((value, index, self) => self.indexOf(value) === index));
 
     async function fetchEntities() {
-        const response = await fetch('http://127.0.0.1:8081/static/MaCODA.owl');
+        const response = await fetch(`${backendHost}/static/MaCODA.owl`);
         if (!response.ok) return console.error('Failed to fetch ontology', response);
         const text = await response.text();
         const parser = new DOMParser();
@@ -56,14 +59,14 @@ export const useOntologyStore = defineStore('ontology', () => {
     }
 
     async function fetchOntologyInfo() {
-        const url = new URL('http://127.0.0.1:8081/api/ontologyInfo');
+        const url = new URL(`${backendHost}/api/ontologyInfo`);
         const response = await fetch(url);
         if (!response.ok) return console.error('Failed to fetch ontology info', response);
         return await response.json();
     }
 
     async function fetchTaxonomyTree(taxonomyTree, type) {
-        const url = new URL('http://127.0.0.1:8081/api/tree');
+        const url = new URL(`${backendHost}/api/tree`);
         url.search = new URLSearchParams(nonNulls({type})).toString();
         const response = await fetch(url);
         if (!response.ok) return console.error('Failed to fetch taxonomy tree', response);
@@ -84,10 +87,10 @@ export const useOntologyStore = defineStore('ontology', () => {
     }
 
     async function fetchExpandedTaxonomyTree(node) {
-        const url = new URL('http://127.0.0.1:8081/api/tree/expand');
+        const url = new URL(`${backendHost}/api/tree/expand`);
         url.search = new URLSearchParams(nonNulls({iri: node.data.iri, type: node.data.type})).toString();
         const response = await fetch(url);
-        if (!response.ok) return console.error('Failed to fetch taxonomy tree', response);
+        if (!response.ok) return console.error('Failed to fetch taxonomy tree expand', response);
         const responseObj = await response.json();
         const result = [];
         if (node.children && node.children.length > 0) {
@@ -115,10 +118,10 @@ export const useOntologyStore = defineStore('ontology', () => {
     }
 
     async function fetchSelectedTaxonomyTree(iri, type) {
-        const url = new URL('http://127.0.0.1:8081/api/tree/select');
+        const url = new URL(`${backendHost}/api/tree/select`);
         url.search = new URLSearchParams(nonNulls({iri, type})).toString();
         const response = await fetch(url);
-        if (!response.ok) return console.error('Failed to fetch taxonomy tree', response);
+        if (!response.ok) return console.error('Failed to fetch taxonomy tree select', response);
         const responseObj = await response.json();
         return {
             tree: responseObj.taxonomyTree.rootEntries.map(toTreeNode),
@@ -127,14 +130,33 @@ export const useOntologyStore = defineStore('ontology', () => {
     }
 
     async function fetchSelectedEntityInfo(iri) {
-        const url = new URL('http://127.0.0.1:8081/api/entityInfo');
+        const url = new URL(`${backendHost}/api/entityInfo`);
         url.search = new URLSearchParams(nonNulls({iri})).toString();
         const response = await fetch(url);
-        if (!response.ok) return console.error('Failed to fetch taxonomy tree', response);
+        if (!response.ok) return console.error('Failed to fetch selected entity info', response);
         return await response.json();
     }
 
+    async function fetchSearchEntities(query, type, subClassOf) {
+        const url = new URL(`${backendHost}/api/search`);
+        url.search = new URLSearchParams(nonNulls({query, type, subClassOf})).toString();
+        const response = await fetch(url);
+        if (!response.ok) return console.error('Failed to fetch search entities', response);
+        const responseObj = await response.json();
+        return responseObj.entities;
+    }
+
+    async function fetchIndividualProperties(query, classIri) {
+        const url = new URL(`${backendHost}/api/editor/individualProperties`);
+        url.search = new URLSearchParams(nonNulls({query, classIri})).toString();
+        const response = await fetch(url);
+        if (!response.ok) return console.error('Failed to fetch search entities', response);
+        const responseObj = await response.json();
+        return responseObj.properties;
+    }
+
     return {
+        backendHost,
         entities,
         taxonomy,
         taxonomyTree,
@@ -144,6 +166,8 @@ export const useOntologyStore = defineStore('ontology', () => {
         fetchTaxonomyTree,
         fetchExpandedTaxonomyTree,
         fetchSelectedTaxonomyTree,
-        fetchSelectedEntityInfo
+        fetchSelectedEntityInfo,
+        fetchSearchEntities,
+        fetchIndividualProperties
     }
 });

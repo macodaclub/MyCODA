@@ -13,18 +13,23 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Badge from 'primevue/badge';
 import Select from 'primevue/select';
+import AutoComplete from 'primevue/autocomplete';
 import {useDebounceFn} from "@vueuse/core"
 import {useRouter} from 'vue-router'
-import {ref} from "vue";
+import {computed, ref, watch} from "vue";
 import EntitiesTree from "@/components/EntitiesTree.vue";
+import {useOntologyStore} from "@/store";
+
+const ontologyStore = useOntologyStore();
+const {backendHost, fetchSearchEntities, fetchIndividualProperties} = ontologyStore;
 
 const router = useRouter();
 
 const activeStep = ref(1);
 
-const titleInput = ref("The NSGA-II algorithm, a Diversity VS. Convergence based algorithm – subclass of MOEA –, has implementation language Java.");
-const abstractInput = ref("The NSGA-II algorithm, a Diversity VS. Convergence based algorithm – subclass of Multi-Objective Evolutionary Algorithm –, has implementation language Java, and the author was Jorge Navarro.");
-const keywordsInput = ref("NSGA-II, Java, MOEA");
+const titleInput = ref("The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of MOEA –, has implementation language Java and C#.");
+const abstractInput = ref("The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of multi-objective evolutionary algorithm –, has implementation language Java and C#, and one of the authors was Pradyumn Kumar Shukla.");
+const keywordsInput = ref("p NSGA-II, Java, MOEA, C#");
 
 const titleSegments = ref(null);
 const abstractSegments = ref(null);
@@ -35,7 +40,24 @@ const isEntityPreviewVisible = ref(false);
 const entityPreviewTree = ref(null);
 const previewingEntity = ref(null);
 
-const entityChanges = ref([]);
+const edits = ref([]);
+const addedEntities = ref([]);
+const identifiedTerms = computed(() => {
+  let result = [...referencedEntities.value.map(it => ({
+    context: ["Referenced"],
+    iri: it.iri,
+    label: it.label,
+    type: it.type,
+  }))];
+
+  result = result.concat([...addedEntities.value.map(it => ({
+    context: ["Added"],
+    label: it.label,
+    type: it.type
+  }))]);
+
+  return result;
+})
 
 const isNewEntityDialogVisible = ref(false);
 const newEntityLabelInput = ref("");
@@ -44,9 +66,6 @@ const newEntityLabelInputDebounceFn = useDebounceFn(() => {
   newEntityLabelInputDebounced.value = newEntityLabelInput.value
 }, 500);
 const selectedNewEntityType = ref(null);
-const newEntityCommentInput = ref("");
-const newClassSubClassOfInput = ref("");
-const newIndividualTypeInput = ref("");
 const entityTypeOptions = [
   {
     "value": "Class",
@@ -61,11 +80,44 @@ const entityTypeOptions = [
     "description": "An attribute, or characteristic of something.",
   },
 ];
+const newEntityCommentInput = ref("");
+const newClassSubClassOfInput = ref(null);
+const newIndividualType = ref(null);
+const selectedNewProperty = ref("");
+const selectedNewPropertyOptions = ref([]);
+const newIndividualProperties = ref([
+  {
+    property: {
+      iri: "",
+      label: "",
+      type: "",
+    },
+    range: {
+      iri: "",
+      label: "",
+      type: ""
+    },
+    rangeIsLiteral: true,
+    value: {
+      literal: null,
+      individual: null, // { label: "", iri: "" }
+    }
+  }
+]);
+watch(selectedNewProperty, (to) => {
+  if (to && to.property && to.property.iri) {
+    const lastEl = newIndividualProperties.value[newIndividualProperties.value.length - 1];
+    newIndividualProperties.value.splice(newIndividualProperties.value.length - 1, 1, Object.assign(lastEl, to));
+    selectedNewProperty.value = "";
+  }
+});
+
+const entitiesAutoCompleteOptions = ref([]);
 
 const browseRoute = router.resolve({name: 'browse'});
 
 const onSubmitForm = async (stepperActivateCallback) => {
-  const url = "http://127.0.0.1:8081/api/submission/submitForm";
+  const url = `${backendHost}/api/submission/submitForm`;
   const formData = new FormData();
   formData.append("title", titleInput.value);
   formData.append("abstract", abstractInput.value);
@@ -80,12 +132,6 @@ const onSubmitForm = async (stepperActivateCallback) => {
   abstractSegments.value = responseData.abstractSegments;
   keywordSegments.value = responseData.keywordSegments;
   referencedEntities.value = responseData.referencedEntities;
-  entityChanges.value = [...referencedEntities.value.map(it => ({
-    context: ["Referenced"],
-    iri: it.iri,
-    label: it.label,
-    type: it.type,
-  }))];
   stepperActivateCallback(2);
 }
 
@@ -97,9 +143,98 @@ const previewEntity = async (segment) => {
 
 const getSeverityForContext = context => ({
   "Referenced": "secondary",
-  "New": "success",
+  "Added": "success",
   "Edited": "warn",
 })[context];
+
+const autoCompleteEntities = async (event, type, subClassOf = null) => {
+  const filteredAddedEntities = [...addedEntities.value.filter(it => it.type === type)];
+  entitiesAutoCompleteOptions.value = (await fetchSearchEntities(event.query, type, subClassOf))
+      .concat(filteredAddedEntities);
+}
+
+const onAddEntity = () => {
+  const label = newEntityLabelInput.value;
+  const type = selectedNewEntityType.value.value;
+  const comment = newEntityCommentInput.value;
+  let newEntity;
+  if (type === "Class") {
+    newEntity = {
+      label,
+      type,
+      subClassOf: newClassSubClassOfInput.value,
+      comment,
+    }
+  } else if (type === "Individual") {
+    newEntity = {
+      label,
+      type,
+      individualType: newIndividualType.value,
+      comment,
+    }
+  } else if (type === "Property") {
+    newEntity = {
+      label,
+      type,
+      comment,
+    }
+  }
+  addedEntities.value.push(newEntity);
+  isNewEntityDialogVisible.value = false;
+}
+
+watch(newIndividualProperties, (to) => {
+  console.log(to);
+  if (to.length === 0 || to[to.length - 1] && to[to.length - 1].property && to[to.length - 1].property.label) {
+    newIndividualProperties.value.push({
+      property: {
+        iri: "",
+        label: "",
+        type: "",
+      },
+      range: {
+        iri: "",
+        label: "",
+        type: ""
+      },
+      rangeIsLiteral: true,
+      value: {
+        literal: null,
+        individual: null, // { label: "", iri: "" }
+      }
+    });
+  }
+}, {deep: true});
+const onRemoveNewIndividualProperty = (index) => {
+  newIndividualProperties.value.splice(index, 1);
+};
+const onAddNewIndividualPropertyValue = (event, data, index) => {
+  newIndividualProperties.value.splice(index + 1, 0, {
+    property: data.property,
+    range: data.range,
+    rangeIsLiteral: data.rangeIsLiteral,
+    value: {
+      literal: null,
+      individual: null
+    }
+  });
+};
+const autoCompleteNewIndividualProperties = async (event) => {
+  //const filteredAddedEntities = [...addedEntities.value.filter(it => it.type === type)];
+  // TODO: Support added properties
+  //    .concat(filteredAddedEntities);
+  // TODO: Filter out already selected properties
+  // TODO: Allow creating new properties here
+
+  const properties = await fetchIndividualProperties(event.query, newIndividualType.value.iri);
+  const filteredProperties = [...properties.filter(it => !newIndividualProperties.value.find(other => it.property.iri === other.property.iri))];
+  //newIndividualPropertyOptions.value = [...properties.map(it => it.property)];
+  selectedNewPropertyOptions.value = filteredProperties;
+}
+
+const shouldShowNewPropertyValuePlusIcon = (data, index) => {
+  return newIndividualProperties.value.findLastIndex(it => data.property === it.property) === index;
+}
 </script>
 
 <template>
@@ -169,7 +304,7 @@ const getSeverityForContext = context => ({
               </div>
               <div>
                 <h3 class="text-lg font-semibold mb-4">Identified Terms</h3>
-                <DataTable :value="entityChanges" editMode="cell" showGridlines>
+                <DataTable :value="identifiedTerms" editMode="cell" showGridlines>
                   <Column field="context" header="Context" style="width: 4rem;">
                     <template #body="{ data, field }">
                       <div class="flex flex-row gap-2">
@@ -193,7 +328,7 @@ const getSeverityForContext = context => ({
             <Dialog v-model:visible="isNewEntityDialogVisible" modal header="Add a new term">
               <div class="flex flex-col gap-6">
                 <div class="flex flex-col gap-2">
-                  <label for="newEntityLabelInput">What term would you like to introduce?</label>
+                  <label for="newEntityLabelInput" class="font-medium">What term would you like to introduce?</label>
                   <InputText v-model="newEntityLabelInput"
                              @input="newEntityLabelInputDebounceFn"
                              id="newEntityLabelInput"
@@ -221,52 +356,119 @@ const getSeverityForContext = context => ({
                     base</a>
                   </p>
                 </div>
-                <div v-if="newEntityLabelInputDebounced" class="flex flex-col gap-2">
-                  <label for="selectedNewEntityType">Which type is the new term?</label>
-                  <Select v-model="selectedNewEntityType" id="selectedNewEntityType" :options="entityTypeOptions"
-                          optionLabel="value"
-                          placeholder="Select type…">
-                    <template #option="{option}">
-                      <div class="flex flex-col">
-                        <p class="font-medium">{{ option.value }}</p>
-                        <p class="text-sm">{{ option.description }}</p>
-                      </div>
-                    </template>
-                  </Select>
-                </div>
-                <div v-if="selectedNewEntityType !== null && selectedNewEntityType.value === 'Class'"
-                     class="flex flex-col gap-2">
+                <template v-if="newEntityLabelInputDebounced">
                   <div class="flex flex-col gap-2">
-                    <label for="newEntitySubClassOfInput">Does this class have a super class?</label>
-                    <InputText v-model="newClassSubClassOfInput" id="newEntitySubClassOfInput" fluid
-                               placeholder="No."/>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label for="newEntityCommentInput">How would you describe the new term?</label>
-                    <Textarea fluid v-model="newEntityCommentInput" id="newEntityCommentInput" rows="5"
+                    <label for="newEntityCommentInput" class="font-medium">How would you describe the term?</label>
+                    <Textarea fluid v-model="newEntityCommentInput" id="newEntityCommentInput" rows="3"
                               placeholder="Describe the term…"/>
                   </div>
-                </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="selectedNewEntityType" class="font-medium">Which type is the term?</label>
+                    <Select v-model="selectedNewEntityType" id="selectedNewEntityType" :options="entityTypeOptions"
+                            optionLabel="value"
+                            placeholder="Select type…">
+                      <template #option="{option}">
+                        <div class="flex flex-col">
+                          <p class="font-medium">{{ option.value }}</p>
+                          <p class="text-sm">{{ option.description }}</p>
+                        </div>
+                      </template>
+                    </Select>
+                  </div>
+                </template>
+                <template v-if="selectedNewEntityType !== null && selectedNewEntityType.value === 'Class'">
+                  <div class="flex flex-col gap-2">
+                    <label for="newClassSubClassOfInput" class="font-medium">Does this class have a super class?</label>
+                    <AutoComplete v-model="newClassSubClassOfInput"
+                                  id="newClassSubClassOfInput"
+                                  pt:pcInput:root:class="w-full"
+                                  forceSelection
+                                  optionLabel="label"
+                                  :suggestions="entitiesAutoCompleteOptions"
+                                  @complete="e => autoCompleteEntities(e, 'Class')"
+                                  placeholder="No."/>
+                  </div>
+                </template>
                 <template v-if="selectedNewEntityType !== null && selectedNewEntityType.value === 'Individual'">
                   <div class="flex flex-col gap-2">
-                    <label for="newEntitySubClassOfInput">Which class does this individual belong to?</label>
-                    <InputText v-model="newIndividualTypeInput" id="newIndividualTypeInput" fluid
-                               placeholder="Select a class…"/>
+                    <label for="newEntitySubClassOfInput" class="font-medium">Which class does this individual belong
+                      to?</label>
+                    <AutoComplete v-model="newIndividualType"
+                                  id="newIndividualTypeInput"
+                                  pt:pcInput:root:class="w-full"
+                                  forceSelection
+                                  optionLabel="label"
+                                  :suggestions="entitiesAutoCompleteOptions"
+                                  @complete="e => autoCompleteEntities(e, 'Class')"
+                                  placeholder="Type…"/>
                   </div>
-                  <div class="flex flex-col gap-2">
-                    <label for="newEntityCommentInput">How would you describe the new term?</label>
-                    <Textarea fluid v-model="newEntityCommentInput" id="newEntityCommentInput" rows="5"
-                              placeholder="Describe the term…"/>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div>Properties</div>
-
-                  </div>
+                  <template v-if="newIndividualType && newIndividualType.iri">
+                    <div class="flex flex-col gap-2">
+                      <div class="font-medium">What are the properties of this individual?</div>
+                      <DataTable :value="newIndividualProperties" rowGroupMode="rowspan"
+                                 :groupRowsBy="['property.label', 'range.label']"
+                                 stripedRows size="small">
+                        <Column field="property.label" header="Property" style="width: 12rem">
+                          <template #body="{data, index}">
+                            <template v-if="!data || !data.property || !data.property.label">
+                              <AutoComplete v-model="selectedNewProperty"
+                                            pt:pcInput:root:class="w-full"
+                                            forceSelection
+                                            dropdown
+                                            optionLabel="property.label"
+                                            :suggestions="selectedNewPropertyOptions"
+                                            @complete="e => autoCompleteNewIndividualProperties(e)"
+                                            placeholder="Add property..."/>
+                            </template>
+                            <template v-else>
+                              {{ data.property.label }}
+                            </template>
+                          </template>
+                        </Column>
+                        <Column field="range.label" header="Type" style="width: 12rem">
+                        </Column>
+                        <Column field="value.literal" header="Value(s)" style="width: 12rem">
+                          <template #body="{data, index}">
+                            <template v-if="data && data.property && data.property.label">
+                              <template v-if="data.rangeIsLiteral">
+                                <InputText fluid v-model="newIndividualProperties[index].value.literal"
+                                           placeholder="Value…"/>
+                              </template>
+                              <template v-else>
+                                <AutoComplete v-model="newIndividualProperties[index].value.individual"
+                                              pt:pcInput:root:class="w-full"
+                                              forceSelection
+                                              optionLabel="label"
+                                              :suggestions="entitiesAutoCompleteOptions"
+                                              @complete="e => autoCompleteEntities(e, 'Individual', data.range.iri)"
+                                              placeholder="Individual…"/>
+                              </template>
+                            </template>
+                          </template>
+                        </Column>
+                        <Column>
+                          <template #body="{ data, index }" style="width: 0">
+                            <div class="flex flex-row justify-end gap-2"
+                                 v-if="data && data.property && data.property.label">
+                              <Button
+                                  @click="e => onAddNewIndividualPropertyValue(e, data, index)" icon="pi pi-plus"
+                                  size="small" severity="secondary" rounded
+                                  pt:root:class="!px-0 !py-0 size-6" outlined
+                                  v-if="shouldShowNewPropertyValuePlusIcon(data, index)"/>
+                              <Button @click="onRemoveNewIndividualProperty(index)" icon="pi pi-times" size="small"
+                                      severity="danger" rounded
+                                      pt:root:class="!px-0 !py-0 size-6" outlined/>
+                            </div>
+                          </template>
+                        </Column>
+                      </DataTable>
+                    </div>
+                  </template>
                 </template>
                 <div class="flex flex-row justify-end gap-2">
                   <Button label="Cancel" severity="secondary" outlined size="small"
                           @click="isNewEntityDialogVisible = false"/>
-                  <Button label="Add term" :disabled="!selectedNewEntityType" size="small"/>
+                  <Button label="Add term" :disabled="!selectedNewEntityType" @click="onAddEntity" size="small"/>
                 </div>
               </div>
             </Dialog>

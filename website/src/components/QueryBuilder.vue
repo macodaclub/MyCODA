@@ -14,7 +14,7 @@ import AutoComplete from "primevue/autocomplete";
 import EntitiesTable from "@/components/EntitiesTable.vue";
 
 const ontologyStore = useOntologyStore();
-const {entities} = storeToRefs(ontologyStore);
+const {backendHost, entities} = storeToRefs(ontologyStore);
 
 const entityTypes = ref([
   "Class",
@@ -374,7 +374,7 @@ const generateQuery = () => {
 }
 
 const runQuery = async () => {
-  const response = await fetch("http://127.0.0.1:8081/api/sqwrl", {
+  const response = await fetch(`${backendHost}/api/sqwrl`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

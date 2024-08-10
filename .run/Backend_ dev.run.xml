@@ -1,0 +1,23 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend: dev" type="KtorApplicationConfigurationType" factoryName="Ktor">
+    <output_file path="$PROJECT_DIR$/backend-logs.txt" />
+    <module name="backend.main" />
+    <option name="alternativeJrePath" />
+    <option name="alternativeJrePathEnabled" value="false" />
+    <option name="includeProvidedScope" value="true" />
+    <option name="mainClass" value="io.github.macodaclub.ApplicationKt" />
+    <option name="passParentEnvs" value="true" />
+    <option name="programParameters" value="" />
+    <option name="shortenCommandLine" value="NONE" />
+    <option name="vmParameters" value="" />
+    <option name="workingDirectory" value="" />
+    <envs>
+      <env name="DEVELOPMENT" value="true" />
+      <env name="FRONTEND_PORT" value="5173" />
+      <env name="PORT" value="8081" />
+    </envs>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

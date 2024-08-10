@@ -1,5 +1,5 @@
 @ECHO OFF
-CD website || EXIT
+CD ../website || EXIT
 CALL yarn install
 CALL yarn run build
 CD ..

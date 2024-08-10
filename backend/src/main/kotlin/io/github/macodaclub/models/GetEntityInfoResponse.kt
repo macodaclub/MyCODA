@@ -31,9 +31,17 @@ data class GetEntityInfoResponse(
     @Serializable
     data class IndividualInfo(
         val types: List<Entity>,
-        // Properties TODO
+        val properties: List<Property>
         // sameAs TODO
-    )
+    ) {
+        @Serializable
+        data class Property(
+            val iri: String,
+            val label: String,
+            val rangeEntities: List<Entity>,
+            val inverseOfProperty: Entity?,
+        )
+    }
 
     @Serializable
     data class PropertyInfo(

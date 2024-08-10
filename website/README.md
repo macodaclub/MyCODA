@@ -1,19 +1,26 @@
 # website
 
+### Pre-Requisites
+
+- [Install Node.js](https://nodejs.org/en/download/package-manager) (Recommended: v20.14.0)
+- [Install yarn](https://classic.yarnpkg.com/lang/en/docs/install)
+
 ## Project Setup
 
 ```sh
-npm install
+yarn install
 ```
 
-### Compile and Hot-Reload for Development
+## Compile and Hot-Reload for Development
 
 ```sh
-npm run dev
+VITE_BACKEND_PORT=8081 yarn run dev
 ```
 
-### Compile and Minify for Production
+Or run configuration [Frontend: dev](../.run/Frontend_%20dev.run.xml), if using IntelliJ IDEA.
+
+## Compile and Minify for Production
 
 ```sh
-npm run build
+yarn run build
 ```

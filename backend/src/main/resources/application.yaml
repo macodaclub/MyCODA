@@ -2,7 +2,12 @@ ktor:
   application:
     modules:
       - "io.github.macodaclub.ApplicationKt.module"
-  development: true
+  development: "$DEVELOPMENT:false"
   deployment:
-    port: 8081
-  frontendPort: 5173
+    port: "$PORT:80"
+  frontendPort: "$FRONTEND_PORT:null"
+  security:
+    ssl:
+      keyAlias: "$SSL_KEY_ALIAS:null"
+      keyStorePassword: "$SSL_KEYSTORE_PASSWORD:null"
+      privateKeyPassword: "$SSL_PRIVATE_KEY_PASSWORD:null"

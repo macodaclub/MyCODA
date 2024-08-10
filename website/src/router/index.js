@@ -33,7 +33,7 @@ export default createRouter({
             component: Browse
         },
         {
-            path: '/submission-form',
+            path: '/contribute/submit-paper',
             name: 'submissionForm',
             component: SubmissionForm
         }

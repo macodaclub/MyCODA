@@ -11,11 +11,11 @@ import headerBgUrl from '@/assets/img/headerBg.png'
       </div>
     </div>
     <div class="nav-bar">
-      <router-link to="/" tag="div" class="nav-btn">Home</router-link>
-      <router-link to="/education" tag="div" class="nav-btn">Education</router-link>
-      <router-link to="/events" tag="div" class="nav-btn">Events</router-link>
-      <router-link to="/browse" tag="div" class="nav-btn">Browse</router-link>
-      <router-link to="/submission-form" tag="div" class="nav-btn">Contribute</router-link>
+      <router-link :to="{name: 'home'}" tag="div" class="nav-btn">Home</router-link>
+      <router-link :to="{name: 'education'}" tag="div" class="nav-btn">Education</router-link>
+      <router-link :to="{name: 'events'}" tag="div" class="nav-btn">Events</router-link>
+      <router-link :to="{name: 'browse'}" tag="div" class="nav-btn">Browse</router-link>
+      <router-link :to="{name: 'submissionForm'}" tag="div" class="nav-btn">Contribute</router-link>
     </div>
   </header>
 </template>
