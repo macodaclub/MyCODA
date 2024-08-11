@@ -13,9 +13,9 @@ data class GetTreeResponse(
     ) {
         @Serializable
         data class Entity(
+            val iri: String,
             val label: String,
             val type: String,
-            val iri: String,
             val directChildrenCount: Int,
             val allChildrenCount: Int,
             val expandedChildren: List<Entity>? = null,

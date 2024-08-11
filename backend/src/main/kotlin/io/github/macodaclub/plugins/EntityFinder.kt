@@ -21,10 +21,11 @@ class EntityFinder(private val mergedOntology: OWLOntology, private val lemmatiz
             entitiesByType.getValue(type).filter { it.getLabel(mergedOntology).lowercase().startsWith(query) }
         }
 
-    fun searchEntities(query: String, types: List<String>) =
-        types.flatMap { type ->
+    fun searchEntities(query: String, types: List<String>?) =
+        types?.flatMap { type ->
             entitiesByType.getValue(type).filter { it.getLabel(mergedOntology).lowercase().startsWith(query) }
         }
+            ?: mergedOntology.signature.filter { it.getLabel(mergedOntology).lowercase().startsWith(query) }
 
     private var entitiesMappedByLength: MutableMap<Int, MutableMap<String, Result>> =
         mutableMapOf()

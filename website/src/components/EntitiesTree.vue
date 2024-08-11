@@ -2,11 +2,11 @@
 
 import Tree from 'primevue/tree';
 import SelectButton from 'primevue/selectbutton';
-import Badge from 'primevue/badge';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
 import {RouterLink, useRoute, useRouter} from 'vue-router';
-import {substringAfter} from "@/utils/utils/utils.js";
 import {computed, onMounted, ref, watch} from "vue";
 import {useOntologyStore} from "@/store";
 
@@ -185,7 +185,7 @@ defineExpose({
   <div class="root">
     <div class="taxonomy-tree-panel">
       <div class="tree-header">
-        <RouterLink to="/browse"><h4 class="font-semibold">MyCODA Ontology</h4></RouterLink>
+        <RouterLink to="/browse"><h4 class="font-semibold text-lg">MyCODA Ontology</h4></RouterLink>
         <SelectButton v-model="selectedEntityType"
                       :options="entityTypesWithCounts"
                       @change="onSelectEntityType"
@@ -203,8 +203,8 @@ defineExpose({
              :class="{'selected-entity': node.data.iri === selectedIri}"
              :href="node.data.iri">{{ node.label }}</a>
           <span class="tree-children-count" v-if="!node.leaf">({{ node.data.allChildrenCount }})</span>
-<!--          <Badge v-if="!node.data.iri.startsWith('http://localhost/ontologies/')" value="Imported"
-                 size="small" severity="contrast"/>-->
+          <!--          <Badge v-if="!node.data.iri.startsWith('http://localhost/ontologies/')" value="Imported"
+                           size="small" severity="contrast"/>-->
           <Button @click="onTreeNodeExpand(node)"
                   v-if="node.children && node.data.directChildrenCount > node.children.length && expandedKeys && expandedKeys[node.key] === true"
                   size="small" label="…"
@@ -216,7 +216,7 @@ defineExpose({
               style="margin-left: 1.7rem; margin-bottom: 1.5rem; padding: 0.1rem 0.3rem" severity="secondary" outlined/>
     </div>
     <div class="info-panel">
-      <h4 class="info-panel-title font-semibold">{{ infoPanelTitle }}</h4>
+      <h4 class="info-panel-title font-semibold text-lg">{{ infoPanelTitle }}</h4>
       <div class="header-divider">
         <Divider layout="horizontal" align="center"/>
       </div>
@@ -237,10 +237,12 @@ defineExpose({
           </div>
         </template>
         <template v-if="selectedEntityInfo">
-          <div v-for="annotation in selectedEntityInfo.annotations" class="info-field">
-            <h4 class="capitalize font-semibold">{{ annotation.propertyLabel }}</h4>
-            <p>{{ annotation.value }}</p>
-          </div>
+          <template v-for="annotation in selectedEntityInfo.annotations">
+            <div v-if="annotation.propertyLabel !== 'label'" class="info-field">
+              <h4 class="capitalize font-semibold">{{ annotation.propertyLabel }}</h4>
+              <p>{{ annotation.value }}</p>
+            </div>
+          </template>
           <template v-if="selectedEntityInfo.type === 'Class' && selectedEntityInfo.classInfo">
             <div
                 v-if="selectedEntityInfo.classInfo.equivalentClasses && selectedEntityInfo.classInfo.equivalentClasses.length > 0"
@@ -267,21 +269,29 @@ defineExpose({
                 v-if="selectedEntityInfo.individualInfo.properties && selectedEntityInfo.individualInfo.properties.length > 0"
                 class="info-field">
               <h4 class="capitalize font-semibold">Properties</h4>
-              <div v-for="property in selectedEntityInfo.individualInfo.properties">
-                <a :href="property.iri"
-                   class="font-medium"
-                   @click.prevent="onSelectEntity(property.iri, property.type)">{{
-                    property.label
-                  }}</a>:
-                <template v-for="(entity, index) in property.rangeEntities">
-                  <a :href="entity.iri"
-                     @click.prevent="onSelectEntity(entity.iri, entity.type)">{{
-                      entity.label
-                    }}
-                  </a>
-                  <span v-if="index < property.rangeEntities.length - 1" class="font-medium">, </span>
-                </template>
-              </div>
+              <DataTable :value="selectedEntityInfo.individualInfo.properties" stripedRows pt:root:class="mt-2">
+                <Column field="property" header="Property">
+                  <template #body="{data}">
+                    <a :href="data.iri"
+                       class="font-medium"
+                       @click.prevent="onSelectEntity(data.iri, 'Property')">{{
+                        data.label
+                      }}</a>
+                  </template>
+                </Column>
+                <Column field="rangeEntities" header="Value(s)">
+                  <template #body="{data}">
+                    <template v-for="(entity, index) in data.rangeEntities">
+                      <a :href="entity.iri"
+                         @click.prevent="entity.type !== 'Datatype' ? onSelectEntity(entity.iri, entity.type) : {}">{{
+                          entity.label
+                        }}
+                      </a>
+                      <span v-if="index < data.rangeEntities.length - 1" class="font-medium">, </span>
+                    </template>
+                  </template>
+                </Column>
+              </DataTable>
             </div>
           </template>
         </template>

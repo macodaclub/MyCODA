@@ -36,11 +36,14 @@ After setting up SSL Certificate using Let's Encrypt, and converting to JKS, run
 ```sh
 docker pull tiagonuneslx/mycoda:latest
 docker run --name mycoda \
+  --detach \
+  --restart=always \
   -p 80:80 -p 443:443 \
   -v /etc/letsencrypt/live/mycoda.ddns.net/keystore.jks:/backend/keystore.jks \
   -e SSL_KEY_ALIAS=XXXXXX \
   -e SSL_KEYSTORE_PASSWORD=XXXXXX \
   -e SSL_PRIVATE_KEY_PASSWORD=XXXXXX \
+  -e GITHUB_OAUTH=XXXXXX \
   tiagonuneslx/mycoda \
   -sslPort=443 \
   -sslKeyStore=/backend/keystore.jks

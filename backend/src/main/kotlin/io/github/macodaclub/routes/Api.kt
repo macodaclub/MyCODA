@@ -16,13 +16,11 @@ fun Routing.apiRoutes(
     entityFinder: EntityFinder,
     ghRepo: GHRepository,
 ) {
-    route("/api") {
-        queryRoutes(queryEngine)
-        treeRoutes(mergedOntology, reasoner)
-        entityInfoRoutes(mergedOntology, reasoner)
-        ontologyInfoRoutes(ontology, mergedOntology)
-        articleSubmissionRoutes(mergedOntology, entityFinder, ghRepo)
-        editorRoutes(mergedOntology, reasoner, entityFinder)
-        searchRoutes(mergedOntology, reasoner, entityFinder)
-    }
+    queryRoutes(queryEngine)
+    treeRoutes(mergedOntology, reasoner)
+    entityInfoRoutes(mergedOntology, reasoner)
+    ontologyInfoRoutes(ontology, mergedOntology)
+    articleSubmissionRoutes(mergedOntology, entityFinder, ghRepo)
+    editorRoutes(mergedOntology, reasoner, entityFinder)
+    searchRoutes(mergedOntology, reasoner, entityFinder)
 }

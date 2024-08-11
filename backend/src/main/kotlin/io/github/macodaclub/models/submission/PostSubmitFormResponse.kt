@@ -12,8 +12,8 @@ data class PostSubmitFormResponse(
 
     @Serializable
     data class Entity(
-        val label: String,
         val iri: String,
+        val label: String,
         val type: String,
     )
 

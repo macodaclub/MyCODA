@@ -19,6 +19,9 @@ import {useRouter} from 'vue-router'
 import {computed, ref, watch} from "vue";
 import EntitiesTree from "@/components/EntitiesTree.vue";
 import {useOntologyStore} from "@/store";
+import {generateIriSuffix} from "@/utils/utils/utils.js";
+
+const isDev = import.meta.env.DEV
 
 const ontologyStore = useOntologyStore();
 const {backendHost, fetchSearchEntities, fetchIndividualProperties} = ontologyStore;
@@ -27,9 +30,9 @@ const router = useRouter();
 
 const activeStep = ref(1);
 
-const titleInput = ref("The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of MOEA –, has implementation language Java and C#.");
-const abstractInput = ref("The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of multi-objective evolutionary algorithm –, has implementation language Java and C#, and one of the authors was Pradyumn Kumar Shukla.");
-const keywordsInput = ref("p NSGA-II, Java, MOEA, C#");
+const titleInput = ref(isDev ? "The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of MOEA –, has implementation language Java and C#." : "");
+const abstractInput = ref(isDev ? "The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of multi-objective evolutionary algorithm –, has implementation language Java and C#, and one of the authors was Pradyumn Kumar Shukla." : "");
+const keywordsInput = ref(isDev ? "p NSGA-II, Java, MOEA, C#" : "");
 
 const titleSegments = ref(null);
 const abstractSegments = ref(null);
@@ -45,21 +48,23 @@ const addedEntities = ref([]);
 const identifiedTerms = computed(() => {
   let result = [...referencedEntities.value.map(it => ({
     context: ["Referenced"],
-    iri: it.iri,
-    label: it.label,
-    type: it.type,
+    entity: it
   }))];
 
   result = result.concat([...addedEntities.value.map(it => ({
     context: ["Added"],
-    label: it.label,
-    type: it.type
+    entity: it.entity
   }))]);
 
   return result;
-})
+});
 
 const isNewEntityDialogVisible = ref(false);
+watch(isNewEntityDialogVisible, (to) => {
+  if (!to) {
+    addEntityInputs.forEach(it => it.ref.value = it.defaultValue);
+  }
+});
 const newEntityLabelInput = ref("");
 const newEntityLabelInputDebounced = ref("");
 const newEntityLabelInputDebounceFn = useDebounceFn(() => {
@@ -97,7 +102,6 @@ const newIndividualProperties = ref([
       label: "",
       type: ""
     },
-    rangeIsLiteral: true,
     value: {
       literal: null,
       individual: null, // { label: "", iri: "" }
@@ -111,6 +115,23 @@ watch(selectedNewProperty, (to) => {
     selectedNewProperty.value = "";
   }
 });
+const newPropertyDomain = ref(null);
+const newPropertyRange = ref(null);
+
+const addEntityInputs = [
+  isNewEntityDialogVisible,
+  newEntityLabelInput,
+  newEntityLabelInputDebounced,
+  selectedNewEntityType,
+  newEntityCommentInput,
+  newClassSubClassOfInput,
+  newIndividualType,
+  selectedNewProperty,
+  selectedNewPropertyOptions,
+  newIndividualProperties,
+  newPropertyDomain,
+  newPropertyRange,
+].map(it => ({ref: it, defaultValue: it.value}));
 
 const entitiesAutoCompleteOptions = ref([]);
 
@@ -133,13 +154,12 @@ const onSubmitForm = async (stepperActivateCallback) => {
   keywordSegments.value = responseData.keywordSegments;
   referencedEntities.value = responseData.referencedEntities;
   stepperActivateCallback(2);
-}
+};
 
-const previewEntity = async (segment) => {
-  const referencedEntity = referencedEntities.value[segment.entityReferenceIndex];
-  previewingEntity.value = {iri: referencedEntity.iri, type: referencedEntity.type};
+const previewEntity = async (entity) => {
+  previewingEntity.value = {iri: entity.iri, type: entity.type};
   isEntityPreviewVisible.value = true;
-}
+};
 
 const getSeverityForContext = context => ({
   "Referenced": "secondary",
@@ -147,11 +167,10 @@ const getSeverityForContext = context => ({
   "Edited": "warn",
 })[context];
 
-const autoCompleteEntities = async (event, type, subClassOf = null) => {
-  const filteredAddedEntities = [...addedEntities.value.filter(it => it.type === type)];
-  entitiesAutoCompleteOptions.value = (await fetchSearchEntities(event.query, type, subClassOf))
-      .concat(filteredAddedEntities);
-}
+const autoCompleteEntities = async (event, types, subClassOf = null) => {
+  const filteredAddedEntities = [...addedEntities.value.map(it => it.entity).filter(it => types.includes(it.type))];
+  entitiesAutoCompleteOptions.value = filteredAddedEntities.concat(await fetchSearchEntities(event.query, types, subClassOf && !subClassOf.startsWith("[New Entity]") ? subClassOf : null));
+};
 
 const onAddEntity = () => {
   const label = newEntityLabelInput.value;
@@ -160,28 +179,43 @@ const onAddEntity = () => {
   let newEntity;
   if (type === "Class") {
     newEntity = {
-      label,
-      type,
-      subClassOf: newClassSubClassOfInput.value,
+      entity: {
+        iri: `[New Entity]#${generateIriSuffix("OWLClass")}`,
+        label,
+        type,
+      },
       comment,
+      subClassOf: newClassSubClassOfInput.value,
     }
   } else if (type === "Individual") {
     newEntity = {
-      label,
-      type,
-      individualType: newIndividualType.value,
+      entity: {
+        iri: `[New Entity]#${generateIriSuffix("OWLIndividual")}`,
+        label,
+        type,
+      },
       comment,
+      individualType: newIndividualType.value,
+      properties: newIndividualProperties.value.slice(0, -1).map(it => ({
+        property: it.property,
+        value: it.range.type === "Datatype" ? it.value.literal : it.value.individual,
+      })),
     }
   } else if (type === "Property") {
     newEntity = {
-      label,
-      type,
+      entity: {
+        iri: `[New Entity]#${generateIriSuffix("OWLProperty")}`, // TODO: Specify ObjectProperty / DataProperty
+        label,
+        type,
+      },
       comment,
+      domain: newPropertyDomain.value,
+      range: newPropertyRange.value,
     }
   }
   addedEntities.value.push(newEntity);
   isNewEntityDialogVisible.value = false;
-}
+};
 
 watch(newIndividualProperties, (to) => {
   console.log(to);
@@ -197,7 +231,6 @@ watch(newIndividualProperties, (to) => {
         label: "",
         type: ""
       },
-      rangeIsLiteral: true,
       value: {
         literal: null,
         individual: null, // { label: "", iri: "" }
@@ -212,7 +245,6 @@ const onAddNewIndividualPropertyValue = (event, data, index) => {
   newIndividualProperties.value.splice(index + 1, 0, {
     property: data.property,
     range: data.range,
-    rangeIsLiteral: data.rangeIsLiteral,
     value: {
       literal: null,
       individual: null
@@ -220,21 +252,39 @@ const onAddNewIndividualPropertyValue = (event, data, index) => {
   });
 };
 const autoCompleteNewIndividualProperties = async (event) => {
-  //const filteredAddedEntities = [...addedEntities.value.filter(it => it.type === type)];
-  // TODO: Support added properties
-  //    .concat(filteredAddedEntities);
-  // TODO: Filter out already selected properties
+  // TODO: Filter added properties, so it shows only the ones that are applied to a certain class
+  const filteredAddedProperties = [...addedEntities.value.filter(it => it.entity.type === "Property").map(it => ({
+    property: it.entity,
+    range: it.range
+  })).filter(it => !newIndividualProperties.value.find(other => it.property.iri === other.property.iri))];
   // TODO: Allow creating new properties here
 
-  const properties = await fetchIndividualProperties(event.query, newIndividualType.value.iri);
+  const properties = await fetchIndividualProperties(event.query, newIndividualType.value.iri.startsWith("[New Entity]") ? null : newIndividualType.value.iri);
   const filteredProperties = [...properties.filter(it => !newIndividualProperties.value.find(other => it.property.iri === other.property.iri))];
-  //newIndividualPropertyOptions.value = [...properties.map(it => it.property)];
-  selectedNewPropertyOptions.value = filteredProperties;
-}
+  selectedNewPropertyOptions.value = filteredAddedProperties.concat(filteredProperties);
+};
 
 const shouldShowNewPropertyValuePlusIcon = (data, index) => {
   return newIndividualProperties.value.findLastIndex(it => data.property === it.property) === index;
-}
+};
+
+const testSubmitChanges = async () => {
+  const url = `${backendHost}/api/submission/submitChanges`;
+  const body = {
+    addedEntities: addedEntities.value,
+    edits: edits.value,
+  }
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) return console.error('Failed to submit changes', response);
+  const responseData = await response.json()
+  console.log(responseData)
+};
 </script>
 
 <template>
@@ -280,7 +330,7 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
                       <div v-else style="display: inline-block">
                         <a :href="referencedEntities[segment.entityReferenceIndex].iri"
-                           @click.prevent="previewEntity(segment)">{{ segment.text }}</a>
+                           @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{ segment.text }}</a>
                       </div>
                     </template>
                   </div>
@@ -289,7 +339,7 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                     <template v-for="segment in abstractSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
                       <a v-else :href="referencedEntities[segment.entityReferenceIndex].iri"
-                         @click.prevent="previewEntity(segment)">{{ segment.text }}</a>
+                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{ segment.text }}</a>
                     </template>
                   </div>
                   <div class="border bg-surface-0 p-4">
@@ -297,7 +347,7 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                     <template v-for="segment in keywordSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
                       <a v-else :href="referencedEntities[segment.entityReferenceIndex].iri"
-                         @click.prevent="previewEntity(segment)">{{ segment.text }}</a>
+                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{ segment.text }}</a>
                     </template>
                   </div>
                 </div>
@@ -313,11 +363,20 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                       </div>
                     </template>
                   </Column>
-                  <Column field="type" header="Type" style="width: 4rem;"/>
-                  <Column field="label" header="Term"/>
+                  <Column field="entity.type" header="Type" style="width: 4rem;"/>
+                  <Column field="entity.label" header="Term">
+                    <template #body="{ data }">
+                      <a v-if="!data.entity.iri.startsWith('[New Entity]')" href="data.entity.iri" @click.prevent="previewEntity(data.entity)">{{ data.entity.label }}</a>
+                      <template v-else>{{ data.entity.label }}</template>
+                    </template>
+                  </Column>
                 </DataTable>
-                <Button class="mt-4" @click="isNewEntityDialogVisible = true" label="Add a new term"
-                        icon="pi pi-plus-circle" size="small"/>
+                <div class="flex flex-col gap-6 items-start">
+                  <Button class="mt-4" @click="isNewEntityDialogVisible = true" label="Add a new term"
+                          icon="pi pi-plus-circle" size="small"/>
+                  <Button v-if="isDev" @click="testSubmitChanges()" label="Test Create Issue"
+                          icon="pi pi-plus-circle" size="small"/>
+                </div>
               </div>
             </div>
             <Dialog v-model:visible="isEntityPreviewVisible" modal header="Entity Preview" maximizable dismissableMask
@@ -335,27 +394,28 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                              fluid
                              placeholder="New term..."/>
                 </div>
-                <div v-if="newEntityLabelInputDebounced"
-                     class="flex flex-col gap-3 border rounded-border border-primary relative px-4 pt-2 pb-3 text-sm">
-                  <h4 class="absolute top-[-0.55rem] start-[0.5rem] text-xs bg-surface-0 px-2 text-primary">
-                    Suggestion</h4>
-                  <a href=""><i
-                      class="pi pi-times-circle text-sm absolute top-[-0.4rem] right-2 text-primary bg-surface-0 px-1"/></a>
-                  <div>Is <span class="font-semibold">{{ newEntityLabelInputDebounced }}</span> a synonym of an
-                    existing term?
-                  </div>
-                  <div class="flex flex-row gap-2">
-                    <Button label="KUR" severity="secondary" outlined rounded size="small"/>
-                    <Button label="KneePoint" severity="secondary" outlined rounded size="small"/>
-                    <Button label="Knapsack" severity="secondary" outlined rounded size="small"/>
-                    <Button label="Other…" severity="secondary" outlined rounded size="small"/>
-                  </div>
-                  <p>Verify: <a :href="browseRoute.href" target="_blank" class=""><i
-                      class="pi pi-external-link text-sm ml-1 me-2"/>Browse
-                    knowledge
-                    base</a>
-                  </p>
-                </div>
+                <!--            TODO: Implement suggestion if term is a synonym of existing
+                                <div v-if="newEntityLabelInputDebounced"
+                                     class="flex flex-col gap-3 border rounded-border border-primary relative px-4 pt-2 pb-3 text-sm">
+                                  <h4 class="absolute top-[-0.55rem] start-[0.5rem] text-xs bg-surface-0 px-2 text-primary">
+                                    Suggestion</h4>
+                                  <a href=""><i
+                                      class="pi pi-times-circle text-sm absolute top-[-0.4rem] right-2 text-primary bg-surface-0 px-1"/></a>
+                                  <div>Is <span class="font-semibold">{{ newEntityLabelInputDebounced }}</span> a synonym of an
+                                    existing term?
+                                  </div>
+                                  <div class="flex flex-row gap-2">
+                                    <Button label="KUR" severity="secondary" outlined rounded size="small"/>
+                                    <Button label="KneePoint" severity="secondary" outlined rounded size="small"/>
+                                    <Button label="Knapsack" severity="secondary" outlined rounded size="small"/>
+                                    <Button label="Other…" severity="secondary" outlined rounded size="small"/>
+                                  </div>
+                                  <p>Verify: <a :href="browseRoute.href" target="_blank" class=""><i
+                                      class="pi pi-external-link text-sm ml-1 me-2"/>Browse
+                                    knowledge
+                                    base</a>
+                                  </p>
+                                </div>-->
                 <template v-if="newEntityLabelInputDebounced">
                   <div class="flex flex-col gap-2">
                     <label for="newEntityCommentInput" class="font-medium">How would you describe the term?</label>
@@ -385,7 +445,7 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                                   forceSelection
                                   optionLabel="label"
                                   :suggestions="entitiesAutoCompleteOptions"
-                                  @complete="e => autoCompleteEntities(e, 'Class')"
+                                  @complete="e => autoCompleteEntities(e, ['Class'])"
                                   placeholder="No."/>
                   </div>
                 </template>
@@ -399,14 +459,14 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                                   forceSelection
                                   optionLabel="label"
                                   :suggestions="entitiesAutoCompleteOptions"
-                                  @complete="e => autoCompleteEntities(e, 'Class')"
+                                  @complete="e => autoCompleteEntities(e, ['Class'])"
                                   placeholder="Type…"/>
                   </div>
                   <template v-if="newIndividualType && newIndividualType.iri">
                     <div class="flex flex-col gap-2">
                       <div class="font-medium">What are the properties of this individual?</div>
                       <DataTable :value="newIndividualProperties" rowGroupMode="rowspan"
-                                 :groupRowsBy="['property.label', 'range.label']"
+                                 groupRowsBy="property.label"
                                  stripedRows size="small">
                         <Column field="property.label" header="Property" style="width: 12rem">
                           <template #body="{data, index}">
@@ -430,7 +490,7 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                         <Column field="value.literal" header="Value(s)" style="width: 12rem">
                           <template #body="{data, index}">
                             <template v-if="data && data.property && data.property.label">
-                              <template v-if="data.rangeIsLiteral">
+                              <template v-if="!data.range || !data.range.type || data.range.type === 'Datatype'">
                                 <InputText fluid v-model="newIndividualProperties[index].value.literal"
                                            placeholder="Value…"/>
                               </template>
@@ -440,7 +500,7 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                                               forceSelection
                                               optionLabel="label"
                                               :suggestions="entitiesAutoCompleteOptions"
-                                              @complete="e => autoCompleteEntities(e, 'Individual', data.range.iri)"
+                                              @complete="e => autoCompleteEntities(e, ['Individual'], data.range.iri)"
                                               placeholder="Individual…"/>
                               </template>
                             </template>
@@ -465,10 +525,38 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
                     </div>
                   </template>
                 </template>
+                <template v-if="selectedNewEntityType !== null && selectedNewEntityType.value === 'Property'">
+                  <div class="flex flex-col gap-2">
+                    <label for="newEntitySubClassOfInput" class="font-medium">Which type of individuals may have this
+                      property?</label>
+                    <AutoComplete v-model="newPropertyDomain"
+                                  id="newPropertyDomain"
+                                  pt:pcInput:root:class="w-full"
+                                  forceSelection
+                                  optionLabel="label"
+                                  :suggestions="entitiesAutoCompleteOptions"
+                                  @complete="e => autoCompleteEntities(e, ['Class'])"
+                                  placeholder="Every type."/>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="newEntitySubClassOfInput" class="font-medium">What type is the value of this
+                      property?</label>
+                    <AutoComplete v-model="newPropertyRange"
+                                  id="newPropertyRange"
+                                  pt:pcInput:root:class="w-full"
+                                  forceSelection
+                                  optionLabel="label"
+                                  :suggestions="entitiesAutoCompleteOptions"
+                                  @complete="e => autoCompleteEntities(e, ['Datatype', 'Class'])"
+                                  placeholder="Value type..."/>
+                  </div>
+                </template>
                 <div class="flex flex-row justify-end gap-2">
                   <Button label="Cancel" severity="secondary" outlined size="small"
                           @click="isNewEntityDialogVisible = false"/>
-                  <Button label="Add term" :disabled="!selectedNewEntityType" @click="onAddEntity" size="small"/>
+                  <Button label="Add term"
+                          :disabled="!selectedNewEntityType || selectedNewEntityType.value === 'Individual' && (!newIndividualType || !newIndividualType.iri) || selectedNewEntityType.value === 'Property' && (!newPropertyRange || !newPropertyRange.iri)"
+                          @click="onAddEntity" size="small"/>
                 </div>
               </div>
             </Dialog>

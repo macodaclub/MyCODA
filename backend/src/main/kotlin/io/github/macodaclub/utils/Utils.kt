@@ -3,8 +3,11 @@ package io.github.macodaclub.utils
 import io.github.macodaclub.models.tree.GetTreeResponse
 import io.github.macodaclub.models.submission.PostSubmitFormResponse
 import io.github.macodaclub.plugins.EntityFinder
+import kotlinx.serialization.json.*
 import org.semanticweb.owlapi.model.*
 import org.semanticweb.owlapi.reasoner.OWLReasoner
+
+val prettyJson = Json { prettyPrint = true }
 
 context(T) fun <T> contextReceiver(): T = this@T
 
@@ -39,9 +42,9 @@ fun OWLClass.toTaxonomyTreeEntity(
     getExpandedChildren: () -> List<GetTreeResponse.TaxonomyTree.Entity>? = { null },
 ) =
     GetTreeResponse.TaxonomyTree.Entity(
+        iri.toString(),
         getLabel(ontology),
         "Class",
-        iri.toString(),
         reasoner.getSubClasses(this, true).filterNot { it.isBottomNode }.count(),
         reasoner.getSubClasses(this, false).filterNot { it.isBottomNode }.count(),
         getExpandedChildren()
@@ -53,9 +56,9 @@ fun OWLDataProperty.toTaxonomyTreeEntity(
     getExpandedChildren: () -> List<GetTreeResponse.TaxonomyTree.Entity>? = { null },
 ) =
     GetTreeResponse.TaxonomyTree.Entity(
+        iri.toString(),
         getLabel(ontology),
         "Property",
-        iri.toString(),
         reasoner.getSubDataProperties(this, true).filterNot { it.isBottomNode }.count(),
         reasoner.getSubDataProperties(this, false).filterNot { it.isBottomNode }.count(),
         getExpandedChildren()
@@ -67,9 +70,9 @@ fun OWLObjectProperty.toTaxonomyTreeEntity(
     getExpandedChildren: () -> List<GetTreeResponse.TaxonomyTree.Entity>? = { null },
 ) =
     GetTreeResponse.TaxonomyTree.Entity(
+        iri.toString(),
         getLabel(ontology),
         "Property",
-        iri.toString(),
         reasoner.getSubObjectProperties(this, true).filterNot { it.isBottomNode }.count(),
         reasoner.getSubObjectProperties(this, false).filterNot { it.isBottomNode }.count(),
         getExpandedChildren()
@@ -79,9 +82,9 @@ fun OWLNamedIndividual.toTaxonomyTreeEntity(
     ontology: OWLOntology,
 ) =
     GetTreeResponse.TaxonomyTree.Entity(
+        iri.toString(),
         getLabel(ontology),
         "Individual",
-        iri.toString(),
         0,
         0,
         emptyList()
@@ -154,8 +157,8 @@ fun List<String>.findEntityReferences(
                 result?.let { (entity, comparisonField) ->
                     EntityReference(
                         PostSubmitFormResponse.Entity(
-                            entity.getLabel(mergedOntology),
                             entity.iri.toString(),
+                            entity.getLabel(mergedOntology),
                             entity.simpleType ?: return@mapNotNull null
                         ),
                         comparisonField,
@@ -206,4 +209,105 @@ fun List<String>.findEntityReferences(
         referencedEntities,
         textSegments
     )
+}
+
+fun List<JsonObject>.toHtmlTable(): String {
+    if (this.isEmpty()) return "<table></table>"
+    val headers = this.first().keys
+    val tableBuilder = StringBuilder()
+    tableBuilder.append("<table border='1'>")
+    tableBuilder.append("<tr>")
+    headers.forEach { header ->
+        val formattedHeader = header
+            .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        tableBuilder.append("<th>$formattedHeader</th>")
+    }
+    tableBuilder.append("</tr>")
+    this.forEach { jsonObject ->
+        tableBuilder.append("<tr>")
+        headers.forEach { header ->
+            val cellValue = jsonObject[header]?.let { value ->
+                when (value) {
+                    is JsonPrimitive -> value.toHtml()
+                    is JsonObject -> {
+                        val jsonObj = value.jsonObject
+                        if (jsonObj.keys.size == 2 && jsonObj.keys.containsAll(listOf("literal", "individual"))) {
+                            if (jsonObj["literal"] is JsonNull) {
+                                jsonObj["individual"]?.jsonObject?.entityToHtml().toString()
+                            } else {
+                                jsonObj["literal"]?.jsonPrimitive?.toHtml().toString()
+                            }
+                        } else if (jsonObj.keys.size == 3 && jsonObj.keys.containsAll(listOf("iri", "label", "type"))) {
+                            jsonObj.entityToHtml()
+                        } else {
+                            jsonObj.toHtmlTable()
+                        }
+                    }
+
+                    is JsonArray -> {
+                        val jsonArray = value.jsonArray
+                        if (jsonArray.isEmpty()) {
+                            ""
+                        } else {
+                            if (jsonArray.first() is JsonObject) {
+                                Json.decodeFromJsonElement<List<JsonObject>>(jsonArray).toHtmlTable()
+                            } else {
+                                jsonArray.toString()
+                            }
+                        }
+                    }
+
+                    else -> value.toString()
+                }
+            } ?: ""
+            tableBuilder.append("<td>$cellValue</td>")
+        }
+        tableBuilder.append("</tr>")
+    }
+    tableBuilder.append("</table>")
+    return tableBuilder.toString()
+}
+
+fun JsonObject.toHtmlTable(): String {
+    val stringBuilder = StringBuilder()
+    stringBuilder.append("<table border=\"1\" cellspacing=\"0\" cellpadding=\"5\">\n")
+    for ((key, value) in this) {
+        if (value is JsonNull) continue
+        val formattedHeader = key
+            .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        stringBuilder.append("<tr>")
+        stringBuilder.append("<td><strong>").append(formattedHeader).append("</strong></td>")
+        when (value) {
+            is JsonPrimitive -> stringBuilder.append("<td>").append(value.toHtml()).append("</td>")
+            is JsonObject -> {
+                val jsonObj = value.jsonObject
+                if (jsonObj.keys.size == 3 && jsonObj.keys.containsAll(listOf("iri", "label", "type"))) {
+                    jsonObj.entityToHtml()
+                }
+                stringBuilder.append("<td>").append(value.toHtmlTable()).append("</td>")
+            }
+
+            else -> stringBuilder.append("<td>").append(value.toString()).append("</td>")
+        }
+        stringBuilder.append("</tr>\n")
+    }
+    stringBuilder.append("</table>")
+    return stringBuilder.toString()
+}
+
+fun JsonObject.entityToHtml() = """
+<details>
+<summary>${this["label"]?.jsonPrimitive?.content}</summary>
+
+<br />
+${this.toHtmlTable()}
+</details>
+"""
+
+fun JsonPrimitive.toHtml() = if(content.startsWith("http://") || content.startsWith("https://")) {
+    """<a href="$content" target="_blank">$content</a>"""
+} else {
+    content
 }

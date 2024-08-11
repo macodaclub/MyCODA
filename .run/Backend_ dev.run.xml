@@ -14,6 +14,7 @@
     <envs>
       <env name="DEVELOPMENT" value="true" />
       <env name="FRONTEND_PORT" value="5173" />
+      <env name="GITHUB_PROPERTY_FILE_PATH" value="$PROJECT_DIR$/backend/.github" />
       <env name="PORT" value="8081" />
     </envs>
     <method v="2">
