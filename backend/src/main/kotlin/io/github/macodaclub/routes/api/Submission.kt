@@ -1,6 +1,7 @@
 package io.github.macodaclub.routes.api
 
 import io.github.macodaclub.models.submission.PostSubmitChangesRequest
+import io.github.macodaclub.models.submission.PostSubmitChangesResponse
 import io.github.macodaclub.models.submission.PostSubmitFormResponse
 import io.github.macodaclub.plugins.EntityFinder
 import io.github.macodaclub.utils.MdTemplate
@@ -69,7 +70,7 @@ ${entity.toHtmlTable()}
                     .label("generated")
                     .body(MdTemplate.SubmitChangesIssue(changesJson, addedEntitiesHtmlTable).get())
                     .create()
-                call.respondText { issue.url.toString() }
+                call.respond(PostSubmitChangesResponse(issue.htmlUrl.toString()))
             }
         }
     }

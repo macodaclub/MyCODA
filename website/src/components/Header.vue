@@ -6,7 +6,7 @@ import headerBgUrl from '@/assets/img/headerBg.png'
   <header :style="{backgroundImage: `linear-gradient(to right, rgba(24, 9, 2, 0.9), rgba(24, 9, 2, 0.5)), linear-gradient(to top, rgba(24, 9, 2, 0.8), rgba(24, 9, 2, 0.5)),  url(${headerBgUrl})`}">
     <div class="title-container-wrapper mb-2">
       <div class="title-container flex flex-col gap-1">
-        <h1 class="title text-primary font-extrabold text-4xl mt-2">MYCODA</h1>
+        <h1 class="title text-primary font-extrabold text-4xl mt-2">MyCODA</h1>
         <h4 class="heading text-surface-0 font-bold text-md">Many Criteria Optimization and Decision Analysis (MaCODA) Platform</h4>
       </div>
     </div>

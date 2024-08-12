@@ -1261,7 +1261,9 @@
 
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#OrderRelation -->
 
-    <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OrderRelation"/>
+    <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OrderRelation">
+        <rdfs:label>Order Relation</rdfs:label>
+    </owl:Class>
 
 
 

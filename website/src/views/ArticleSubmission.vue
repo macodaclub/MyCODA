@@ -14,6 +14,8 @@ import Column from 'primevue/column';
 import Badge from 'primevue/badge';
 import Select from 'primevue/select';
 import AutoComplete from 'primevue/autocomplete';
+import Divider from 'primevue/divider';
+import ProgressSpinner from 'primevue/progressspinner';
 import {useDebounceFn} from "@vueuse/core"
 import {useRouter} from 'vue-router'
 import {computed, ref, watch} from "vue";
@@ -134,6 +136,14 @@ const addEntityInputs = [
 ].map(it => ({ref: it, defaultValue: it.value}));
 
 const entitiesAutoCompleteOptions = ref([]);
+
+const githubIssueUrl = ref(null);
+
+watch(activeStep, async (to) => {
+  if (to === 3) {
+    githubIssueUrl.value = await submitChanges();
+  }
+});
 
 const browseRoute = router.resolve({name: 'browse'});
 
@@ -268,7 +278,7 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
   return newIndividualProperties.value.findLastIndex(it => data.property === it.property) === index;
 };
 
-const testSubmitChanges = async () => {
+const submitChanges = async () => {
   const url = `${backendHost}/api/submission/submitChanges`;
   const body = {
     addedEntities: addedEntities.value,
@@ -282,9 +292,12 @@ const testSubmitChanges = async () => {
     body: JSON.stringify(body),
   });
   if (!response.ok) return console.error('Failed to submit changes', response);
-  const responseData = await response.json()
-  console.log(responseData)
+  return (await response.json()).githubIssueUrl
 };
+
+const openTargetBlank = url => {
+  window.open(url, '_blank');
+}
 </script>
 
 <template>
@@ -330,7 +343,9 @@ const testSubmitChanges = async () => {
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
                       <div v-else style="display: inline-block">
                         <a :href="referencedEntities[segment.entityReferenceIndex].iri"
-                           @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{ segment.text }}</a>
+                           @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
+                            segment.text
+                          }}</a>
                       </div>
                     </template>
                   </div>
@@ -339,7 +354,9 @@ const testSubmitChanges = async () => {
                     <template v-for="segment in abstractSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
                       <a v-else :href="referencedEntities[segment.entityReferenceIndex].iri"
-                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{ segment.text }}</a>
+                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
+                          segment.text
+                        }}</a>
                     </template>
                   </div>
                   <div class="border bg-surface-0 p-4">
@@ -347,14 +364,16 @@ const testSubmitChanges = async () => {
                     <template v-for="segment in keywordSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
                       <a v-else :href="referencedEntities[segment.entityReferenceIndex].iri"
-                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{ segment.text }}</a>
+                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
+                          segment.text
+                        }}</a>
                     </template>
                   </div>
                 </div>
               </div>
               <div>
                 <h3 class="text-lg font-semibold mb-4">Identified Terms</h3>
-                <DataTable :value="identifiedTerms" editMode="cell" showGridlines>
+                <DataTable :value="identifiedTerms" editMode="cell" showGridlines stripedRows>
                   <Column field="context" header="Context" style="width: 4rem;">
                     <template #body="{ data, field }">
                       <div class="flex flex-row gap-2">
@@ -366,17 +385,22 @@ const testSubmitChanges = async () => {
                   <Column field="entity.type" header="Type" style="width: 4rem;"/>
                   <Column field="entity.label" header="Term">
                     <template #body="{ data }">
-                      <a v-if="!data.entity.iri.startsWith('[New Entity]')" href="data.entity.iri" @click.prevent="previewEntity(data.entity)">{{ data.entity.label }}</a>
+                      <a v-if="!data.entity.iri.startsWith('[New Entity]')" href="data.entity.iri"
+                         @click.prevent="previewEntity(data.entity)">{{ data.entity.label }}</a>
                       <template v-else>{{ data.entity.label }}</template>
                     </template>
                   </Column>
                 </DataTable>
-                <div class="flex flex-col gap-6 items-start">
-                  <Button class="mt-4" @click="isNewEntityDialogVisible = true" label="Add a new term"
-                          icon="pi pi-plus-circle" size="small"/>
-                  <Button v-if="isDev" @click="testSubmitChanges()" label="Test Create Issue"
-                          icon="pi pi-plus-circle" size="small"/>
-                </div>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold mb-4">Contribute</h3>
+                <Button @click="isNewEntityDialogVisible = true" label="Add a new term"
+                        icon="pi pi-plus-circle" size="small" severity="contrast" outlined/>
+              </div>
+              <div>
+                <Divider/>
+                <Button @click="activateCallback(3)" label="Submit Contribution"
+                        icon="pi pi-check-circle" size="small"/>
               </div>
             </div>
             <Dialog v-model:visible="isEntityPreviewVisible" modal header="Entity Preview" maximizable dismissableMask
@@ -560,6 +584,20 @@ const testSubmitChanges = async () => {
                 </div>
               </div>
             </Dialog>
+          </StepPanel>
+          <StepPanel :value="3">
+            <div class="flex flex-col gap-8">
+              <div>
+                <h3 class="text-lg font-semibold mb-4">Review Contributions</h3>
+                <p class="mb-8">Thank you for your contribution to the MyCODA Knowledge Base!</p>
+                <Button v-if="githubIssueUrl" label="View GitHub Issue"
+                        @click="openTargetBlank(githubIssueUrl)"/>
+                <div v-else class="flex flex-row gap-3 items-center">
+                  <ProgressSpinner class="size-[1.4rem] m-0" strokeWidth="8" fill="transparent"/>
+                  <div class="font-medium">Creating Github Issue</div>
+                </div>
+              </div>
+            </div>
           </StepPanel>
         </StepPanels>
       </Stepper>
