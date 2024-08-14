@@ -44,6 +44,7 @@ docker run --name mycoda \
   -e SSL_KEYSTORE_PASSWORD=XXXXXX \
   -e SSL_PRIVATE_KEY_PASSWORD=XXXXXX \
   -e GITHUB_OAUTH=XXXXXX \
+  -e HOST_NAME=mycoda.ddns.net \
   tiagonuneslx/mycoda \
   -sslPort=443 \
   -sslKeyStore=/backend/keystore.jks

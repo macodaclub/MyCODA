@@ -129,7 +129,7 @@ export const useOntologyStore = defineStore('ontology', () => {
         };
     }
 
-    async function fetchSelectedEntityInfo(iri) {
+    async function fetchEntityInfo(iri) {
         const url = new URL(`${backendHost}/api/entityInfo`);
         url.search = new URLSearchParams(nonNulls({iri})).toString();
         const response = await fetch(url);
@@ -137,9 +137,9 @@ export const useOntologyStore = defineStore('ontology', () => {
         return await response.json();
     }
 
-    async function fetchSearchEntities(query, types, subClassOf) {
+    async function fetchSearchEntities(query, types = null, subClassOf = null) {
         const url = new URL(`${backendHost}/api/search`);
-        url.search = new URLSearchParams(nonNulls({query, types: JSON.stringify(types), subClassOf})).toString();
+        url.search = new URLSearchParams(nonNulls({query, types: types ? JSON.stringify(types) : null, subClassOf})).toString();
         const response = await fetch(url);
         if (!response.ok) return console.error('Failed to fetch search entities', response);
         const responseObj = await response.json();
@@ -166,7 +166,7 @@ export const useOntologyStore = defineStore('ontology', () => {
         fetchTaxonomyTree,
         fetchExpandedTaxonomyTree,
         fetchSelectedTaxonomyTree,
-        fetchSelectedEntityInfo,
+        fetchEntityInfo,
         fetchSearchEntities,
         fetchIndividualProperties
     }

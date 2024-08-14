@@ -15,18 +15,19 @@ import Badge from 'primevue/badge';
 import Select from 'primevue/select';
 import AutoComplete from 'primevue/autocomplete';
 import Divider from 'primevue/divider';
-import ProgressSpinner from 'primevue/progressspinner';
+import InputGroup from 'primevue/inputgroup';
 import {useDebounceFn} from "@vueuse/core"
 import {useRouter} from 'vue-router'
-import {computed, ref, watch} from "vue";
+import {computed, reactive, ref, watch} from "vue";
+import _ from "lodash"
 import EntitiesTree from "@/components/EntitiesTree.vue";
 import {useOntologyStore} from "@/store";
-import {generateIriSuffix} from "@/utils/utils/utils.js";
+import {camelCaseToCapitalized, deepToRaw, generateIriSuffix} from "@/utils/utils/utils.js";
 
-const isDev = import.meta.env.DEV
+const isDev = import.meta.env.DEV;
 
 const ontologyStore = useOntologyStore();
-const {backendHost, fetchSearchEntities, fetchIndividualProperties} = ontologyStore;
+const {backendHost, fetchEntityInfo, fetchSearchEntities, fetchIndividualProperties} = ontologyStore;
 
 const router = useRouter();
 
@@ -45,13 +46,32 @@ const isEntityPreviewVisible = ref(false);
 const entityPreviewTree = ref(null);
 const previewingEntity = ref(null);
 
-const edits = ref([]);
 const addedEntities = ref([]);
+const editedEntities = ref([]);
 const identifiedTerms = computed(() => {
-  let result = [...referencedEntities.value.map(it => ({
-    context: ["Referenced"],
-    entity: it
-  }))];
+  let result = [...referencedEntities.value.map(it => {
+    const context = ["Referenced"];
+    return {
+      context: context,
+      entity: it
+    }
+  })];
+
+  editedEntities.value.forEach(edited => {
+    const index = result.findIndex(it => edited.entity.iri === it.entity.iri);
+    if(index !== -1) {
+      const el = result[index];
+      result[index] = {
+        context: el.context.concat(["Edited"]),
+        entity: el.entity
+      };
+    } else {
+        result.push({
+          context: ["Edited"],
+          entity: edited.entity
+        });
+    }
+  });
 
   result = result.concat([...addedEntities.value.map(it => ({
     context: ["Added"],
@@ -61,18 +81,17 @@ const identifiedTerms = computed(() => {
   return result;
 });
 
-const isNewEntityDialogVisible = ref(false);
-watch(isNewEntityDialogVisible, (to) => {
+const isEntityEditorDialogVisible = ref(false);
+watch(isEntityEditorDialogVisible, (to) => {
   if (!to) {
-    addEntityInputs.forEach(it => it.ref.value = it.defaultValue);
+    editingEntityInputDefaultValues.forEach(it => editingEntityInfo[it.key] = it.defaultValue);
+    editingEntityLabelDebounced.value = null;
   }
 });
-const newEntityLabelInput = ref("");
-const newEntityLabelInputDebounced = ref("");
+const editingEntityLabelDebounced = ref(null);
 const newEntityLabelInputDebounceFn = useDebounceFn(() => {
-  newEntityLabelInputDebounced.value = newEntityLabelInput.value
+  editingEntityLabelDebounced.value = editingEntityInfo.label;
 }, 500);
-const selectedNewEntityType = ref(null);
 const entityTypeOptions = [
   {
     "value": "Class",
@@ -87,55 +106,57 @@ const entityTypeOptions = [
     "description": "An attribute, or characteristic of something.",
   },
 ];
-const newEntityCommentInput = ref("");
-const newClassSubClassOfInput = ref(null);
-const newIndividualType = ref(null);
 const selectedNewProperty = ref("");
 const selectedNewPropertyOptions = ref([]);
-const newIndividualProperties = ref([
-  {
-    property: {
-      iri: "",
-      label: "",
-      type: "",
-    },
-    range: {
-      iri: "",
-      label: "",
-      type: ""
-    },
-    value: {
-      literal: null,
-      individual: null, // { label: "", iri: "" }
-    }
-  }
-]);
 watch(selectedNewProperty, (to) => {
   if (to && to.property && to.property.iri) {
-    const lastEl = newIndividualProperties.value[newIndividualProperties.value.length - 1];
-    newIndividualProperties.value.splice(newIndividualProperties.value.length - 1, 1, Object.assign(lastEl, to));
+    const lastEl = editingEntityInfo.properties[editingEntityInfo.properties.length - 1];
+    editingEntityInfo.properties = editingEntityInfo.properties.toSpliced(editingEntityInfo.properties.length - 1, 1, Object.assign(lastEl, to));
     selectedNewProperty.value = "";
   }
 });
-const newPropertyDomain = ref(null);
-const newPropertyRange = ref(null);
 
-const addEntityInputs = [
-  isNewEntityDialogVisible,
-  newEntityLabelInput,
-  newEntityLabelInputDebounced,
-  selectedNewEntityType,
-  newEntityCommentInput,
-  newClassSubClassOfInput,
-  newIndividualType,
-  selectedNewProperty,
-  selectedNewPropertyOptions,
-  newIndividualProperties,
-  newPropertyDomain,
-  newPropertyRange,
-].map(it => ({ref: it, defaultValue: it.value}));
+const editingEntityInfo = reactive({
+  iri: null,
+  label: null,
+  type: null,
+  comment: null,
+  subClassOf: null,
+  individualType: null,
+  properties: [
+    {
+      property: {
+        iri: "",
+        label: "",
+        type: "",
+      },
+      range: {
+        iri: "",
+        label: "",
+        type: ""
+      },
+      value: {
+        literal: null,
+        individual: null, // { label: "", iri: "" }
+      }
+    }
+  ],
+  domain: null,
+  range: null,
+});
+
+const editingEntityInfoSnapshots = [];
+
+const editingEntityInputDefaultValues = Object.entries(editingEntityInfo).map(([key, value]) => ({
+  key: key,
+  defaultValue: deepToRaw(value),
+}));
 
 const entitiesAutoCompleteOptions = ref([]);
+
+const editExistingEntityInput = ref(null);
+const editExistingEntityInputRef = ref();
+const editExistingEntityAutoCompleteOptions = ref([]);
 
 const githubIssueUrl = ref(null);
 
@@ -174,18 +195,37 @@ const previewEntity = async (entity) => {
 const getSeverityForContext = context => ({
   "Referenced": "secondary",
   "Added": "success",
-  "Edited": "warn",
+  "Edited": "info",
 })[context];
 
 const autoCompleteEntities = async (event, types, subClassOf = null) => {
-  const filteredAddedEntities = [...addedEntities.value.map(it => it.entity).filter(it => types.includes(it.type))];
+  const filteredAddedEntities = [...addedEntities.value.map(it => it.entity).filter(it => types.includes(it.type) && it.label.toLowerCase().startsWith(event.query.toLowerCase()))];
   entitiesAutoCompleteOptions.value = filteredAddedEntities.concat(await fetchSearchEntities(event.query, types, subClassOf && !subClassOf.startsWith("[New Entity]") ? subClassOf : null));
 };
 
-const onAddEntity = () => {
-  const label = newEntityLabelInput.value;
-  const type = selectedNewEntityType.value.value;
-  const comment = newEntityCommentInput.value;
+const autoCompleteEditExistingEntity = async (event) => {
+  editExistingEntityAutoCompleteOptions.value = await fetchSearchEntities(event.query);
+};
+
+function findChangesInProperties(oldList, newList) {
+  const diffs = [];
+  newList.forEach(newElement => {
+    if (!oldList.some(oldElement => _.isEqual(oldElement, newElement))) {
+      diffs.push({change: 'Added Property', property: newElement});
+    }
+  });
+  oldList.forEach(oldElement => {
+    if (!newList.some(newElement => _.isEqual(newElement, oldElement))) {
+      diffs.push({change: 'Removed Property', property: oldElement});
+    }
+  });
+  return diffs;
+}
+
+const onSaveEditedEntity = () => {
+  const label = editingEntityInfo.label;
+  const type = editingEntityInfo.type.value;
+  const comment = editingEntityInfo.comment;
   let newEntity;
   if (type === "Class") {
     newEntity = {
@@ -195,7 +235,7 @@ const onAddEntity = () => {
         type,
       },
       comment,
-      subClassOf: newClassSubClassOfInput.value,
+      subClassOf: editingEntityInfo.subClassOf,
     }
   } else if (type === "Individual") {
     newEntity = {
@@ -205,9 +245,10 @@ const onAddEntity = () => {
         type,
       },
       comment,
-      individualType: newIndividualType.value,
-      properties: newIndividualProperties.value.slice(0, -1).map(it => ({
+      individualType: editingEntityInfo.individualType,
+      properties: editingEntityInfo.properties.slice(0, -1).map(it => ({
         property: it.property,
+        range: it.range,
         value: it.range.type === "Datatype" ? it.value.literal : it.value.individual,
       })),
     }
@@ -219,18 +260,73 @@ const onAddEntity = () => {
         type,
       },
       comment,
-      domain: newPropertyDomain.value,
-      range: newPropertyRange.value,
+      domain: editingEntityInfo.domain,
+      range: editingEntityInfo.range,
     }
   }
-  addedEntities.value.push(newEntity);
-  isNewEntityDialogVisible.value = false;
+  if (editingEntityInfo.iri) {
+    if (editingEntityInfo.iri.startsWith("[New Entity]")) {
+      const index = addedEntities.value.findIndex(it => it.entity.iri === editingEntityInfo.iri);
+      addedEntities.value = addedEntities.value.toSpliced(index, 1, newEntity);
+      addedEntities.value[index] = newEntity;
+    } else {
+      const from = editingEntityInfoSnapshots.find(it => it.iri === editingEntityInfo.iri);
+      const to = deepToRaw(editingEntityInfo);
+      if (to.properties && to.properties.length > 0) {
+        const index = to.properties.findIndex(it => !it.property);
+        if (index) {
+          to.properties.splice(index, 1);
+        }
+      }
+      let edits = [];
+      Object.keys(to).forEach(key => {
+        if (key !== 'properties') {
+          if (!_.isEqual(from[key], to[key])) {
+            edits.push({
+              change: 'Updated Field',
+              field: camelCaseToCapitalized(key),
+              value: to[key]
+            });
+          }
+        } else {
+          if (to.type.value === 'Individual' && to.properties !== null) {
+            findChangesInProperties(from.properties, to.properties).forEach(it => edits.push({
+              change: it.change,
+              field: it.property.property,
+              value: it.property.range.type === "Datatype" ? it.property.value.literal : it.property.value.individual
+            }));
+          }
+        }
+      });
+      if (edits.length > 0) {
+        const editedEntity = {
+          entity: {
+            iri: to.iri,
+            label: to.label,
+            type: to.type.value,
+          },
+          edits,
+          entityInfo: to
+        }
+        const index = editedEntities.value.findIndex(it => it.entity.iri === to.iri);
+        editedEntities.value = index !== -1 ? editedEntities.value.toSpliced(index, 1, editedEntity) : editedEntities.value.concat([editedEntity]);
+      } else {
+        const index = editedEntities.value.findIndex(it => it.entity.iri === to.iri);
+        if(index !== -1) {
+          editedEntities.value = editedEntities.value.toSpliced(index, 1);
+        }
+      }
+    }
+  } else {
+    addedEntities.value = addedEntities.value.concat(newEntity);
+  }
+  isEntityEditorDialogVisible.value = false;
 };
 
-watch(newIndividualProperties, (to) => {
-  console.log(to);
+watch(() => editingEntityInfo.properties, (to) => {
+  if (!to) return;
   if (to.length === 0 || to[to.length - 1] && to[to.length - 1].property && to[to.length - 1].property.label) {
-    newIndividualProperties.value.push({
+    editingEntityInfo.properties = to.concat({
       property: {
         iri: "",
         label: "",
@@ -249,10 +345,10 @@ watch(newIndividualProperties, (to) => {
   }
 }, {deep: true});
 const onRemoveNewIndividualProperty = (index) => {
-  newIndividualProperties.value.splice(index, 1);
+  editingEntityInfo.properties = editingEntityInfo.properties.toSpliced(index, 1);
 };
 const onAddNewIndividualPropertyValue = (event, data, index) => {
-  newIndividualProperties.value.splice(index + 1, 0, {
+  editingEntityInfo.properties = editingEntityInfo.properties.toSpliced(index + 1, 0, {
     property: data.property,
     range: data.range,
     value: {
@@ -263,26 +359,29 @@ const onAddNewIndividualPropertyValue = (event, data, index) => {
 };
 const autoCompleteNewIndividualProperties = async (event) => {
   // TODO: Filter added properties, so it shows only the ones that are applied to a certain class
-  const filteredAddedProperties = [...addedEntities.value.filter(it => it.entity.type === "Property").map(it => ({
+  const filteredAddedProperties = [...addedEntities.value.filter(it => it.entity.type === "Property" && it.entity.label.toLowerCase().startsWith(event.query.toLowerCase())).map(it => ({
     property: it.entity,
     range: it.range
-  })).filter(it => !newIndividualProperties.value.find(other => it.property.iri === other.property.iri))];
+  })).filter(it => !editingEntityInfo.properties.find(other => it.property.iri === other.property.iri))];
   // TODO: Allow creating new properties here
 
-  const properties = await fetchIndividualProperties(event.query, newIndividualType.value.iri.startsWith("[New Entity]") ? null : newIndividualType.value.iri);
-  const filteredProperties = [...properties.filter(it => !newIndividualProperties.value.find(other => it.property.iri === other.property.iri))];
+  const properties = await fetchIndividualProperties(event.query, editingEntityInfo.individualType.iri.startsWith("[New Entity]") ? null : editingEntityInfo.individualType.iri);
+  const filteredProperties = [...properties.filter(it => !editingEntityInfo.properties.find(other => it.property.iri === other.property.iri))];
   selectedNewPropertyOptions.value = filteredAddedProperties.concat(filteredProperties);
 };
 
 const shouldShowNewPropertyValuePlusIcon = (data, index) => {
-  return newIndividualProperties.value.findLastIndex(it => data.property === it.property) === index;
+  return editingEntityInfo.properties.findLastIndex(it => data.property === it.property) === index;
 };
 
 const submitChanges = async () => {
   const url = `${backendHost}/api/submission/submitChanges`;
   const body = {
     addedEntities: addedEntities.value,
-    edits: edits.value,
+    editedEntities: editedEntities.value.map(it => ({
+      entity: it.entity,
+      edits: it.edits,
+    }))
   }
   const response = await fetch(url, {
     method: "POST",
@@ -297,6 +396,89 @@ const submitChanges = async () => {
 
 const openTargetBlank = url => {
   window.open(url, '_blank');
+}
+
+const onEditEntity = async (entity) => {
+  editingEntityInfo.label = entity.label;
+  editingEntityLabelDebounced.value = entity.label;
+  editingEntityInfo.type = entityTypeOptions.find(it => it.value === entity.type);
+  if (entity.iri.startsWith("[New Entity]")) {
+    const entityInfo = addedEntities.value.find(it => it.entity.iri === entity.iri);
+    editingEntityInfo.comment = entityInfo.comment;
+    if (entity.type === "Class") {
+      editingEntityInfo.subClassOf = entityInfo.subClassOf;
+    } else if (entity.type === "Individual") {
+      editingEntityInfo.individualType = entityInfo.individualType;
+      editingEntityInfo.properties = entityInfo.properties.map(it => ({
+        property: it.property,
+        range: it.range,
+        value: {
+          literal: it.range.type === "Datatype" ? it.value : null,
+          individual: it.range.type !== "Datatype" ? it.value : null,
+        }
+      }));
+    } else if (entity.type === "Property") {
+      editingEntityInfo.domain = entityInfo.domain;
+      editingEntityInfo.range = entityInfo.range;
+    }
+  } else {
+    const editedEntity = editedEntities.value.find(it => it.entity.iri === entity.iri);
+    if (editedEntity) {
+      const entityInfo = deepToRaw(editedEntity.entityInfo);
+      editingEntityInfo.comment = entityInfo.comment;
+      if (entity.type === "Class") {
+        editingEntityInfo.subClassOf = entityInfo.subClassOf;
+      } else if (entity.type === "Individual") {
+        editingEntityInfo.individualType = entityInfo.individualType;
+        editingEntityInfo.properties = entityInfo.properties.map(it => ({
+          property: it.property,
+          range: it.range,
+          value: it.value,
+        }));
+      } else if (entity.type === "Property") {
+        editingEntityInfo.domain = entityInfo.domain;
+        editingEntityInfo.range = entityInfo.range;
+      }
+    } else {
+      const entityInfo = await fetchEntityInfo(entity.iri);
+      editingEntityInfo.comment = entityInfo.comment;
+      if (entity.type === "Class") {
+        editingEntityInfo.subClassOf = entityInfo.classInfo.subClassOf.length > 0 ? entityInfo.classInfo.subClassOf[0] : null;
+      } else if (entity.type === "Individual") {
+        editingEntityInfo.individualType = entityInfo.individualInfo.types[0];
+        editingEntityInfo.properties = entityInfo.individualInfo.properties.flatMap(it => it.values.map(value => ({
+          property: it.property,
+          range: it.range,
+          value: {
+            literal: it.range.type === "Datatype" ? value.label : null,
+            individual: it.range.type !== "Datatype" ? value : null,
+          }
+        })));
+      } else if (entity.type === "Property") {
+        editingEntityInfo.domain = entityInfo.propertyInfo.domain;
+        editingEntityInfo.range = entityInfo.propertyInfo.range;
+      }
+    }
+  }
+  editingEntityInfo.iri = entity.iri;
+  if (!editedEntities.value.some(it => it.entity.iri === entity.iri)) {
+    editingEntityInfoSnapshots.push(deepToRaw(editingEntityInfo));
+  }
+  isEntityEditorDialogVisible.value = true;
+};
+
+const onRemoveAddedEntity = entity => {
+  const index = addedEntities.value.findIndex(it => it.entity.iri === entity.iri);
+  addedEntities.value = addedEntities.value.toSpliced(index, 1);
+};
+
+const onEditAnExistingTerm = async () => {
+  if(editExistingEntityInput.value && editExistingEntityInput.value.iri) {
+    await onEditEntity(editExistingEntityInput.value);
+  } else {
+    console.log(editExistingEntityInputRef.value.$el);
+    editExistingEntityInputRef.value.$el.querySelector('input').focus();
+  }
 }
 </script>
 
@@ -334,39 +516,43 @@ const openTargetBlank = url => {
           </StepPanel>
           <StepPanel v-slot="{ activateCallback }" :value="2">
             <div class="flex flex-col gap-8">
-              <div>
+              <div class="leading-loose">
                 <h3 class="text-lg font-semibold mb-4">Submitted Article</h3>
                 <div class="flex flex-col gap-2 border bg-surface-50 p-2">
                   <div class="border bg-surface-0 p-4">
                     <h3 class="text-lg font-semibold mb-2">Title</h3>
                     <template v-for="segment in titleSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
-                      <div v-else style="display: inline-block">
-                        <a :href="referencedEntities[segment.entityReferenceIndex].iri"
-                           @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
-                            segment.text
-                          }}</a>
-                      </div>
+                      <Button size="small" class="py-[0.05rem] px-1 leading-normal font-medium" outlined
+                              severity="primary" v-else
+                              @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
+                          segment.text
+                        }}
+                      </Button>
                     </template>
                   </div>
                   <div class="border bg-surface-0 p-4">
                     <h3 class="text-lg font-semibold mb-2">Abstract</h3>
                     <template v-for="segment in abstractSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
-                      <a v-else :href="referencedEntities[segment.entityReferenceIndex].iri"
-                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
+                      <Button size="small" class="py-[0.05rem] px-1 leading-normal font-medium" outlined
+                              severity="primary" v-else
+                              @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
                           segment.text
-                        }}</a>
+                        }}
+                      </Button>
                     </template>
                   </div>
                   <div class="border bg-surface-0 p-4">
                     <h3 class="text-lg font-semibold mb-2">Keywords</h3>
                     <template v-for="segment in keywordSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
-                      <a v-else :href="referencedEntities[segment.entityReferenceIndex].iri"
-                         @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
+                      <Button size="small" class="py-[0.05rem] px-1 leading-normal font-medium" outlined
+                              severity="primary" v-else
+                              @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
                           segment.text
-                        }}</a>
+                        }}
+                      </Button>
                     </template>
                   </div>
                 </div>
@@ -385,17 +571,55 @@ const openTargetBlank = url => {
                   <Column field="entity.type" header="Type" style="width: 4rem;"/>
                   <Column field="entity.label" header="Term">
                     <template #body="{ data }">
-                      <a v-if="!data.entity.iri.startsWith('[New Entity]')" href="data.entity.iri"
-                         @click.prevent="previewEntity(data.entity)">{{ data.entity.label }}</a>
-                      <template v-else>{{ data.entity.label }}</template>
+                      <Button size="small" class="py-[0.05rem] px-1 leading-normal font-medium" outlined
+                              severity="primary"
+                              @click="!data.entity.iri.startsWith('[New Entity]') ? previewEntity(data.entity) : onEditEntity(data.entity)">
+                        <Badge v-if="data.entity.iri.startsWith('[New Entity]')" severity="secondary" size="small">New
+                        </Badge>
+                        {{
+                          data.entity.label
+                        }}
+                      </Button>
+                    </template>
+                  </Column>
+                  <Column class="w-0" header="Actions">
+                    <template #body="{ data }">
+                      <div class="flex flex-row gap-2">
+                        <Button icon="pi pi-pen-to-square" outlined size="small" severity="info"
+                                pt:root:class="h-8" @click="onEditEntity(data.entity)" label="Edit"/>
+                        <Button v-if="!data.entity.iri.startsWith('[New Entity]')" icon="pi pi-external-link" outlined
+                                size="small" severity="secondary"
+                                pt:root:class="h-8"
+                                @click="openTargetBlank(router.resolve({name: 'browse', query: {iri: data.entity.iri, type: data.entity.type}}).href)"
+                                label="Browse"/>
+                        <Button v-if="data.entity.iri.startsWith('[New Entity]')" icon="pi pi-times-circle" outlined
+                                size="small" severity="danger" label="Remove"
+                                pt:root:class="h-8" @click="onRemoveAddedEntity(data.entity)"/>
+                      </div>
                     </template>
                   </Column>
                 </DataTable>
               </div>
               <div>
                 <h3 class="text-lg font-semibold mb-4">Contribute</h3>
-                <Button @click="isNewEntityDialogVisible = true" label="Add a new term"
-                        icon="pi pi-plus-circle" size="small" severity="contrast" outlined/>
+                <div class="flex flex-row justify-start gap-4 flex-wrap">
+                  <Button @click="isEntityEditorDialogVisible = true" label="Add a new term"
+                          icon="pi pi-plus-circle" size="small" severity="contrast" outlined/>
+                  <InputGroup size="small" class="w-fit">
+                    <Button icon="pi pi-pen-to-square" label="Edit an existing term" size="small" severity="contrast"
+                            outlined @click="onEditAnExistingTerm()"/>
+                    <AutoComplete v-model="editExistingEntityInput"
+                                  id="editExistingEntityInput"
+                                  ref="editExistingEntityInputRef"
+                                  pt:pcInput:root:class="w-full"
+                                  forceSelection
+                                  size="small"
+                                  optionLabel="label"
+                                  :suggestions="editExistingEntityAutoCompleteOptions"
+                                  @complete="e => autoCompleteEditExistingEntity(e)"
+                                  placeholder="Term…"/>
+                  </InputGroup>
+                </div>
               </div>
               <div>
                 <Divider/>
@@ -408,15 +632,20 @@ const openTargetBlank = url => {
               <EntitiesTree ref="entityPreviewTree" :initialSelectedIri="previewingEntity.iri"
                             :initialSelectedEntityType="previewingEntity.type"/>
             </Dialog>
-            <Dialog v-model:visible="isNewEntityDialogVisible" modal header="Add a new term">
+            <Dialog v-model:visible="isEntityEditorDialogVisible" modal :dismissableMask="!!editingEntityInfo.iri"
+                    pt:root:class="w-full max-w-[48rem]"
+                    :header="editingEntityInfo.iri ? 'Edit term' : 'Add a new term'">
               <div class="flex flex-col gap-6">
                 <div class="flex flex-col gap-2">
-                  <label for="newEntityLabelInput" class="font-medium">What term would you like to introduce?</label>
-                  <InputText v-model="newEntityLabelInput"
+                  <label for="newEntityLabelInput" class="font-medium">{{
+                      editingEntityInfo.iri ? 'What is the label of this term?' : 'What term would you like to introduce?'
+                    }}</label>
+                  <InputText v-model="editingEntityInfo.label"
                              @input="newEntityLabelInputDebounceFn"
                              id="newEntityLabelInput"
                              fluid
-                             placeholder="New term..."/>
+                             :disabled="editingEntityInfo.iri && !editingEntityInfo.iri.startsWith('[New Entity]')"
+                             :placeholder="editingEntityInfo.iri ? 'Label...' : 'New term...'"/>
                 </div>
                 <!--            TODO: Implement suggestion if term is a synonym of existing
                                 <div v-if="newEntityLabelInputDebounced"
@@ -440,15 +669,16 @@ const openTargetBlank = url => {
                                     base</a>
                                   </p>
                                 </div>-->
-                <template v-if="newEntityLabelInputDebounced">
+                <template v-if="editingEntityLabelDebounced">
                   <div class="flex flex-col gap-2">
                     <label for="newEntityCommentInput" class="font-medium">How would you describe the term?</label>
-                    <Textarea fluid v-model="newEntityCommentInput" id="newEntityCommentInput" rows="3"
+                    <Textarea fluid v-model="editingEntityInfo.comment" id="newEntityCommentInput" rows="3"
                               placeholder="Describe the term…"/>
                   </div>
                   <div class="flex flex-col gap-2">
                     <label for="selectedNewEntityType" class="font-medium">Which type is the term?</label>
-                    <Select v-model="selectedNewEntityType" id="selectedNewEntityType" :options="entityTypeOptions"
+                    <Select v-model="editingEntityInfo.type" id="selectedNewEntityType" :options="entityTypeOptions"
+                            :disabled="editingEntityInfo.iri && !editingEntityInfo.iri.startsWith('[New Entity]')"
                             optionLabel="value"
                             placeholder="Select type…">
                       <template #option="{option}">
@@ -460,10 +690,10 @@ const openTargetBlank = url => {
                     </Select>
                   </div>
                 </template>
-                <template v-if="selectedNewEntityType !== null && selectedNewEntityType.value === 'Class'">
+                <template v-if="editingEntityInfo.type !== null && editingEntityInfo.type.value === 'Class'">
                   <div class="flex flex-col gap-2">
                     <label for="newClassSubClassOfInput" class="font-medium">Does this class have a super class?</label>
-                    <AutoComplete v-model="newClassSubClassOfInput"
+                    <AutoComplete v-model="editingEntityInfo.subClassOf"
                                   id="newClassSubClassOfInput"
                                   pt:pcInput:root:class="w-full"
                                   forceSelection
@@ -473,11 +703,11 @@ const openTargetBlank = url => {
                                   placeholder="No."/>
                   </div>
                 </template>
-                <template v-if="selectedNewEntityType !== null && selectedNewEntityType.value === 'Individual'">
+                <template v-if="editingEntityInfo.type !== null && editingEntityInfo.type.value === 'Individual'">
                   <div class="flex flex-col gap-2">
                     <label for="newEntitySubClassOfInput" class="font-medium">Which class does this individual belong
                       to?</label>
-                    <AutoComplete v-model="newIndividualType"
+                    <AutoComplete v-model="editingEntityInfo.individualType"
                                   id="newIndividualTypeInput"
                                   pt:pcInput:root:class="w-full"
                                   forceSelection
@@ -486,10 +716,10 @@ const openTargetBlank = url => {
                                   @complete="e => autoCompleteEntities(e, ['Class'])"
                                   placeholder="Type…"/>
                   </div>
-                  <template v-if="newIndividualType && newIndividualType.iri">
+                  <template v-if="editingEntityInfo.individualType && editingEntityInfo.individualType.iri">
                     <div class="flex flex-col gap-2">
                       <div class="font-medium">What are the properties of this individual?</div>
-                      <DataTable :value="newIndividualProperties" rowGroupMode="rowspan"
+                      <DataTable :value="editingEntityInfo.properties" rowGroupMode="rowspan"
                                  groupRowsBy="property.label"
                                  stripedRows size="small">
                         <Column field="property.label" header="Property" style="width: 12rem">
@@ -515,11 +745,11 @@ const openTargetBlank = url => {
                           <template #body="{data, index}">
                             <template v-if="data && data.property && data.property.label">
                               <template v-if="!data.range || !data.range.type || data.range.type === 'Datatype'">
-                                <InputText fluid v-model="newIndividualProperties[index].value.literal"
+                                <InputText fluid v-model="editingEntityInfo.properties[index].value.literal"
                                            placeholder="Value…"/>
                               </template>
                               <template v-else>
-                                <AutoComplete v-model="newIndividualProperties[index].value.individual"
+                                <AutoComplete v-model="editingEntityInfo.properties[index].value.individual"
                                               pt:pcInput:root:class="w-full"
                                               forceSelection
                                               optionLabel="label"
@@ -549,11 +779,11 @@ const openTargetBlank = url => {
                     </div>
                   </template>
                 </template>
-                <template v-if="selectedNewEntityType !== null && selectedNewEntityType.value === 'Property'">
+                <template v-if="editingEntityInfo.type !== null && editingEntityInfo.type.value === 'Property'">
                   <div class="flex flex-col gap-2">
                     <label for="newEntitySubClassOfInput" class="font-medium">Which type of individuals may have this
                       property?</label>
-                    <AutoComplete v-model="newPropertyDomain"
+                    <AutoComplete v-model="editingEntityInfo.domain"
                                   id="newPropertyDomain"
                                   pt:pcInput:root:class="w-full"
                                   forceSelection
@@ -565,7 +795,7 @@ const openTargetBlank = url => {
                   <div class="flex flex-col gap-2">
                     <label for="newEntitySubClassOfInput" class="font-medium">What type is the value of this
                       property?</label>
-                    <AutoComplete v-model="newPropertyRange"
+                    <AutoComplete v-model="editingEntityInfo.range"
                                   id="newPropertyRange"
                                   pt:pcInput:root:class="w-full"
                                   forceSelection
@@ -577,25 +807,29 @@ const openTargetBlank = url => {
                 </template>
                 <div class="flex flex-row justify-end gap-2">
                   <Button label="Cancel" severity="secondary" outlined size="small"
-                          @click="isNewEntityDialogVisible = false"/>
-                  <Button label="Add term"
-                          :disabled="!selectedNewEntityType || selectedNewEntityType.value === 'Individual' && (!newIndividualType || !newIndividualType.iri) || selectedNewEntityType.value === 'Property' && (!newPropertyRange || !newPropertyRange.iri)"
-                          @click="onAddEntity" size="small"/>
+                          @click="isEntityEditorDialogVisible = false"/>
+                  <Button :label="editingEntityInfo.iri ? 'Edit term' : 'Add term'"
+                          :disabled="!editingEntityInfo.type || editingEntityInfo.type.value === 'Individual' && (!editingEntityInfo.individualType || !editingEntityInfo.individualType.iri) || editingEntityInfo.type.value === 'Property' && (!editingEntityInfo.range || !editingEntityInfo.range.iri)"
+                          @click="onSaveEditedEntity" size="small"/>
                 </div>
               </div>
             </Dialog>
           </StepPanel>
           <StepPanel :value="3">
-            <div class="flex flex-col gap-8">
+            <div class="flex flex-col gap-8 px-4 pb-4 pt-2">
               <div>
-                <h3 class="text-lg font-semibold mb-4">Review Contributions</h3>
-                <p class="mb-8">Thank you for your contribution to the MyCODA Knowledge Base!</p>
-                <Button v-if="githubIssueUrl" label="View GitHub Issue"
-                        @click="openTargetBlank(githubIssueUrl)"/>
-                <div v-else class="flex flex-row gap-3 items-center">
-                  <ProgressSpinner class="size-[1.4rem] m-0" strokeWidth="8" fill="transparent"/>
-                  <div class="font-medium">Creating Github Issue</div>
+                <h3 class="text-lg font-semibold mb-4">🙌 Thank you for your contribution to the MyCODA Knowledge
+                  Base!</h3>
+                <div class="flex flex-col gap-2">
+                  <p>Your contribution has been submitted through a GitHub Issue on the <a
+                      href="https://github.com/macodaclub/MyCODA" target="_blank">MyCODA Github Repository</a>.</p>
+                  <p>A curator will review the proposed changes and update the ontology accordingly.</p>
                 </div>
+                <Button class="mt-6" :icon="githubIssueUrl ? 'pi pi-github' : 'pi pi-spin pi-spinner'"
+                        label="View GitHub Issue" size="small"
+                        :disabled="!githubIssueUrl"
+                        severity="contrast"
+                        @click="openTargetBlank(githubIssueUrl)"/>
               </div>
             </div>
           </StepPanel>

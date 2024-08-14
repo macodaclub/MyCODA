@@ -6,6 +6,7 @@ ktor:
   deployment:
     port: "$PORT:80"
   frontendPort: "$FRONTEND_PORT:null"
+  hostName: "$HOST_NAME:null"
   security:
     ssl:
       keyAlias: "$SSL_KEY_ALIAS:null"

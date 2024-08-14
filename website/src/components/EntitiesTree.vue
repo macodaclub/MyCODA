@@ -37,7 +37,7 @@ const {
   fetchTaxonomyTree,
   fetchExpandedTaxonomyTree,
   fetchSelectedTaxonomyTree,
-  fetchSelectedEntityInfo
+  fetchEntityInfo
 } = ontologyStore;
 
 const ontologyInfo = ref(null);
@@ -155,7 +155,7 @@ const selectEntity = async (iri, _type) => {
   expandedKeys.value = expandedKeysObj;
   selectedIri.value = iri;
   selectedEntityType.value = type;
-  selectedEntityInfo.value = await fetchSelectedEntityInfo(iri, type);
+  selectedEntityInfo.value = await fetchEntityInfo(iri, type);
 }
 
 const deselectEntity = async (type) => {
@@ -237,13 +237,19 @@ defineExpose({
           </div>
         </template>
         <template v-if="selectedEntityInfo">
+          <template v-if="selectedEntityInfo.comment">
+            <div class="info-field">
+              <h4 class="capitalize font-semibold">Comment</h4>
+              <p>{{ selectedEntityInfo.comment }}</p>
+            </div>
+          </template>
           <template v-for="annotation in selectedEntityInfo.annotations">
-            <div v-if="annotation.propertyLabel !== 'label'" class="info-field">
+            <div class="info-field">
               <h4 class="capitalize font-semibold">{{ annotation.propertyLabel }}</h4>
               <p>{{ annotation.value }}</p>
             </div>
           </template>
-          <template v-if="selectedEntityInfo.type === 'Class' && selectedEntityInfo.classInfo">
+          <template v-if="selectedEntityInfo.entity.type === 'Class' && selectedEntityInfo.classInfo">
             <div
                 v-if="selectedEntityInfo.classInfo.equivalentClasses && selectedEntityInfo.classInfo.equivalentClasses.length > 0"
                 class="info-field">
@@ -254,7 +260,7 @@ defineExpose({
                 }}</a>
             </div>
           </template>
-          <template v-if="selectedEntityInfo.type === 'Individual' && selectedEntityInfo.individualInfo !== null">
+          <template v-if="selectedEntityInfo.entity.type === 'Individual' && selectedEntityInfo.individualInfo">
             <div
                 v-if="selectedEntityInfo.individualInfo.types && selectedEntityInfo.individualInfo.types.length > 0"
                 class="info-field">
@@ -272,26 +278,42 @@ defineExpose({
               <DataTable :value="selectedEntityInfo.individualInfo.properties" stripedRows pt:root:class="mt-2">
                 <Column field="property" header="Property">
                   <template #body="{data}">
-                    <a :href="data.iri"
+                    <a :href="data.property.iri"
                        class="font-medium"
-                       @click.prevent="onSelectEntity(data.iri, 'Property')">{{
-                        data.label
+                       @click.prevent="onSelectEntity(data.property.iri, 'Property')">{{
+                        data.property.label
                       }}</a>
                   </template>
                 </Column>
-                <Column field="rangeEntities" header="Value(s)">
+                <Column field="values" header="Value(s)">
                   <template #body="{data}">
-                    <template v-for="(entity, index) in data.rangeEntities">
+                    <template v-for="(entity, index) in data.values">
                       <a :href="entity.iri"
                          @click.prevent="entity.type !== 'Datatype' ? onSelectEntity(entity.iri, entity.type) : {}">{{
                           entity.label
                         }}
                       </a>
-                      <span v-if="index < data.rangeEntities.length - 1" class="font-medium">, </span>
+                      <span v-if="index < data.values.length - 1" class="font-medium">, </span>
                     </template>
                   </template>
                 </Column>
               </DataTable>
+            </div>
+          </template>
+          <template v-if="selectedEntityInfo.entity.type === 'Property' && selectedEntityInfo.propertyInfo">
+            <div v-if="selectedEntityInfo.propertyInfo.domain" class="info-field">
+              <h4 class="capitalize font-semibold">Domain</h4>
+              <a :href="selectedEntityInfo.propertyInfo.domain.iri"
+                 @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.domain.iri, 'Property')">{{
+                  selectedEntityInfo.propertyInfo.domain.label
+                }}</a>
+            </div>
+            <div v-if="selectedEntityInfo.propertyInfo.range" class="info-field">
+              <h4 class="capitalize font-semibold">Range</h4>
+              <a :href="selectedEntityInfo.propertyInfo.range.iri"
+                 @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.range.iri, 'Property')">{{
+                  selectedEntityInfo.propertyInfo.range.label
+                }}</a>
             </div>
           </template>
         </template>

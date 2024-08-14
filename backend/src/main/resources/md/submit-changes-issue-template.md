@@ -8,6 +8,6 @@
 ```
 </details>
 
-## Added Entities
+%addedEntitiesHtmlTables%
 
-%addedEntitiesHtmlTable%
+%editedEntitiesHtmlTables%

@@ -5,7 +5,10 @@ import io.ktor.server.routing.*
 
 fun Routing.staticRoutes() {
     staticResources("/", "website") {
+        preCompressed()
         default("index.html")
     }
-    staticResources("/static", "static")
+    staticResources("/static", "static") {
+        preCompressed()
+    }
 }

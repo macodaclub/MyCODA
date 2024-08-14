@@ -4,10 +4,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GetEntityInfoResponse(
-    val iri: String,
-    val type: String,
-    val label: String,
+    val entity: Entity,
+    val comment: String?,
     val annotations: List<Annotation>,
+    // val axioms: List<Axiom>,
     val classInfo: ClassInfo? = null,
     val individualInfo: IndividualInfo? = null,
     val propertyInfo: PropertyInfo? = null,
@@ -36,19 +36,18 @@ data class GetEntityInfoResponse(
     ) {
         @Serializable
         data class Property(
-            val iri: String,
-            val label: String,
-            val rangeEntities: List<Entity>,
-            val inverseOfProperty: Entity?,
+            val property: Entity,
+            val range: Entity,
+            val values: List<Entity>?,
+            // val inverseOfProperty: Entity?, TODO
         )
     }
 
     @Serializable
     data class PropertyInfo(
-        val domain: Entity,
+        val domain: Entity?,
         val range: Entity,
-        val isDataProperty: Boolean,
-        val inverseOf: Entity?,
+        // val inverseOf: Entity?, TODO
     )
 
     @Serializable

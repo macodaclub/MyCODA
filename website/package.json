@@ -21,7 +21,8 @@
     "@tailwindcss/typography": "^0.5.13",
     "postcss": "^8.4.39",
     "autoprefixer": "^10.4.19",
-    "@vueuse/core": "^10.11.0"
+    "@vueuse/core": "^10.11.0",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.5",
