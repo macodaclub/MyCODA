@@ -16,13 +16,18 @@ import Select from 'primevue/select';
 import AutoComplete from 'primevue/autocomplete';
 import Divider from 'primevue/divider';
 import InputGroup from 'primevue/inputgroup';
+import Checkbox from 'primevue/checkbox';
+import Popover from 'primevue/popover';
+import {useDialog} from 'primevue/usedialog';
 import {useDebounceFn} from "@vueuse/core"
 import {useRouter} from 'vue-router'
-import {computed, reactive, ref, watch} from "vue";
+import {computed, defineAsyncComponent, reactive, ref, watch} from "vue";
 import _ from "lodash"
-import EntitiesTree from "@/components/EntitiesTree.vue";
 import {useOntologyStore} from "@/store";
 import {camelCaseToCapitalized, deepToRaw, generateIriSuffix} from "@/utils/utils/utils.js";
+
+const EntitiesTree = defineAsyncComponent(() => import("@/components/EntitiesTree.vue"));
+const TutorialVideoPlayer = defineAsyncComponent(() => import('@/components/TutorialVideoPlayer.vue'));
 
 const isDev = import.meta.env.DEV;
 
@@ -31,11 +36,38 @@ const {backendHost, fetchEntityInfo, fetchSearchEntities, fetchIndividualPropert
 
 const router = useRouter();
 
+const dialog = useDialog();
+const showTutorialVideo = () => {
+  dialog.open(TutorialVideoPlayer, {
+    props: {
+      header: 'Article Submission Tutorial',
+      style: {
+        width: '70vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true,
+      dismissableMask: true
+    }
+  });
+};
+
 const activeStep = ref(1);
 
-const titleInput = ref(isDev ? "The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of MOEA –, has implementation language Java and C#." : "");
-const abstractInput = ref(isDev ? "The p NSGA-II algorithm, a preference based multi-objective evolutionary algorithm – subclass of multi-objective evolutionary algorithm –, has implementation language Java and C#, and one of the authors was Pradyumn Kumar Shukla." : "");
-const keywordsInput = ref(isDev ? "p NSGA-II, Java, MOEA, C#" : "");
+const popoverHelpArticleForm = ref();
+const popoverHelpSubmittedArticle = ref();
+const popoverHelpIdentifiedTerms = ref();
+const popoverHelpContribute = ref();
+
+const titleInput = ref(isDev ? "A Kotlin implementation of the pNSGA-II algorithm (PMOEA)." : "");
+const abstractInput = ref(isDev ? "The p NSGA-II algorithm, a preference-based multi-objective evolutionary algorithm—a subclass of multi-objective evolutionary algorithm—has been widely recognized for its efficiency in handling complex optimization problems involving multiple objectives. Originally implemented in Java, the algorithm has recently been adapted to Kotlin, reflecting a growing trend in modern software development towards more concise and expressive programming languages. The adaptation to Kotlin not only preserves the algorithm's robust performance but also enhances its usability and integration with contemporary software ecosystems. One of the principal contributors to the development of the p NSGA-II algorithm was Carlos Coello Coello, whose work has significantly influenced the field of evolutionary computation. The algorithm's capability to incorporate user preferences in the optimization process makes it particularly valuable for real-world applications where decision-makers often have specific goals or priorities. As such, the p NSGA-II algorithm continues to be a vital tool in both academic research and industrial applications, driving advancements in fields ranging from engineering design to artificial intelligence." : "");
+const keywordsInput = ref(isDev ? "pNSGA-II, Kotlin, PMOEA" : "");
+const authorsInput = ref(isDev ? "Tiago Nunes, Vítor B. Fernandes, Michael T.M. Emmerich" : "");
+const emailInput = ref(isDev ? "tmlns@iscte-iul.pt" : "");
+const consentStorage = ref(isDev);
+const consentShareWithEmo = ref(isDev);
 
 const titleSegments = ref(null);
 const abstractSegments = ref(null);
@@ -59,17 +91,17 @@ const identifiedTerms = computed(() => {
 
   editedEntities.value.forEach(edited => {
     const index = result.findIndex(it => edited.entity.iri === it.entity.iri);
-    if(index !== -1) {
+    if (index !== -1) {
       const el = result[index];
       result[index] = {
         context: el.context.concat(["Edited"]),
         entity: el.entity
       };
     } else {
-        result.push({
-          context: ["Edited"],
-          entity: edited.entity
-        });
+      result.push({
+        context: ["Edited"],
+        entity: edited.entity
+      });
     }
   });
 
@@ -164,6 +196,7 @@ watch(activeStep, async (to) => {
   if (to === 3) {
     githubIssueUrl.value = await submitChanges();
   }
+  window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
 });
 
 const browseRoute = router.resolve({name: 'browse'});
@@ -312,7 +345,7 @@ const onSaveEditedEntity = () => {
         editedEntities.value = index !== -1 ? editedEntities.value.toSpliced(index, 1, editedEntity) : editedEntities.value.concat([editedEntity]);
       } else {
         const index = editedEntities.value.findIndex(it => it.entity.iri === to.iri);
-        if(index !== -1) {
+        if (index !== -1) {
           editedEntities.value = editedEntities.value.toSpliced(index, 1);
         }
       }
@@ -473,7 +506,7 @@ const onRemoveAddedEntity = entity => {
 };
 
 const onEditAnExistingTerm = async () => {
-  if(editExistingEntityInput.value && editExistingEntityInput.value.iri) {
+  if (editExistingEntityInput.value && editExistingEntityInput.value.iri) {
     await onEditEntity(editExistingEntityInput.value);
   } else {
     console.log(editExistingEntityInputRef.value.$el);
@@ -495,7 +528,11 @@ const onEditAnExistingTerm = async () => {
           <StepPanel v-slot="{ activateCallback }" :value="1">
             <form class="flex flex-col gap-6" @submit.prevent="onSubmitForm(activateCallback)">
               <div class="flex flex-col gap-6">
-                <h2 class="text-xl font-bold mb-2">Article Submission Form</h2>
+                <div class="flex flex-row justify-start items-center gap-2 mb-2">
+                  <h2 class="text-xl font-bold">Article Submission Form</h2>
+                  <Button class="size-6 border border-gray-400" pt:icon:class="text-xs" icon="pi pi-question" rounded
+                          severity="secondary" @click="e => popoverHelpArticleForm.toggle(e)"/>
+                </div>
                 <FloatLabel>
                   <InputText fluid id="titleInput" v-model="titleInput"/>
                   <label for="titleInput">Title</label>
@@ -508,8 +545,35 @@ const onEditAnExistingTerm = async () => {
                   <InputText fluid id="keywordsInput" v-model="keywordsInput"/>
                   <label for="keywordsInput">Keywords</label>
                 </FloatLabel>
+                <FloatLabel pt:root:class="mt-2">
+                  <InputText fluid id="authorsInput" v-model="authorsInput"/>
+                  <label for="authorsInput">Authors</label>
+                </FloatLabel>
+                <FloatLabel pt:root:class="mt-2">
+                  <InputText fluid id="emailInput" v-model="emailInput"/>
+                  <label for="emailInput">Email address</label>
+                </FloatLabel>
+                <div class="flex flex-col gap-4">
+                  <div class="flex flex-row items-center gap-2 text-sm">
+                    <Checkbox v-model="consentStorage" binary required id="consentStorage" name="consentStorage"/>
+                    <label for="consentStorage"><strong class="text-red-700">*</strong> I consent to the storage of my
+                      article and contact information and its
+                      use for assisting me in contributing to the MyCODA Knowledge Base, contacting me regarding my
+                      contribution, and helping improve the MyCODA platform. (This information will not be imported to
+                      the Knowledge Base, and will not be shared
+                      with the public)</label>
+                  </div>
+                  <div class="flex flex-row items-center gap-2 text-sm">
+                    <Checkbox v-model="consentShareWithEmo" binary required id="consentShareWithEmo"
+                              name="consentShareWithEmo"/>
+                    <label for="consentShareWithEmo"><strong class="text-red-700">*</strong> I consent to the sharing of
+                      my article and contact information with the
+                      organizers of the <a href="https://www.emo2025.org/organizers.html" target="_blank">EMO 2025
+                        event</a>, with the purpose of providing analytics to the organization of the event.</label>
+                  </div>
+                </div>
               </div>
-              <div class="flex flex-col items-start">
+              <div class="flex flex-col items-start mt-2">
                 <Button type="submit" label="Submit Article"/>
               </div>
             </form>
@@ -517,7 +581,11 @@ const onEditAnExistingTerm = async () => {
           <StepPanel v-slot="{ activateCallback }" :value="2">
             <div class="flex flex-col gap-8">
               <div class="leading-loose">
-                <h3 class="text-lg font-semibold mb-4">Submitted Article</h3>
+                <div class="flex flex-row justify-start items-center gap-2 mb-4">
+                  <h3 class="text-lg font-semibold">Submitted Article</h3>
+                  <Button class="size-6 border border-gray-400" pt:icon:class="text-xs" icon="pi pi-question" rounded
+                          severity="secondary" @click="e => popoverHelpSubmittedArticle.toggle(e)"/>
+                </div>
                 <div class="flex flex-col gap-2 border bg-surface-50 p-2">
                   <div class="border bg-surface-0 p-4">
                     <h3 class="text-lg font-semibold mb-2">Title</h3>
@@ -558,7 +626,11 @@ const onEditAnExistingTerm = async () => {
                 </div>
               </div>
               <div>
-                <h3 class="text-lg font-semibold mb-4">Identified Terms</h3>
+                <div class="flex flex-row justify-start items-center gap-2 mb-4">
+                  <h3 class="text-lg font-semibold">Identified Terms</h3>
+                  <Button class="size-6 border border-gray-400" pt:icon:class="text-xs" icon="pi pi-question" rounded
+                          severity="secondary" @click="e => popoverHelpIdentifiedTerms.toggle(e)"/>
+                </div>
                 <DataTable :value="identifiedTerms" editMode="cell" showGridlines stripedRows>
                   <Column field="context" header="Context" style="width: 4rem;">
                     <template #body="{ data, field }">
@@ -601,7 +673,11 @@ const onEditAnExistingTerm = async () => {
                 </DataTable>
               </div>
               <div>
-                <h3 class="text-lg font-semibold mb-4">Contribute</h3>
+                <div class="flex flex-row justify-start items-center gap-2 mb-4">
+                  <h3 class="text-lg font-semibold">Contribute</h3>
+                  <Button class="size-6 border border-gray-400" pt:icon:class="text-xs" icon="pi pi-question" rounded
+                          severity="secondary" @click="e => popoverHelpContribute.toggle(e)"/>
+                </div>
                 <div class="flex flex-row justify-start gap-4 flex-wrap">
                   <Button @click="isEntityEditorDialogVisible = true" label="Add a new term"
                           icon="pi pi-plus-circle" size="small" severity="contrast" outlined/>
@@ -837,6 +913,70 @@ const onEditAnExistingTerm = async () => {
       </Stepper>
     </div>
   </main>
+  <Popover ref="popoverHelpArticleForm" pt:root:class="bg-gray-100">
+    <div class="flex flex-col gap-2 max-w-[28rem]">
+      <h2 class="font-semibold">Help: Article Submission Form</h2>
+      <Divider class="m-0"/>
+      <p class="text-sm">Please fill the form with your article information and email address.</p>
+      <p class="text-sm">This information will be used to assist you in contributing to the MyCODA Knowledge Base, by
+        finding any known terms, and providing suggestions.</p>
+      <Divider class="m-0"/>
+      <p class="text-sm">For more information, check the <a href="" @click.prevent="showTutorialVideo()">tutorial
+        video</a>, or <a
+          href="mailto: macodaclub@gmail.com">contact us</a>.</p>
+    </div>
+  </Popover>
+  <Popover ref="popoverHelpSubmittedArticle" pt:root:class="bg-gray-100">
+    <div class="flex flex-col gap-2 max-w-[28rem]">
+      <h2 class="font-semibold">Help: Submitted Article</h2>
+      <Divider class="m-0"/>
+      <p class="text-sm">Any terms identified in your article that already exist in the knowledge base will appear
+        highlighted below in orange.</p>
+      <p class="text-sm">You can gather information about the current knowledge by clicking on any identified terms, or
+        by <a :href="browseRoute.href" @click.prevent="openTargetBlank(browseRoute.href)">browsing the ontology</a>.</p>
+      <p class="text-sm">Use these resources to understand how the knowledge around your topics is structured, and what
+        information is missing.</p>
+      <Divider class="m-0"/>
+      <p class="text-sm">For more information, check the <a href="" @click.prevent="showTutorialVideo()">tutorial
+        video</a>, or <a
+          href="mailto: macodaclub@gmail.com">contact
+        us</a>.</p>
+    </div>
+  </Popover>
+  <Popover ref="popoverHelpIdentifiedTerms" pt:root:class="bg-gray-100">
+    <div class="flex flex-col gap-2 max-w-[28rem]">
+      <h2 class="font-semibold">Help: Identified Terms</h2>
+      <Divider class="m-0"/>
+      <p class="text-sm">This table shows which terms are referenced in the article, as well as which terms you've added
+        or edited.</p>
+      <p class="text-sm">You can edit or browse any existing terms or you can edit or remove any new terms you've
+        added.</p>
+      <Divider class="m-0"/>
+      <p class="text-sm font-semibold mb-1">Types information:</p>
+      <p class="text-sm" v-for="type in entityTypeOptions"><span class="font-semibold">{{ type.value }}</span>:
+        {{ type.description }}</p>
+      <Divider class="m-0"/>
+      <p class="text-sm">For more information, check the <a href="" @click.prevent="showTutorialVideo()">tutorial
+        video</a>, or <a
+          href="mailto: macodaclub@gmail.com">contact
+        us</a>.</p>
+    </div>
+  </Popover>
+  <Popover ref="popoverHelpContribute" pt:root:class="bg-gray-100">
+    <div class="flex flex-col gap-2 max-w-[28rem]">
+      <h2 class="font-semibold">Help: Contribute</h2>
+      <Divider class="m-0"/>
+      <p class="text-sm">You are welcome to contribute to the MyCODA knowledge by adding new terms, or editing existing
+        terms.</p>
+      <p class="text-sm">Any changes to the knowledge after submitting your contribution will be reviewed by a curator,
+        before they are implemented in the ontology.</p>
+      <Divider class="m-0"/>
+      <p class="text-sm">For more information, check the <a href="" @click.prevent="showTutorialVideo()">tutorial
+        video</a>, or <a
+          href="mailto: macodaclub@gmail.com">contact us</a>.</p>
+    </div>
+  </Popover>
+
 </template>
 
 <style scoped>

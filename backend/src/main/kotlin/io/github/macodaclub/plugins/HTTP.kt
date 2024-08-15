@@ -5,6 +5,7 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.partialcontent.*
 
 fun Application.configureHTTP() {
     install(Compression) {
@@ -22,6 +23,7 @@ fun Application.configureHTTP() {
             }
         }
     }
+    install(PartialContent)
     install(DefaultHeaders) {
         header("X-Engine", "Ktor") // will send this header with each response
     }

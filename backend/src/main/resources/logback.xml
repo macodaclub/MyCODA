@@ -1,29 +1,34 @@
 <configuration>
-    <!-- Appender to log to a file -->
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/ktor.log</file>
-        <append>true</append>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
 
-    <!-- Appender to log to the console -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
+            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %X{call-id} %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Logger for Netty -->
-    <logger name="io.netty" level="INFO"/>
+    <if condition='isDefined("LOGS_FOLDER_PATH")'>
+        <then>
+            <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+                <file>$LOGS_FOLDER_PATH/server.log</file>
+                <append>true</append>
+                <encoder>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
+                </encoder>
+            </appender>
+        </then>
+    </if>
 
-    <!-- Logger for Jetty (in case it's used indirectly) -->
-    <logger name="org.eclipse.jetty" level="INFO"/>
-
-    <!-- Root logger -->
-    <root level="INFO">
-        <appender-ref ref="FILE" />
-        <appender-ref ref="STDOUT" />
+    <root level="TRACE">
+        <appender-ref ref="STDOUT"/>
     </root>
+    <if condition='isDefined("LOGS_FOLDER_PATH")'>
+        <then>
+            <root level="TRACE">
+                <appender-ref ref="FILE"/>
+            </root>
+        </then>
+    </if>
+
+    <logger name="org.eclipse.jetty" level="INFO"/>
+    <logger name="io.netty" level="INFO"/>
 </configuration>

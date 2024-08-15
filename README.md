@@ -31,20 +31,20 @@ Or run configuration [Docker: Build and Upload Image](.run/Docker_%20Build%20and
 
 ## Run Docker Image in the server
 
-After setting up SSL Certificate using Let's Encrypt, and converting to JKS, run:
-
 ```sh
 docker pull tiagonuneslx/mycoda:latest
 docker run --name mycoda \
   --detach \
   --restart=always \
   -p 80:80 -p 443:443 \
-  -v /etc/letsencrypt/live/mycoda.ddns.net/keystore.jks:/backend/keystore.jks \
+  -v XXXXXX:/backend/keystore.jks \
+  -v XXXXXX:/backend/logs \
   -e SSL_KEY_ALIAS=XXXXXX \
   -e SSL_KEYSTORE_PASSWORD=XXXXXX \
   -e SSL_PRIVATE_KEY_PASSWORD=XXXXXX \
   -e GITHUB_OAUTH=XXXXXX \
   -e HOST_NAME=mycoda.ddns.net \
+  -e LOGS_FOLDER_PATH=/backend/logs \
   tiagonuneslx/mycoda \
   -sslPort=443 \
   -sslKeyStore=/backend/keystore.jks

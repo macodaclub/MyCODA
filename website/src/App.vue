@@ -1,5 +1,6 @@
 <script setup>
 import Header from "@/components/Header.vue";
+import DynamicDialog from "primevue/dynamicdialog";
 </script>
 
 <template>
@@ -7,4 +8,5 @@ import Header from "@/components/Header.vue";
   <main>
     <router-view/>
   </main>
+  <DynamicDialog />
 </template>

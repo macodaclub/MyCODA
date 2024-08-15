@@ -44,7 +44,7 @@ const onSearchTerm = entity => {
           Platform</h4>
       </div>
     </div>
-    <div class="flex flex-row justify-between flex-wrap-reverse max-w-[1300px] mx-auto my-0 gap-6">
+    <div class="topbar flex flex-col-reverse justify-between max-w-[1300px] mx-auto my-0 gap-6">
       <div class="nav-bar">
         <router-link :to="{name: 'home'}" tag="div" class="nav-btn">Home</router-link>
         <router-link :to="{name: 'education'}" tag="div" class="nav-btn">Education</router-link>
@@ -52,15 +52,17 @@ const onSearchTerm = entity => {
         <router-link :to="{name: 'browse'}" tag="div" class="nav-btn">Browse</router-link>
         <router-link :to="{name: 'submissionForm'}" tag="div" class="nav-btn">Contribute</router-link>
       </div>
-      <div class="translate-y-[-8px]">
+      <div class="search-bar flex-row justify-start">
         <IconField>
           <AutoComplete v-model="searchEntityInput"
                         id="searchEntityInput"
                         forceSelection
+                        pt:root:class="w-full"
+                        pt:pcInput:root:class="w-full"
                         optionLabel="label"
                         :suggestions="searchEntityAutoCompleteOptions"
                         @complete="e => autoCompleteSearchEntity(e)"
-                        placeholder="Search…"/>
+                        placeholder="Search term…"/>
           <InputIcon class="pi pi-search"/>
         </IconField>
       </div>
@@ -90,8 +92,23 @@ header {
     }
   }
 
+  .topbar {
+    @media (min-width: 780px) {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+
+  .search-bar {
+    margin: 0 16px;
+
+    @media (min-width: 780px) {
+      transform: translateY(-8px);
+    }
+  }
+
   .nav-bar {
-    @media (min-width: 600px) {
+    @media (min-width: 780px) {
       display: flex;
       flex-direction: row;
     }

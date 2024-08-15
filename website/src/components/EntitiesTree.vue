@@ -304,14 +304,14 @@ defineExpose({
             <div v-if="selectedEntityInfo.propertyInfo.domain" class="info-field">
               <h4 class="capitalize font-semibold">Domain</h4>
               <a :href="selectedEntityInfo.propertyInfo.domain.iri"
-                 @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.domain.iri, 'Property')">{{
+                 @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.domain.iri, selectedEntityInfo.propertyInfo.domain.type)">{{
                   selectedEntityInfo.propertyInfo.domain.label
                 }}</a>
             </div>
             <div v-if="selectedEntityInfo.propertyInfo.range" class="info-field">
               <h4 class="capitalize font-semibold">Range</h4>
               <a :href="selectedEntityInfo.propertyInfo.range.iri"
-                 @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.range.iri, 'Property')">{{
+                 @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.range.iri, selectedEntityInfo.propertyInfo.range.type)">{{
                   selectedEntityInfo.propertyInfo.range.label
                 }}</a>
             </div>
@@ -426,7 +426,7 @@ defineExpose({
     border-right: 1px dotted #AAAAAA;
     position: absolute;
     width: 3px;
-    height: 100%;
+    height: 98%;
   }
 
   .p-tree-container .p-tree-node:focus:not(:focus-visible) > .p-tree-node-content {

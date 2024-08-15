@@ -4,12 +4,13 @@ import './assets/main.css'
 import {createApp} from 'vue'
 import {createPinia} from 'pinia'
 import PrimeVue from 'primevue/config';
+import DialogService from 'primevue/dialogservice';
 import theme from '@/theme';
 import App from './App.vue'
 import router from "@/router";
 
 
-createApp(App).use(createPinia()).use(router).use(PrimeVue, {
+createApp(App).use(createPinia()).use(router).use(DialogService).use(PrimeVue, {
     theme: {
         preset: theme,
         options: {

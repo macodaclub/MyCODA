@@ -1,6 +1,5 @@
 val ktor_version: String by project
 val kotlin_version: String by project
-val logback_version: String by project
 // val corenlp_version: String by project
 
 plugins {
@@ -44,7 +43,9 @@ dependencies {
     implementation("io.ktor:ktor-server-host-common-jvm")
     implementation("io.ktor:ktor-server-status-pages-jvm")
     implementation("io.ktor:ktor-server-resources")
-    implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("io.ktor:ktor-server-partial-content")
+    implementation("ch.qos.logback:logback-classic:1.5.6")
+    implementation("org.codehaus.janino:janino:3.1.12")
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("io.ktor:ktor-server-cors")
 
