@@ -1,4 +1,4 @@
-package io.github.macodaclub.models.editor
+package io.github.macodaclub.models.api.editor
 
 import kotlinx.serialization.Serializable
 

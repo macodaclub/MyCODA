@@ -1,7 +1,7 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.Pagination
-import io.github.macodaclub.models.search.GetSearchResponse
+import io.github.macodaclub.models.api.Pagination
+import io.github.macodaclub.models.api.search.GetSearchResponse
 import io.github.macodaclub.plugins.EntityFinder
 import io.github.macodaclub.utils.getLabel
 import io.github.macodaclub.utils.simpleType

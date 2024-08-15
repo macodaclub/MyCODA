@@ -1,7 +1,7 @@
 package io.github.macodaclub.utils
 
-import io.github.macodaclub.models.tree.GetTreeResponse
-import io.github.macodaclub.models.submission.PostSubmitFormResponse
+import io.github.macodaclub.models.api.tree.GetTreeResponse
+import io.github.macodaclub.models.api.submission.PostSubmitFormResponse
 import io.github.macodaclub.plugins.EntityFinder
 import kotlinx.serialization.json.*
 import org.semanticweb.owlapi.model.*

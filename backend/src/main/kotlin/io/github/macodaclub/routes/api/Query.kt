@@ -1,6 +1,6 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.query.PostSqwrlRequest
+import io.github.macodaclub.models.api.query.PostSqwrlRequest
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*

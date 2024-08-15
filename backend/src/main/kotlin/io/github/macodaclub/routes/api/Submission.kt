@@ -1,8 +1,9 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.submission.PostSubmitChangesRequest
-import io.github.macodaclub.models.submission.PostSubmitChangesResponse
-import io.github.macodaclub.models.submission.PostSubmitFormResponse
+import io.github.macodaclub.models.api.submission.PostSubmitChangesRequest
+import io.github.macodaclub.models.api.submission.PostSubmitChangesResponse
+import io.github.macodaclub.models.api.submission.PostSubmitFormResponse
+import io.github.macodaclub.models.db.ArticleSubmission
 import io.github.macodaclub.plugins.EntityFinder
 import io.github.macodaclub.utils.*
 import io.ktor.server.application.*
@@ -10,10 +11,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.kohsuke.github.GHRepository
 import org.semanticweb.owlapi.model.OWLOntology
 
@@ -45,13 +45,13 @@ fun Routing.articleSubmissionRoutes(
                 )
             }
             post("submitChanges") {
-                val changes = call.receive<PostSubmitChangesRequest>()
-                val changesJson = prettyJson.encodeToString(changes)
+                val body = call.receive<PostSubmitChangesRequest>()
+                val changesJson = prettyJson.encodeToString(body)
                 val addedEntitiesHtmlTables =
-                    (if (changes.addedEntities.isNotEmpty()) """
+                    (if (body.addedEntities.isNotEmpty()) """
 ## Added Entities
 """ else "") +
-                            changes.addedEntities
+                            body.addedEntities
                                 .groupBy { it["entity"]?.jsonObject?.get("type")?.jsonPrimitive?.content }
                                 .map { (type, entity) ->
                                     val typePlural = when (type) {
@@ -67,10 +67,10 @@ ${entity.toHtmlTable()}
                                 }.joinToString("\n")
 
                 val editedEntitiesHtmlTables =
-                    (if (changes.editedEntities.isNotEmpty()) """
+                    (if (body.editedEntities.isNotEmpty()) """
 ## Edited Entities
 """ else "") +
-                            changes.editedEntities.joinToString("") { editedEntity ->
+                            body.editedEntities.joinToString("") { editedEntity ->
                                 """
 ### <a href="${editedEntity.entity.iri}">${editedEntity.entity.label}</a> (${editedEntity.entity.type})
 
@@ -88,6 +88,17 @@ ${editedEntity.edits.toHtmlTable()}
                             .get()
                     )
                     .create()
+                val formData = body.formData
+                transaction {
+                    ArticleSubmission.new {
+                        articleTitle = formData.articleTitle
+                        articleAbstract = formData.articleAbstract
+                        articleKeywords = formData.articleKeywords
+                        articleAuthors = formData.articleAuthors
+                        emailAddress = formData.emailAddress
+                        githubIssueUrl = issue.htmlUrl.toString()
+                    }
+                }
                 call.respond(PostSubmitChangesResponse(issue.htmlUrl.toString()))
             }
         }

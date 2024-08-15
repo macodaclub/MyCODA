@@ -5,6 +5,7 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.plugins.partialcontent.*
 
 fun Application.configureHTTP() {
@@ -38,12 +39,16 @@ fun Application.configureHTTP() {
             anyHost()
         }
     }
-//    install(HttpsRedirect) {
-//        // The port to redirect to. By default 443, the default HTTPS port.
-//        sslPort = 443
-//        // 301 Moved Permanently, or 302 Found redirect.
-//        permanentRedirect = true
-//    }
+    if (!this@configureHTTP.developmentMode) {
+        val configSslPort =
+            this@configureHTTP.environment.config.propertyOrNull("ktor.deployment.sslPort")?.getString()?.toIntOrNull()
+        if (configSslPort != null) {
+            install(HttpsRedirect) {
+                sslPort = configSslPort
+                permanentRedirect = true
+            }
+        }
+    }
 }
 
 /**

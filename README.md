@@ -4,14 +4,15 @@
 
 - [Install Docker](https://docs.docker.com/engine/install/)
 
-## Run Project Locally using Docker
+## Run Project Locally using Docker Compose
 
-### Build and run docker image
+### Build and run
 
 ```sh
-docker build -t mycoda .
-docker run -p 80:80 mycoda
+docker compose -f ./compose-dev.yaml up
 ```
+
+Or run configuration [Docker: dev](.run/Docker_%20dev.run.xml), if using IntelliJ IDEA.
 
 ## Deploy Docker Image to Docker Hub
 
@@ -19,6 +20,9 @@ docker run -p 80:80 mycoda
 
 ```sh
 docker buildx create --name mybuilder --bootstrap --use
+
+# if already defined, but not in use:
+docker buildx use mybuilder
 ```
 
 ### Build and push Docker Image to Docker Hub
@@ -31,21 +35,7 @@ Or run configuration [Docker: Build and Upload Image](.run/Docker_%20Build%20and
 
 ## Run Docker Image in the server
 
-```sh
-docker pull tiagonuneslx/mycoda:latest
-docker run --name mycoda \
-  --detach \
-  --restart=always \
-  -p 80:80 -p 443:443 \
-  -v XXXXXX:/backend/keystore.jks \
-  -v XXXXXX:/backend/logs \
-  -e SSL_KEY_ALIAS=XXXXXX \
-  -e SSL_KEYSTORE_PASSWORD=XXXXXX \
-  -e SSL_PRIVATE_KEY_PASSWORD=XXXXXX \
-  -e GITHUB_OAUTH=XXXXXX \
-  -e HOST_NAME=mycoda.ddns.net \
-  -e LOGS_FOLDER_PATH=/backend/logs \
-  tiagonuneslx/mycoda \
-  -sslPort=443 \
-  -sslKeyStore=/backend/keystore.jks
-```
+1. Copy compose.yaml to the server.
+2. Configure SSL certificate, and generate a JKS file.
+3. Edit the configuration of the compose.yaml, replacing any placeholders (XXXXXX).
+4. Run `docker compose up -d`.

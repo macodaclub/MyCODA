@@ -1,7 +1,6 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.GetEntityInfoResponse
-import io.github.macodaclub.models.editor.GetEditorIndividualPropertiesResponse
+import io.github.macodaclub.models.api.GetEntityInfoResponse
 import io.github.macodaclub.utils.getLabel
 import io.github.macodaclub.utils.simpleType
 import io.ktor.http.*

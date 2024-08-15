@@ -1,4 +1,4 @@
-package io.github.macodaclub.models.submission
+package io.github.macodaclub.models.api.submission
 
 import kotlinx.serialization.Serializable
 

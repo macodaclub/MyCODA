@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: mysql:9.0.0
+    ports:
+      - "8082:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: mycoda
+
+  mycoda:
+    build: .
+    ports:
+      - "80:80"
+    volumes:
+      - ./backend/.github:/backend/.github
+#      - logs:/backend/logs
+    environment:
+#      LOGS_FOLDER_PATH: XXXXXX
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_DB: mycoda
+      GITHUB_PROPERTY_FILE_PATH: /backend/.github
+
+volumes:
+  mysql-data:
+#  logs:

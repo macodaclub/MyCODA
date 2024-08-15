@@ -1,6 +1,6 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.GetOntologyInfoResponse
+import io.github.macodaclub.models.api.GetOntologyInfoResponse
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*

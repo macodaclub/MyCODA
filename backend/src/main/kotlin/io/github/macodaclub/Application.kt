@@ -17,5 +17,6 @@ fun Application.module() {
     configureHTTP()
     configureMonitoring()
     configureSerialization()
+    configureDatabase()
     configureRouting(ontology, mergedOntology, reasoner, queryEngine, entityFinder, ghRepo)
 }

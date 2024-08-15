@@ -1,0 +1,36 @@
+services:
+  mysql:
+    image: mysql:9.0.0
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_USER: XXXXX
+      MYSQL_PASSWORD: XXXXX
+      MYSQL_DATABASE: mycoda
+    restart: unless-stopped
+
+  mycoda:
+    image: tiagonuneslx/mycoda:latest
+    command: -sslPort=443 -sslKeyStore=/backend/keystore.jks
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - XXXXXX:/backend/keystore.jks
+      - logs:/backend/logs
+    environment:
+      SSL_KEY_ALIAS: XXXXXX
+      SSL_KEYSTORE_PASSWORD: XXXXXX
+      SSL_PRIVATE_KEY_PASSWORD: XXXXXX
+      GITHUB_OAUTH: XXXXXX
+      HOST_NAME: XXXXXX
+      LOGS_FOLDER_PATH: XXXXXX
+      MYSQL_HOST: mysql
+      MYSQL_USER: XXXXXX
+      MYSQL_PASSWORD: XXXXXX
+      MYSQL_DB: mycoda
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  logs:

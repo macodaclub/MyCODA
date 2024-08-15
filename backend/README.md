@@ -6,4 +6,13 @@
 
 ## Run project locally
 
-Run configuration [Frontend: dev](../.run/Backend_%20dev.run.xml), if using IntelliJ IDEA.
+- Create a file under the backend root directory called .github, with the below content, replacing XXXXXX with the
+  GitHub personal access token
+
+```
+oauth=XXXXXX
+```
+
+- Run the mysql service from compose-dev.yaml
+
+- Run configuration [Frontend: dev](../.run/Backend_%20dev.run.xml), if using IntelliJ IDEA.

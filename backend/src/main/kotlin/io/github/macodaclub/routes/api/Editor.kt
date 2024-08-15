@@ -1,6 +1,6 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.editor.GetEditorIndividualPropertiesResponse
+import io.github.macodaclub.models.api.editor.GetEditorIndividualPropertiesResponse
 import io.github.macodaclub.plugins.EntityFinder
 import io.github.macodaclub.utils.getLabel
 import io.github.macodaclub.utils.simpleType

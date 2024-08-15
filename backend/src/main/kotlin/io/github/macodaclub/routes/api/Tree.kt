@@ -1,6 +1,6 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.tree.GetTreeResponse
+import io.github.macodaclub.models.api.tree.GetTreeResponse
 import io.github.macodaclub.utils.toTaxonomyTreeEntity
 import io.ktor.http.*
 import io.ktor.server.application.*

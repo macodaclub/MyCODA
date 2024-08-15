@@ -410,6 +410,13 @@ const shouldShowNewPropertyValuePlusIcon = (data, index) => {
 const submitChanges = async () => {
   const url = `${backendHost}/api/submission/submitChanges`;
   const body = {
+    formData: {
+      articleTitle: titleInput.value,
+      articleAbstract: abstractInput.value,
+      articleKeywords: keywordsInput.value,
+      articleAuthors: authorsInput.value,
+      emailAddress: emailInput.value
+    },
     addedEntities: addedEntities.value,
     editedEntities: editedEntities.value.map(it => ({
       entity: it.entity,

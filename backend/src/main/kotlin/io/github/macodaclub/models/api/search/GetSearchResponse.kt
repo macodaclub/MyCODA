@@ -1,6 +1,6 @@
-package io.github.macodaclub.models.search
+package io.github.macodaclub.models.api.search
 
-import io.github.macodaclub.models.Pagination
+import io.github.macodaclub.models.api.Pagination
 import kotlinx.serialization.Serializable
 
 @Serializable

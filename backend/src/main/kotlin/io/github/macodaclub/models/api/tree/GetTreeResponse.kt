@@ -1,4 +1,4 @@
-package io.github.macodaclub.models.tree
+package io.github.macodaclub.models.api.tree
 
 import kotlinx.serialization.Serializable
 

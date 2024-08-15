@@ -1,4 +1,4 @@
-package io.github.macodaclub.models.query
+package io.github.macodaclub.models.api.query
 
 import kotlinx.serialization.Serializable
 
