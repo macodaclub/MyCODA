@@ -51,5 +51,5 @@ Or run configuration [Docker: Build and Upload Image](.run/Docker_%20Build%20and
 
 1. Copy compose.yaml to the server.
 2. Configure SSL certificate, and generate a JKS file.
-3. Edit the configuration of the compose.yaml, replacing any placeholders, represented by double square brackets e.g. [[ Some Secret ]].
+3. Edit the configuration of the compose.yaml, replacing all placeholders, represented by double square brackets e.g. [[ Some Secret ]].
 4. Run `docker compose up -d`.
