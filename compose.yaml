@@ -4,8 +4,8 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
-      MYSQL_USER: XXXXX
-      MYSQL_PASSWORD: XXXXX
+      MYSQL_USER: root
+      MYSQL_PASSWORD: [[ MySQL Password ]]
       MYSQL_DATABASE: mycoda
     restart: unless-stopped
 
@@ -16,18 +16,18 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - XXXXXX:/backend/keystore.jks
-      - logs:/backend/logs
+      - [[ SSL Certificate JKS File Path ]]:/backend/keystore.jks
+      - /var/log/server-logs:/backend/logs
     environment:
-      SSL_KEY_ALIAS: XXXXXX
-      SSL_KEYSTORE_PASSWORD: XXXXXX
-      SSL_PRIVATE_KEY_PASSWORD: XXXXXX
-      GITHUB_OAUTH: XXXXXX
-      HOST_NAME: XXXXXX
-      LOGS_FOLDER_PATH: XXXXXX
+      SSL_KEY_ALIAS: [[ SSL Certificate JKS Alias ]]
+      SSL_KEYSTORE_PASSWORD: [[ SSL Certificate JKS Password ]]
+      SSL_PRIVATE_KEY_PASSWORD: [[ SSL Certificate PK Password ]]
+      GITHUB_OAUTH: [[ GitHub OAuth Token ]]
+      HOST_NAME: [[ Domain Name ]]
+      LOGS_FOLDER_PATH: /backend/logs
       MYSQL_HOST: mysql
-      MYSQL_USER: XXXXXX
-      MYSQL_PASSWORD: XXXXXX
+      MYSQL_USER: root
+      MYSQL_PASSWORD: [[ MySQL Password ]]
       MYSQL_DB: mycoda
     restart: unless-stopped
 
