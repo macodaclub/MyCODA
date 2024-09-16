@@ -1,0 +1,11 @@
+[Unit]
+Description=Restart Server Daily
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=24h
+OnCalendar=*-*-* 4:00:00
+Unit=daily-server-restart.service
+
+[Install]
+WantedBy=default.target
