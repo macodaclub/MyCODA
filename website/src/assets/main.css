@@ -27,17 +27,18 @@ html {
 }
 
 #app {
+    height: 100vh;
     margin: 0 0;
     padding: 0 0;
 }
 
-a {
+a:not(.p-button) {
     text-decoration: none;
     color: var(--p-primary-color);
     transition: var(--p-transition-duration);
 }
 
-a:hover {
+a:not(.p-button):hover {
     background-color: var(--p-highlight-focus-background);
 }
 

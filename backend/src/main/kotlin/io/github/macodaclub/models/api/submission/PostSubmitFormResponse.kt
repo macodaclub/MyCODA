@@ -8,6 +8,7 @@ data class PostSubmitFormResponse(
     val titleSegments: List<TextSegment>,
     val abstractSegments: List<TextSegment>,
     val keywordSegments: List<TextSegment>,
+    val authorsSegments: List<TextSegment>,
 ) {
 
     @Serializable

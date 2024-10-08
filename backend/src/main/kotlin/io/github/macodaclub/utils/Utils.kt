@@ -311,3 +311,13 @@ fun JsonPrimitive.toHtml() = if(content.startsWith("http://") || content.startsW
 } else {
     content
 }
+
+fun String.getInitials() =
+    filterIndexed { i, c -> i == 0 || !this[i - 1].isLetterOrDigit() }.uppercase()
+
+fun hammingDistance(str1: String, str2: String): Int {
+    val minLength = minOf(str1.length, str2.length)
+    val maxLength = maxOf(str1.length, str2.length)
+    val baseDistance = str1.zip(str2).count { (char1, char2) -> char1.lowercaseChar() != char2.lowercaseChar() }
+    return baseDistance + (maxLength - minLength)
+}

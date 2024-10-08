@@ -10,8 +10,10 @@ const props = defineProps({
   }
 });
 
+const ghRepoUrl = import.meta.env.GITHUB_REPO_URL;
+
 const mdConverter = new Showdown.Converter();
-const html = computed(() => mdConverter.makeHtml(props.md));
+const html = computed(() => mdConverter.makeHtml(props.md).replaceAll("%ghRepoUrl%", ghRepoUrl));
 
 </script>
 

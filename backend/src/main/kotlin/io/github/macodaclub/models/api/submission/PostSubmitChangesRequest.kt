@@ -31,4 +31,12 @@ data class PostSubmitChangesRequest(
         val label: String,
         val type: String,
     )
+
+    val withoutFormData get() = PostSubmitChangesRequestWithoutFormData(addedEntities, editedEntities)
+
+    @Serializable
+    data class PostSubmitChangesRequestWithoutFormData(
+        val addedEntities: List<JsonObject>,
+        val editedEntities: List<EditedEntity>,
+    )
 }

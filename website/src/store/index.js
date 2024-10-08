@@ -9,7 +9,7 @@ import {nonNulls} from "@/utils/utils/utils.js";
 // the first argument is a unique id of the store across your application
 export const useOntologyStore = defineStore('ontology', () => {
 
-    const backendHost = import.meta.env.DEV ? `http://localhost:${import.meta.env.VITE_BACKEND_PORT ? import.meta.env.VITE_BACKEND_PORT : "8081"}` : location.origin
+    const backendHost = import.meta.env.DEV ? `http://localhost:${import.meta.env.BACKEND_PORT ? import.meta.env.BACKEND_PORT : "8081"}` : location.origin
 
     const entities = ref([]);
     const taxonomy = ref([]);
