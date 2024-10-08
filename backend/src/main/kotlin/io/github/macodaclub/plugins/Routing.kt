@@ -6,16 +6,10 @@ import io.github.macodaclub.routes.staticRoutes
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import org.kohsuke.github.GHRepository
-import org.semanticweb.owlapi.model.OWLOntology
-import org.semanticweb.owlapi.reasoner.OWLReasoner
-import org.swrlapi.sqwrl.SQWRLQueryEngine
 
 
 fun Application.configureRouting(
-    ontology: OWLOntology,
-    mergedOntology: OWLOntology,
-    reasoner: OWLReasoner,
-    queryEngine: SQWRLQueryEngine,
+    ontologyManager: OntologyManager,
     entityFinder: EntityFinder,
     ghRepo: GHRepository,
 ) {
@@ -27,6 +21,6 @@ fun Application.configureRouting(
     routing {
         staticRoutes()
         ontologyBrowseRedirectionRoutes()
-        apiRoutes(ontology, mergedOntology, reasoner, queryEngine, entityFinder, ghRepo)
+        apiRoutes(ontologyManager, entityFinder, ghRepo)
     }
 }

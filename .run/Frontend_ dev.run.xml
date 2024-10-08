@@ -7,7 +7,10 @@
     </scripts>
     <node-interpreter value="project" />
     <envs>
-      <env name="VITE_BACKEND_PORT" value="8081" />
+      <env name="BACKEND_PORT" value="8081" />
+      <env name="GITHUB_REPO_URL" value="https://github.com/macodaclub/MyCODA" />
+      <env name="MYCODA_ONTOLOGY_IRI_PREFIX" value="https://mycoda.ddns.net/ontologies/MYCODA" />
+      <env name="MYCODA_ONTOLOGY_URL" value="https://raw.githubusercontent.com/macodaclub/MyCODA/refs/heads/main/ontologies/MaCODA.owl" />
     </envs>
     <EXTENSION ID="com.intellij.lang.javascript.buildTools.npm.rc.StartBrowserRunConfigurationExtension">
       <browser name="98ca6316-2f89-46d9-a9e5-fa9e2b0625b3" start="true" with-js-debugger="true" url="http://localhost:5173" />

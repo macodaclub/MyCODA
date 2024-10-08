@@ -15,11 +15,13 @@
       <env name="DEVELOPMENT" value="true" />
       <env name="FRONTEND_PORT" value="5173" />
       <env name="GITHUB_PROPERTY_FILE_PATH" value="$PROJECT_DIR$/backend/.github" />
+      <env name="MYCODA_ONTOLOGY_URL" value="https://raw.githubusercontent.com/macodaclub/MyCODA/refs/heads/main/ontologies/MaCODA.owl" />
       <env name="MYSQL_DATABASE" value="mycoda" />
       <env name="MYSQL_PASSWORD" value="password" />
+      <env name="MYSQL_PORT" value="8082" />
       <env name="MYSQL_USER" value="root" />
       <env name="PORT" value="8081" />
-      <env name="MYSQL_PORT" value="8082" />
+      <env name="CURATOR_PASSWORD" value="password" />
     </envs>
     <method v="2">
       <option name="Make" enabled="true" />

@@ -5,7 +5,11 @@ import io.github.macodaclub.models.api.submission.PostSubmitChangesResponse
 import io.github.macodaclub.models.api.submission.PostSubmitFormResponse
 import io.github.macodaclub.models.db.ArticleSubmission
 import io.github.macodaclub.plugins.EntityFinder
-import io.github.macodaclub.utils.*
+import io.github.macodaclub.plugins.OntologyManager
+import io.github.macodaclub.utils.MdTemplate
+import io.github.macodaclub.utils.findEntityReferences
+import io.github.macodaclub.utils.prettyJson
+import io.github.macodaclub.utils.toHtmlTable
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -15,25 +19,25 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.kohsuke.github.GHRepository
-import org.semanticweb.owlapi.model.OWLOntology
 
 fun Routing.articleSubmissionRoutes(
-    mergedOntology: OWLOntology,
+    ontologyManager: OntologyManager,
     entityFinder: EntityFinder,
     ghRepo: GHRepository,
 ) {
     route("/api") {
-        route("submission") {
-            post("submitForm") {
+        route("/submission") {
+            post("/submitForm") {
                 val formParams = call.receiveParameters()
                 val title = formParams["title"].orEmpty()
                 val abstract = formParams["abstract"].orEmpty()
                 val keywords = formParams["keywords"].orEmpty()
+                val authors = formParams["authors"].orEmpty()
 
                 val (referencedEntities, textSegments) =
-                    listOf(title, abstract, keywords)
-                        .findEntityReferences(entityFinder, mergedOntology)
-                val (titleTextSegments, abstractTextSegments, keywordsTextSegments) = textSegments
+                    listOf(title, abstract, keywords, authors)
+                        .findEntityReferences(entityFinder, ontologyManager.mergedOntology)
+                val (titleTextSegments, abstractTextSegments, keywordsTextSegments, authorsTextSegments) = textSegments
 
                 call.respond(
                     PostSubmitFormResponse(
@@ -41,12 +45,14 @@ fun Routing.articleSubmissionRoutes(
                         titleTextSegments,
                         abstractTextSegments,
                         keywordsTextSegments,
+                        authorsTextSegments
                     )
                 )
             }
-            post("submitChanges") {
+            post("/submitChanges") {
                 val body = call.receive<PostSubmitChangesRequest>()
-                val changesJson = prettyJson.encodeToString(body)
+                val bodyWithoutFormData = body.withoutFormData
+                val changesJson = prettyJson.encodeToString(bodyWithoutFormData)
                 val addedEntitiesHtmlTables =
                     (if (body.addedEntities.isNotEmpty()) """
 ## Added Entities

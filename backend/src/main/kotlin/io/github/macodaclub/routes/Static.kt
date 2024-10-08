@@ -8,7 +8,4 @@ fun Routing.staticRoutes() {
         preCompressed()
         default("index.html")
     }
-    staticResources("/static", "static") {
-        preCompressed()
-    }
 }

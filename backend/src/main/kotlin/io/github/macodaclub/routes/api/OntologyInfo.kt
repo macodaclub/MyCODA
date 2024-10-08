@@ -1,14 +1,14 @@
 package io.github.macodaclub.routes.api
 
 import io.github.macodaclub.models.api.GetOntologyInfoResponse
+import io.github.macodaclub.plugins.OntologyManager
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.semanticweb.owlapi.model.OWLOntology
 
 fun Routing.ontologyInfoRoutes(
-    ontology: OWLOntology,
-    mergedOntology: OWLOntology,
+    ontologyManager: OntologyManager
 ) {
     route("/api") {
         get("/ontologyInfo") {
@@ -17,7 +17,7 @@ fun Routing.ontologyInfoRoutes(
                     listOf(
                         GetOntologyInfoResponse.Annotation(
                             "Ontology IRI",
-                            ontology.ontologyID.ontologyIRI.orNull().toString()
+                            ontologyManager.mycodaOntology.ontologyID.ontologyIRI.orNull().toString()
                         ),
                         /*GetOntologyInfoResponse.Annotation(
                             "Version IRI",
@@ -25,9 +25,9 @@ fun Routing.ontologyInfoRoutes(
                         ),*/
                     ),
                     GetOntologyInfoResponse.Counts(
-                        mergedOntology.classesInSignature.size,
-                        mergedOntology.dataPropertiesInSignature.size + mergedOntology.objectPropertiesInSignature.size,
-                        mergedOntology.individualsInSignature.size
+                        ontologyManager.mergedOntology.classesInSignature.size,
+                        ontologyManager.mergedOntology.dataPropertiesInSignature.size + ontologyManager.mergedOntology.objectPropertiesInSignature.size,
+                        ontologyManager.mergedOntology.individualsInSignature.size
                     )
                 )
             )

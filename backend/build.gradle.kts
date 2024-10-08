@@ -49,6 +49,7 @@ dependencies {
     implementation("org.codehaus.janino:janino:3.1.12")
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("io.ktor:ktor-server-cors")
+    implementation("io.ktor:ktor-server-auth")
 
     //implementation("net.sourceforge.owlapi:owlapi-api:5.5.0")
     implementation("edu.stanford.swrl:swrlapi:2.1.2")

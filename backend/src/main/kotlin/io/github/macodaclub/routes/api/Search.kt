@@ -3,6 +3,7 @@ package io.github.macodaclub.routes.api
 import io.github.macodaclub.models.api.Pagination
 import io.github.macodaclub.models.api.search.GetSearchResponse
 import io.github.macodaclub.plugins.EntityFinder
+import io.github.macodaclub.plugins.OntologyManager
 import io.github.macodaclub.utils.getLabel
 import io.github.macodaclub.utils.simpleType
 import io.ktor.http.*
@@ -11,16 +12,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLOntology
-import org.semanticweb.owlapi.reasoner.OWLReasoner
 
 fun Routing.searchRoutes(
-    mergedOntology: OWLOntology,
-    reasoner: OWLReasoner,
+    ontologyManager: OntologyManager,
     entityFinder: EntityFinder,
 ) {
     route("/api") {
-        route("search") {
+        route("/search") {
             get {
                 val query = call.request.queryParameters["query"]?.lowercase()
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -34,11 +32,11 @@ fun Routing.searchRoutes(
                 val entities = entityFinder.searchEntities(query, types)
                 val filteredEntities = if (parentClassIri == null) entities else {
                     val parentClass =
-                        mergedOntology.getEntitiesInSignature(IRI.create(parentClassIri)).firstOrNull { it.isOWLClass }
+                        ontologyManager.mergedOntology.getEntitiesInSignature(IRI.create(parentClassIri)).firstOrNull { it.isOWLClass }
                             ?.asOWLClass() ?: return@get call.respond(HttpStatusCode.BadRequest)
                     entities.filter { entity ->
                         when {
-                            entity.isOWLNamedIndividual -> reasoner.getTypes(entity.asOWLNamedIndividual(), false)
+                            entity.isOWLNamedIndividual -> ontologyManager.reasoner.getTypes(entity.asOWLNamedIndividual(), false)
                                 .containsEntity(parentClass)
 
                             else -> true
@@ -48,7 +46,7 @@ fun Routing.searchRoutes(
                 val searchResponseEntities = filteredEntities.mapNotNull {
                     GetSearchResponse.Entity(
                         it.iri.toString(),
-                        it.getLabel(mergedOntology),
+                        it.getLabel(ontologyManager.mergedOntology),
                         it.simpleType ?: return@mapNotNull null
                     )
                 }

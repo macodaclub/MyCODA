@@ -9,14 +9,14 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-    val (ontology, mergedOntology, reasoner) = configureOntology()
-    val queryEngine = configureSQWRL(mergedOntology)
+    val ontologyManager = configureOntology()
     val lemmatize: String.() -> String = /* configureCoreNLP() */ { contextReceiver() }
-    val entityFinder = configureEntityFinder(mergedOntology, lemmatize)
+    val entityFinder = configureEntityFinder(ontologyManager, lemmatize)
     val ghRepo = configureGithub()
     configureHTTP()
     configureMonitoring()
     configureSerialization()
     configureDatabase()
-    configureRouting(ontology, mergedOntology, reasoner, queryEngine, entityFinder, ghRepo)
+    configureCuratorAuthentication()
+    configureRouting(ontologyManager, entityFinder, ghRepo)
 }

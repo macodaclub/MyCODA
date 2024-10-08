@@ -1,13 +1,13 @@
 package io.github.macodaclub.routes.api
 
 import io.github.macodaclub.models.api.query.PostSqwrlRequest
+import io.github.macodaclub.plugins.OntologyManager
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.swrlapi.sqwrl.SQWRLQueryEngine
 
-fun Routing.queryRoutes(queryEngine: SQWRLQueryEngine) {
+fun Routing.queryRoutes(ontologyManager: OntologyManager) {
     route("/api") {
         /*get("/sqwrl") {
             // TODO: Take care of SQWRL queries with axioms starting with a number (e.g. 2p-NSGA-II) and featuring / (e.g. iMOEA/D)
@@ -23,7 +23,7 @@ fun Routing.queryRoutes(queryEngine: SQWRLQueryEngine) {
             val queryString = call.receive<PostSqwrlRequest>().queryString
             // TODO: Take care of SQWRL queries with axioms starting with a number (e.g. 2p-NSGA-II) and featuring / (e.g. iMOEA/D)
             val results =
-                queryEngine.runSQWRLQuery("q1", queryString)
+                ontologyManager.sqwrlQueryEngine.runSQWRLQuery("q1", queryString)
             val resultsColumn = results.getColumn(0)
             call.respond<List<String>>(
                 resultsColumn.mapNotNull { result ->

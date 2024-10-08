@@ -33,6 +33,7 @@ fun Application.configureHTTP() {
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Get)
         allowHeader(HttpHeaders.AccessControlAllowOrigin)
+        allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.ContentEncoding)
         if (this@configureHTTP.developmentMode) {

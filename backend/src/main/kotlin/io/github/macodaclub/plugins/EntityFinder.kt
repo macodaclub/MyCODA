@@ -1,12 +1,9 @@
 package io.github.macodaclub.plugins
 
-import io.github.macodaclub.utils.getLabel
-import io.github.macodaclub.utils.lenient
-import io.github.macodaclub.utils.type
+import io.github.macodaclub.utils.*
 import org.semanticweb.owlapi.model.OWLEntity
-import org.semanticweb.owlapi.model.OWLOntology
 
-class EntityFinder(private val mergedOntology: OWLOntology, private val lemmatize: String.() -> String) {
+class EntityFinder(private val ontologyManager: OntologyManager, private val lemmatize: String.() -> String) {
 
     fun findEntity(text: String) =
         entitiesMappedByLength[text.length]?.get(text.lowercase()) ?: run {
@@ -16,21 +13,52 @@ class EntityFinder(private val mergedOntology: OWLOntology, private val lemmatiz
 
     fun searchEntities(query: String, type: String?) =
         if (type == null) {
-            mergedOntology.signature.filter { it.getLabel(mergedOntology).lowercase().startsWith(query) }
+            ontologyManager.mergedOntology.signature.filter {
+                it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query)
+            }
         } else {
-            entitiesByType.getValue(type).filter { it.getLabel(mergedOntology).lowercase().startsWith(query) }
+            entitiesByType.getValue(type)
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query) }
         }
 
     fun searchEntities(query: String, types: List<String>?) =
         types?.flatMap { type ->
-            entitiesByType.getValue(type).filter { it.getLabel(mergedOntology).lowercase().startsWith(query) }
+            entitiesByType.getValue(type)
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query) }
         }
-            ?: mergedOntology.signature.filter { it.getLabel(mergedOntology).lowercase().startsWith(query) }
+            ?: ontologyManager.mergedOntology.signature.filter {
+                it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query)
+            }
 
-    private var entitiesMappedByLength: MutableMap<Int, MutableMap<String, Result>> =
+    fun findSynonymSuggestions(query: String): List<OWLEntity> {
+        val initials = query.getInitials()
+        val suggestionsByInitials =
+            ontologyManager.mergedOntology.signature.filter {
+                it.getLabel(ontologyManager.mergedOntology).uppercase() == initials
+            } + if (initials.length > 1) {
+                entityInitials.getOrDefault(query.uppercase(), emptyList())
+            } else {
+                emptyList()
+            }.take(3)
+        val suggestionsByHammingDistance = ontologyManager.mergedOntology.signature.associateWith {
+            hammingDistance(it.getLabel(ontologyManager.mergedOntology).lowercase(), query.lowercase())
+        }.filterValues { it <= query.length / 2 }.toList().sortedBy { it.second }.map { it.first }.take(3)
+        return (suggestionsByInitials + suggestionsByHammingDistance).distinctBy { it.iri }
+    }
+
+    private val entitiesMappedByLength: MutableMap<Int, MutableMap<String, Result>> =
         mutableMapOf()
 
-    private val entitiesByType = mergedOntology.signature.groupBy { entity ->
+    private val entityInitials: MutableMap<String, List<OWLEntity>> = mutableMapOf<String, List<OWLEntity>>().apply {
+        ontologyManager.mergedOntology.signature.forEach { entity ->
+            val initials = entity.getLabel(ontologyManager.mergedOntology).getInitials()
+            if (initials.length <= 1) return@forEach
+            computeIfPresent(initials) { _, value -> value + entity }
+            computeIfAbsent(initials) { listOf(entity) }
+        }
+    }
+
+    private val entitiesByType = ontologyManager.mergedOntology.signature.groupBy { entity ->
         entity.type
     }.filter { (key, _) -> key != null }
 
@@ -49,15 +77,15 @@ class EntityFinder(private val mergedOntology: OWLOntology, private val lemmatiz
     }
 
     init {
-        mergedOntology.signature.forEach { entity ->
-            val label = mergedOntology.getAnnotationAssertionAxioms(entity.iri)
+        ontologyManager.mergedOntology.signature.forEach { entity ->
+            val label = ontologyManager.mergedOntology.getAnnotationAssertionAxioms(entity.iri)
                 .find { it.property.isLabel }?.value?.asLiteral()?.orNull()?.literal
                 ?.substringBefore("@")
                 ?.trim('"')
                 ?.lowercase()
             val lenientLabel = label?.lenient(lemmatize)
             // TODO: Support Alt Labels
-            val comment = mergedOntology.getAnnotationAssertionAxioms(entity.iri)
+            val comment = ontologyManager.mergedOntology.getAnnotationAssertionAxioms(entity.iri)
                 .find { it.property.isComment }
                 ?.value?.asLiteral()?.orNull()?.literal
                 ?.lowercase()
@@ -90,6 +118,6 @@ class EntityFinder(private val mergedOntology: OWLOntology, private val lemmatiz
     }
 }
 
-fun configureEntityFinder(mergedOntology: OWLOntology, lemmatize: String.() -> String): EntityFinder {
-    return EntityFinder(mergedOntology, lemmatize)
+fun configureEntityFinder(ontologyManager: OntologyManager, lemmatize: String.() -> String): EntityFinder {
+    return EntityFinder(ontologyManager, lemmatize)
 }
