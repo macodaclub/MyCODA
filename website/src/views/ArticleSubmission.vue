@@ -18,18 +18,22 @@ import Divider from 'primevue/divider';
 import InputGroup from 'primevue/inputgroup';
 import Checkbox from 'primevue/checkbox';
 import Popover from 'primevue/popover';
+import ConfirmDialog from "primevue/confirmdialog";
 import {useDialog} from 'primevue/usedialog';
+import {useConfirm} from "primevue/useconfirm";
 import {useDebounceFn} from "@vueuse/core"
 import {useRouter} from 'vue-router'
-import {computed, defineAsyncComponent, reactive, ref, watch} from "vue";
+import {computed, defineAsyncComponent, reactive, ref, watch, watchEffect} from "vue";
 import _ from "lodash"
 import {useOntologyStore} from "@/store";
-import {camelCaseToCapitalized, deepToRaw, generateIriSuffix} from "@/utils/utils/utils.js";
+import {camelCaseToCapitalized, deepToRaw, generateIriSuffix, nonNulls} from "@/utils/utils/utils.js";
 
 const EntitiesTree = defineAsyncComponent(() => import("@/components/EntitiesTree.vue"));
 const TutorialVideoPlayer = defineAsyncComponent(() => import('@/components/TutorialVideoPlayer.vue'));
 
 const isDev = import.meta.env.DEV;
+const ghRepoUrl = import.meta.env.GITHUB_REPO_URL;
+const mycodaOntologyIriPrefix = import.meta.env.MYCODA_ONTOLOGY_IRI_PREFIX;
 
 const ontologyStore = useOntologyStore();
 const {backendHost, fetchEntityInfo, fetchSearchEntities, fetchIndividualProperties} = ontologyStore;
@@ -37,6 +41,8 @@ const {backendHost, fetchEntityInfo, fetchSearchEntities, fetchIndividualPropert
 const router = useRouter();
 
 const dialog = useDialog();
+const confirm = useConfirm();
+
 const showTutorialVideo = () => {
   dialog.open(TutorialVideoPlayer, {
     props: {
@@ -61,17 +67,18 @@ const popoverHelpSubmittedArticle = ref();
 const popoverHelpIdentifiedTerms = ref();
 const popoverHelpContribute = ref();
 
-const titleInput = ref(isDev ? "A Kotlin implementation of the pNSGA-II algorithm (PMOEA)." : "");
+const titleInput = ref(isDev ? "A Kotlin implementation of the pNSGA-II algorithm (PMOEA)" : "");
 const abstractInput = ref(isDev ? "The p NSGA-II algorithm, a preference-based multi-objective evolutionary algorithm—a subclass of multi-objective evolutionary algorithm—has been widely recognized for its efficiency in handling complex optimization problems involving multiple objectives. Originally implemented in Java, the algorithm has recently been adapted to Kotlin, reflecting a growing trend in modern software development towards more concise and expressive programming languages. The adaptation to Kotlin not only preserves the algorithm's robust performance but also enhances its usability and integration with contemporary software ecosystems. One of the principal contributors to the development of the p NSGA-II algorithm was Carlos Coello Coello, whose work has significantly influenced the field of evolutionary computation. The algorithm's capability to incorporate user preferences in the optimization process makes it particularly valuable for real-world applications where decision-makers often have specific goals or priorities. As such, the p NSGA-II algorithm continues to be a vital tool in both academic research and industrial applications, driving advancements in fields ranging from engineering design to artificial intelligence." : "");
 const keywordsInput = ref(isDev ? "pNSGA-II, Kotlin, PMOEA" : "");
 const authorsInput = ref(isDev ? "Tiago Nunes, Vítor B. Fernandes, Michael T.M. Emmerich" : "");
 const emailInput = ref(isDev ? "tmlns@iscte-iul.pt" : "");
 const consentStorage = ref(isDev);
-const consentShareWithEmo = ref(isDev);
+const consentContribution = ref(isDev);
 
 const titleSegments = ref(null);
 const abstractSegments = ref(null);
 const keywordSegments = ref(null);
+const authorsSegments = ref(null);
 const referencedEntities = ref(null);
 
 const isEntityPreviewVisible = ref(false);
@@ -118,10 +125,11 @@ watch(isEntityEditorDialogVisible, (to) => {
   if (!to) {
     editingEntityInputDefaultValues.forEach(it => editingEntityInfo[it.key] = it.defaultValue);
     editingEntityLabelDebounced.value = null;
+    synonymSuggestions.value = null;
   }
 });
 const editingEntityLabelDebounced = ref(null);
-const newEntityLabelInputDebounceFn = useDebounceFn(() => {
+const editingEntityLabelInputDebounceFn = useDebounceFn(() => {
   editingEntityLabelDebounced.value = editingEntityInfo.label;
 }, 500);
 const entityTypeOptions = [
@@ -190,6 +198,21 @@ const editExistingEntityInput = ref(null);
 const editExistingEntityInputRef = ref();
 const editExistingEntityAutoCompleteOptions = ref([]);
 
+const synonymSuggestions = ref(null);
+watch(editingEntityLabelDebounced, async (to) => {
+  if (!to || editingEntityInfo.iri) return
+  const url = new URL(`${backendHost}/api/editor/synonymSuggestions`);
+  url.search = new URLSearchParams({query: to}).toString();
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  if (!response.ok) return console.error('Failed to find synonym suggestions', response);
+  synonymSuggestions.value = (await response.json()).synonymSuggestions
+});
+
 const githubIssueUrl = ref(null);
 
 watch(activeStep, async (to) => {
@@ -207,6 +230,7 @@ const onSubmitForm = async (stepperActivateCallback) => {
   formData.append("title", titleInput.value);
   formData.append("abstract", abstractInput.value);
   formData.append("keywords", keywordsInput.value);
+  formData.append("authors", authorsInput.value);
   const response = await fetch(url, {
     method: "POST",
     body: formData,
@@ -216,7 +240,9 @@ const onSubmitForm = async (stepperActivateCallback) => {
   titleSegments.value = responseData.titleSegments;
   abstractSegments.value = responseData.abstractSegments;
   keywordSegments.value = responseData.keywordSegments;
+  authorsSegments.value = responseData.authorsSegments;
   referencedEntities.value = responseData.referencedEntities;
+  addNewArticleEntity();
   stepperActivateCallback(2);
 };
 
@@ -231,8 +257,8 @@ const getSeverityForContext = context => ({
   "Edited": "info",
 })[context];
 
-const autoCompleteEntities = async (event, types, subClassOf = null) => {
-  const filteredAddedEntities = [...addedEntities.value.map(it => it.entity).filter(it => types.includes(it.type) && it.label.toLowerCase().startsWith(event.query.toLowerCase()))];
+const autoCompleteEntities = async (event, types = null, subClassOf = null) => {
+  const filteredAddedEntities = [...addedEntities.value.map(it => it.entity).filter(it => (types === null || types.includes(it.type)) && it.label.toLowerCase().startsWith(event.query.toLowerCase()))];
   entitiesAutoCompleteOptions.value = filteredAddedEntities.concat(await fetchSearchEntities(event.query, types, subClassOf && !subClassOf.startsWith("[New Entity]") ? subClassOf : null));
 };
 
@@ -254,6 +280,68 @@ function findChangesInProperties(oldList, newList) {
   });
   return diffs;
 }
+
+const addNewArticleEntity = () => {
+  const keywordProperties = keywordSegments.value
+      .filter(it => it.entityReferenceIndex !== null)
+      .map(it => {
+        const entity = referencedEntities.value[it.entityReferenceIndex];
+        return {
+          property: {
+            iri: `${mycodaOntologyIriPrefix}#hasKeyword`,
+            label: "has keyword",
+            type: "Property"
+          },
+          range: {
+            iri: "",
+            label: "Entity",
+            type: "Entity"
+          },
+          value: {
+            iri: entity.iri,
+            label: entity.label,
+            type: entity.type
+          }
+        }
+      });
+  const authorProperties = authorsSegments.value
+      .filter(it => it.entityReferenceIndex !== null)
+      .map(it => {
+        const entity = referencedEntities.value[it.entityReferenceIndex];
+        return {
+          property: {
+            iri: `${mycodaOntologyIriPrefix}#hasAuthor`,
+            label: "has author",
+            type: "Property"
+          },
+          range: {
+            iri: `${mycodaOntologyIriPrefix}#OWLClass_9598b33d_f57f_4f27_942e_fa47ade955e3`,
+            label: "Researcher",
+            type: "Individual"
+          },
+          value: {
+            iri: entity.iri,
+            label: entity.label,
+            type: entity.type
+          }
+        }
+      });
+  const properties = [].concat(keywordProperties, authorProperties)
+  const articleEntity = {
+    entity: {
+      iri: `[New Entity]#${generateIriSuffix("OWLIndividual")}`,
+      label: titleInput.value,
+      type: "Individual",
+    },
+    individualType: {
+      iri: `${mycodaOntologyIriPrefix}#Article`,
+      label: "Article",
+      type: "Class"
+    },
+    properties
+  };
+  addedEntities.value = addedEntities.value.concat(articleEntity);
+};
 
 const onSaveEditedEntity = () => {
   const label = editingEntityInfo.label;
@@ -404,7 +492,7 @@ const autoCompleteNewIndividualProperties = async (event) => {
 };
 
 const shouldShowNewPropertyValuePlusIcon = (data, index) => {
-  return editingEntityInfo.properties.findLastIndex(it => data.property === it.property) === index;
+  return editingEntityInfo.properties.findLastIndex(it => data.property.iri === it.property.iri) === index;
 };
 
 const submitChanges = async () => {
@@ -519,7 +607,30 @@ const onEditAnExistingTerm = async () => {
     console.log(editExistingEntityInputRef.value.$el);
     editExistingEntityInputRef.value.$el.querySelector('input').focus();
   }
-}
+};
+
+const onSelectSynonym = async (synonym) => {
+  confirm.require({
+    group: 'addSynonym',
+    message: `Would you like to add "${editingEntityInfo.label}" as a synonym of <a href="${synonym.iri}" target="_blank">${synonym.label}</a>?`,
+    header: 'Add Synonym',
+    rejectProps: {
+      label: 'Cancel',
+      severity: 'secondary',
+      outlined: true,
+      size: 'small'
+    },
+    acceptProps: {
+      label: 'Add Synonym',
+      size: 'small'
+    },
+    accept: () => {
+      isEntityEditorDialogVisible.value = false;
+    },
+    reject: () => {
+    }
+  });
+};
 </script>
 
 <template>
@@ -550,11 +661,11 @@ const onEditAnExistingTerm = async () => {
                 </FloatLabel>
                 <FloatLabel>
                   <InputText fluid id="keywordsInput" v-model="keywordsInput"/>
-                  <label for="keywordsInput">Keywords</label>
+                  <label for="keywordsInput">Keywords (separated by commas)</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="authorsInput" v-model="authorsInput"/>
-                  <label for="authorsInput">Authors</label>
+                  <label for="authorsInput">Authors (separated by commas)</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="emailInput" v-model="emailInput"/>
@@ -564,24 +675,18 @@ const onEditAnExistingTerm = async () => {
                   <div class="flex flex-row items-center gap-2 text-sm">
                     <Checkbox v-model="consentStorage" binary required id="consentStorage" name="consentStorage"/>
                     <label for="consentStorage"><strong class="text-red-700">*</strong> I consent to the storage of my
-                      article and contact information and its
+                      contact and article information and its
                       use for assisting me in contributing to the MyCODA Knowledge Base, contacting me regarding my
-                      contribution, and helping improve the MyCODA platform. (This information will not be imported to
-                      the Knowledge Base, and will not be shared
-                      with the public)</label>
-                  </div>
-                  <div class="flex flex-row items-center gap-2 text-sm">
-                    <Checkbox v-model="consentShareWithEmo" binary required id="consentShareWithEmo"
-                              name="consentShareWithEmo"/>
-                    <label for="consentShareWithEmo"><strong class="text-red-700">*</strong> I consent to the sharing of
-                      my article and contact information with the
-                      organizers of the <a href="https://www.emo2025.org/organizers.html" target="_blank">EMO 2025
-                        event</a>, with the purpose of providing analytics to the organization of the event.</label>
+                      contribution, and helping improve the MyCODA platform.
+                      I consent to the addition of the title, keywords and authors to the Knowledge Base.
+                      (Your contact information and abstract will not be imported to the Knowledge Base, and will not be shared with
+                      the public.)</label>
                   </div>
                 </div>
               </div>
-              <div class="flex flex-col items-start mt-2">
-                <Button type="submit" label="Submit Article"/>
+              <div class="flex flex-col items-start">
+                <Divider class="mt-0"/>
+                <Button type="submit" icon="pi pi-check-circle" label="Submit Article"/>
               </div>
             </form>
           </StepPanel>
@@ -621,6 +726,18 @@ const onEditAnExistingTerm = async () => {
                   <div class="border bg-surface-0 p-4">
                     <h3 class="text-lg font-semibold mb-2">Keywords</h3>
                     <template v-for="segment in keywordSegments">
+                      <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
+                      <Button size="small" class="py-[0.05rem] px-1 leading-normal font-medium" outlined
+                              severity="primary" v-else
+                              @click.prevent="previewEntity(referencedEntities[segment.entityReferenceIndex])">{{
+                          segment.text
+                        }}
+                      </Button>
+                    </template>
+                  </div>
+                  <div class="border bg-surface-0 p-4">
+                    <h3 class="text-lg font-semibold mb-2">Authors</h3>
+                    <template v-for="segment in authorsSegments">
                       <span v-if="segment.entityReferenceIndex === null">{{ segment.text }}</span>
                       <Button size="small" class="py-[0.05rem] px-1 leading-normal font-medium" outlined
                               severity="primary" v-else
@@ -705,9 +822,18 @@ const onEditAnExistingTerm = async () => {
                 </div>
               </div>
               <div>
+                <div class="flex flex-col gap-4">
+                  <div class="flex flex-row items-center gap-2 text-sm">
+                    <Checkbox v-model="consentContribution" binary required id="consentContribution"
+                              name="consentContribution"/>
+                    <label for="consentContribution"><strong class="text-red-700">*</strong> I consent to the storage and
+                      sharing of all the information provided above, with the understanding that it will be publicly
+                      accessible in the MyCODA Knowledge Base.</label>
+                  </div>
+                </div>
                 <Divider/>
                 <Button @click="activateCallback(3)" label="Submit Contribution"
-                        icon="pi pi-check-circle" size="small"/>
+                        icon="pi pi-check-circle"/>
               </div>
             </div>
             <Dialog v-model:visible="isEntityPreviewVisible" modal header="Entity Preview" maximizable dismissableMask
@@ -724,34 +850,34 @@ const onEditAnExistingTerm = async () => {
                       editingEntityInfo.iri ? 'What is the label of this term?' : 'What term would you like to introduce?'
                     }}</label>
                   <InputText v-model="editingEntityInfo.label"
-                             @input="newEntityLabelInputDebounceFn"
+                             @input="editingEntityLabelInputDebounceFn"
                              id="newEntityLabelInput"
                              fluid
                              :disabled="editingEntityInfo.iri && !editingEntityInfo.iri.startsWith('[New Entity]')"
                              :placeholder="editingEntityInfo.iri ? 'Label...' : 'New term...'"/>
                 </div>
-                <!--            TODO: Implement suggestion if term is a synonym of existing
-                                <div v-if="newEntityLabelInputDebounced"
-                                     class="flex flex-col gap-3 border rounded-border border-primary relative px-4 pt-2 pb-3 text-sm">
-                                  <h4 class="absolute top-[-0.55rem] start-[0.5rem] text-xs bg-surface-0 px-2 text-primary">
-                                    Suggestion</h4>
-                                  <a href=""><i
-                                      class="pi pi-times-circle text-sm absolute top-[-0.4rem] right-2 text-primary bg-surface-0 px-1"/></a>
-                                  <div>Is <span class="font-semibold">{{ newEntityLabelInputDebounced }}</span> a synonym of an
-                                    existing term?
-                                  </div>
-                                  <div class="flex flex-row gap-2">
-                                    <Button label="KUR" severity="secondary" outlined rounded size="small"/>
-                                    <Button label="KneePoint" severity="secondary" outlined rounded size="small"/>
-                                    <Button label="Knapsack" severity="secondary" outlined rounded size="small"/>
-                                    <Button label="Other…" severity="secondary" outlined rounded size="small"/>
-                                  </div>
-                                  <p>Verify: <a :href="browseRoute.href" target="_blank" class=""><i
-                                      class="pi pi-external-link text-sm ml-1 me-2"/>Browse
-                                    knowledge
-                                    base</a>
-                                  </p>
-                                </div>-->
+                <div v-if="editingEntityLabelDebounced && !editingEntityInfo.iri"
+                     class="flex flex-col gap-3 border rounded-border border-primary relative px-4 pt-2 pb-3 text-sm">
+                  <h4 class="absolute top-[-0.55rem] start-[0.5rem] text-xs bg-surface-0 px-2 text-primary">
+                    Suggestion</h4>
+                  <a href=""><i
+                      class="pi pi-times-circle text-sm absolute top-[-0.4rem] right-2 text-primary bg-surface-0 px-1"/></a>
+                  <div>Is <span class="font-semibold">{{ editingEntityLabelDebounced }}</span> a synonym of an
+                    existing term?
+                  </div>
+                  <div class="flex flex-row gap-2">
+                    <Button label="Select Synonym..." severity="secondary" outlined rounded size="small"/>
+                    <template v-for="synonymSuggestion in synonymSuggestions">
+                      <Button :label="synonymSuggestion.label" severity="secondary" outlined rounded size="small"
+                              @click="onSelectSynonym(synonymSuggestion)"/>
+                    </template>
+                  </div>
+                  <p>Verify: <a :href="browseRoute.href" target="_blank" class=""><i
+                      class="pi pi-external-link text-sm ml-1 me-2"/>Browse
+                    knowledge
+                    base</a>
+                  </p>
+                </div>
                 <template v-if="editingEntityLabelDebounced">
                   <div class="flex flex-col gap-2">
                     <label for="newEntityCommentInput" class="font-medium">How would you describe the term?</label>
@@ -837,8 +963,8 @@ const onEditAnExistingTerm = async () => {
                                               forceSelection
                                               optionLabel="label"
                                               :suggestions="entitiesAutoCompleteOptions"
-                                              @complete="e => autoCompleteEntities(e, ['Individual'], data.range.iri)"
-                                              placeholder="Individual…"/>
+                                              @complete="e => autoCompleteEntities(e, data.range.type === 'Entity' ? null : ['Individual'], data.range.type === 'Entity' ? null : data.range.iri)"
+                                              :placeholder="data.range.type === 'Entity' ? 'Term…' : `Individual…`"/>
                               </template>
                             </template>
                           </template>
@@ -897,6 +1023,11 @@ const onEditAnExistingTerm = async () => {
                 </div>
               </div>
             </Dialog>
+            <ConfirmDialog group="addSynonym">
+              <template #message="slotProps">
+                <span v-html="slotProps.message.message"/>
+              </template>
+            </ConfirmDialog>
           </StepPanel>
           <StepPanel :value="3">
             <div class="flex flex-col gap-8 px-4 pb-4 pt-2">
@@ -905,7 +1036,7 @@ const onEditAnExistingTerm = async () => {
                   Base!</h3>
                 <div class="flex flex-col gap-2">
                   <p>Your contribution has been submitted through a GitHub Issue on the <a
-                      href="https://github.com/macodaclub/MyCODA" target="_blank">MyCODA Github Repository</a>.</p>
+                      :href="ghRepoUrl" target="_blank">MyCODA Github Repository</a>.</p>
                   <p>A curator will review the proposed changes and update the ontology accordingly.</p>
                 </div>
                 <Button class="mt-6" :icon="githubIssueUrl ? 'pi pi-github' : 'pi pi-spin pi-spinner'"
@@ -924,9 +1055,12 @@ const onEditAnExistingTerm = async () => {
     <div class="flex flex-col gap-2 max-w-[28rem]">
       <h2 class="font-semibold">Help: Article Submission Form</h2>
       <Divider class="m-0"/>
-      <p class="text-sm">Please fill the form with your article information and email address.</p>
+      <p class="text-sm">If you've written an article within the domain of Many-Criteria Optimization and Decision
+        Analysis, you are welcome to use our tool designed to help enrich the ontology from your article, and make your
+        work more accessible to others.</p>
+      <p class="text-sm">To begin, please fill the form with your article information and email address.</p>
       <p class="text-sm">This information will be used to assist you in contributing to the MyCODA Knowledge Base, by
-        finding any known terms, and providing suggestions.</p>
+        finding any known terms, and providing context and suggestions.</p>
       <Divider class="m-0"/>
       <p class="text-sm">For more information, check the <a href="" @click.prevent="showTutorialVideo()">tutorial
         video</a>, or <a
@@ -954,10 +1088,9 @@ const onEditAnExistingTerm = async () => {
     <div class="flex flex-col gap-2 max-w-[28rem]">
       <h2 class="font-semibold">Help: Identified Terms</h2>
       <Divider class="m-0"/>
-      <p class="text-sm">This table shows which terms are referenced in the article, as well as which terms you've added
+      <p class="text-sm">This table shows known terms referenced in the article, as well as terms you've added
         or edited.</p>
-      <p class="text-sm">You can edit or browse any existing terms or you can edit or remove any new terms you've
-        added.</p>
+      <p class="text-sm">You can edit or browse existing terms, or you can edit or remove new terms.</p>
       <Divider class="m-0"/>
       <p class="text-sm font-semibold mb-1">Types information:</p>
       <p class="text-sm" v-for="type in entityTypeOptions"><span class="font-semibold">{{ type.value }}</span>:
@@ -983,7 +1116,6 @@ const onEditAnExistingTerm = async () => {
           href="mailto: macodaclub@gmail.com">contact us</a>.</p>
     </div>
   </Popover>
-
 </template>
 
 <style scoped>
