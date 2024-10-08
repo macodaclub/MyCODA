@@ -9,7 +9,7 @@ This initiative aims to develop and disseminate a community-led research agenda 
 
 *   To promote and disseminate the Manycriteria Optimization and Decision Analysis research domain.
 *   Aggregate and support the MaCODA research community efforts, facilitate knowledge sharing, knowledge transfer and collaboration in academy and between industry and academy.
-*   MaCODA knowledge domain curation by the means of a community built [ontology-based](https://service.tib.eu/webvowl/#iri=https://github.com/vbasto-gmail/mycoda/raw/master/MaCODA.owl) representation and a set of integrated tools for knowledge management.
+*   MaCODA knowledge domain curation by the means of a community built <a href="/browse">ontology-based</a> representation and a set of integrated tools for knowledge management.
 
 Many-criteria problems occur in multidisciplinary engineering design (e.g. urban planning, drug discovery, transportation), in such problems a large number of potentially conflicting objectives need to be optimized. Traditional multi-objective optimization methods work only on problems with a very small number of objectives. Due to their high dimensionality, the problems with a larger number of objective functions, so-called many-objective problems, differ not only quantitatively but also qualitatively in their characteristics from problems with smaller numbers of objectives.  
 Such problems pose new challenges for algorithm design, preference elicitation and modeling, visualisation and implementation.

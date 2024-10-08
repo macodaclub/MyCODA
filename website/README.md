@@ -14,7 +14,7 @@ yarn install
 ## Compile and Hot-Reload for Development
 
 ```sh
-VITE_BACKEND_PORT=8081 yarn run dev
+BACKEND_PORT=8081 yarn run dev
 ```
 
 Or run configuration [Frontend: dev](../.run/Frontend_%20dev.run.xml), if using IntelliJ IDEA.

@@ -42,7 +42,7 @@ docker buildx use mybuilder
 ### Build and push Docker Image to Docker Hub
 
 ```sh
-docker buildx build --platform linux/amd64,linux/arm64 -t tiagonuneslx/mycoda:latest --push .
+docker buildx build --platform linux/amd64,linux/arm64 -t macodaclub/mycoda:latest --push .
 ```
 
 Or run configuration [Docker: Build and Upload Image](.run/Docker_%20Build%20and%20Upload%20Image.run.xml), if using IntelliJ IDEA.
