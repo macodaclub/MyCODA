@@ -6,6 +6,7 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import {UseClipboard} from '@vueuse/components'
 import {RouterLink, useRoute, useRouter} from 'vue-router';
 import {computed, onMounted, ref, watch} from "vue";
 import {useOntologyStore} from "@/store";
@@ -28,6 +29,8 @@ const props = defineProps({
     default: false
   }
 });
+
+const mycodaOntologyUrl = import.meta.env.MYCODA_ONTOLOGY_URL;
 
 const router = useRouter();
 const route = useRoute();
@@ -138,7 +141,7 @@ const selectEntityFromPath = async (path) => {
   } else {
     await deselectEntity(type);
   }
-}
+};
 
 const selectEntity = async (iri, _type) => {
   const {tree, type} = await fetchSelectedTaxonomyTree(iri, _type);
@@ -156,14 +159,14 @@ const selectEntity = async (iri, _type) => {
   selectedIri.value = iri;
   selectedEntityType.value = type;
   selectedEntityInfo.value = await fetchEntityInfo(iri, type);
-}
+};
 
 const deselectEntity = async (type) => {
   selectedIri.value = null;
   selectedEntityInfo.value = null;
   expandedKeys.value = {};
   taxonomyTree.value = await fetchTaxonomyTree([], type);
-}
+};
 
 const onSelectEntityType = async ({value}) => {
   const type = value;
@@ -174,7 +177,11 @@ const onSelectEntityType = async ({value}) => {
   } else {
     await deselectEntity(type);
   }
-}
+};
+
+const openTargetBlank = url => {
+  window.open(url, '_blank');
+};
 
 defineExpose({
   selectEntity
@@ -216,16 +223,22 @@ defineExpose({
               style="margin-left: 1.7rem; margin-bottom: 1.5rem; padding: 0.1rem 0.3rem" severity="secondary" outlined/>
     </div>
     <div class="info-panel">
-      <h4 class="info-panel-title font-semibold text-lg">{{ infoPanelTitle }}</h4>
+      <div class="info-panel-title flex flex-row flex-wrap place-content-between items-center gap-2">
+        <h4 class="font-semibold text-lg">{{ infoPanelTitle }}</h4>
+        <UseClipboard v-slot="{ copy, copied }" :source="selectedIri" v-if="selectedIri">
+          <Button :label="copied ? 'Copied IRI' : 'Copy IRI'" :icon="copied ? 'pi pi-check' : 'pi pi-clipboard'" size="small" outlined
+                  severity="secondary" @click="copy()"/>
+        </UseClipboard>
+      </div>
       <div class="header-divider">
         <Divider layout="horizontal" align="center"/>
       </div>
       <div class="info-fields">
-        <div v-if="selectedIri" class="info-field">
+<!--        <div v-if="selectedIri" class="info-field">
           <h4 class="capitalize font-semibold">IRI</h4>
           <a :href="selectedIri" target=”_blank”>{{ selectedIri }}</a>
-        </div>
-        <template v-else-if="ontologyInfo">
+        </div>-->
+        <template v-if="ontologyInfo && selectedIri === null">
           <div v-for="annotation in ontologyInfo.annotations" class="info-field">
             <h4 class="capitalize font-semibold">{{ annotation.property }}</h4>
             <template v-if="annotation.value.startsWith('http')">
@@ -235,11 +248,17 @@ defineExpose({
               <p>{{ annotation.value }}</p>
             </template>
           </div>
+          <div class="flex flex-row gap-2">
+            <Button label="View graph" icon="pi pi-sitemap" severity="secondary" as="a"
+                    :href="`https://service.tib.eu/webvowl/#iri=${mycodaOntologyUrl}`" target="_blank"/>
+            <Button label="View OWL File" icon="pi pi-file" severity="secondary" as="a" :href="mycodaOntologyUrl"
+                    target="_blank"/>
+          </div>
         </template>
         <template v-if="selectedEntityInfo">
           <template v-if="selectedEntityInfo.comment">
             <div class="info-field">
-              <h4 class="capitalize font-semibold">Comment</h4>
+              <h4 class="capitalize font-semibold">Description</h4>
               <p>{{ selectedEntityInfo.comment }}</p>
             </div>
           </template>
