@@ -2,4 +2,4 @@
 Description=Restart Server
 
 [Service]
-ExecStart=/bin/sh -c "cd /root/mycoda && docker compose restart"
+ExecStart=/bin/sh -c "cd /root/mycoda && docker compose stop mycoda && docker compose rm -f mycoda && docker compose up -d mycoda"
