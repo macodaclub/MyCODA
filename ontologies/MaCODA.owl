@@ -464,6 +464,7 @@
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#FavourRelation">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OrderRelation"/>
         <rdfs:comment>Order relation proposed for many objective optimization. This in-transitive relation counts in how many objectives one solution is better than another solution.</rdfs:comment>
+        <rdfs:label>Favour Relation</rdfs:label>
     </owl:Class>
     
 
@@ -473,6 +474,7 @@
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#HeterogeneousObjectives">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_dc777a2b_5b14_4674_ba36_f1f9e90da118"/>
         <rdfs:comment>Objective function components of a problem that differ in complexity, latency, uncertainty, domain type, co-domain type, black box vs analytically known, or in other ways that might affect search.</rdfs:comment>
+        <rdfs:label>Heterogeneous Objectives</rdfs:label>
     </owl:Class>
     
 
@@ -1226,7 +1228,7 @@
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_dc777a2b_5b14_4674_ba36_f1f9e90da118 -->
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_dc777a2b_5b14_4674_ba36_f1f9e90da118">
-        <rdfs:comment>MultiobjectiveOptimizationProblem</rdfs:comment>
+        <rdfs:comment>Multi objective Optimization Problem</rdfs:comment>
         <rdfs:label xml:lang="en">MOP</rdfs:label>
     </owl:Class>
     
