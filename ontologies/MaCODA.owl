@@ -14,6 +14,23 @@
     <!-- 
     ///////////////////////////////////////////////////////////////////////////////////////
     //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://mycoda.ddns.net/ontologies/MYCODA#altLabel -->
+
+    <owl:AnnotationProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#altLabel"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
     // Object Properties
     //
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -423,6 +440,7 @@
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#AlphaDominance">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OrderRelation"/>
         <rdfs:comment>Dominance relation considering trade-off between objectives to prevent dominance resistant points</rdfs:comment>
+        <rdfs:label>Alpha Dominance</rdfs:label>
     </owl:Class>
     
 
@@ -438,6 +456,7 @@
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#AsynchronousEA">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Parallelisation"/>
         <rdfs:comment>Evolutionary algorithms that work on parallel architectures supporting asynchronous solution evaluations, selection and search operators.</rdfs:comment>
+        <rdfs:label>Asynchronous EA</rdfs:label>
     </owl:Class>
     
 
@@ -455,6 +474,7 @@
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#EdgeRotatedConeOrder">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OrderRelation"/>
         <rdfs:comment>Dominance relation with parameter epsilon. used in the componentwise comparison to increase/decrease the coordinates of one of the solutions.</rdfs:comment>
+        <rdfs:label>Edge Rotated Cone Order</rdfs:label>
     </owl:Class>
     
 
@@ -741,7 +761,7 @@
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_3bf4a8c7_8fd6_4fb2_b85d_f0da3f108174">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_5ddfed7a_8920_4236_a2c8_1fe8eabf36f2"/>
-        <rdfs:label xml:lang="en">Budgetof DMcalls</rdfs:label>
+        <rdfs:label xml:lang="en">Budget of DM calls</rdfs:label>
     </owl:Class>
     
 
@@ -1203,6 +1223,8 @@
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_cccfbe7c_e1d1_4a2d_8022_5603a6e0257b">
         <rdfs:label xml:lang="en">Implementation Library</rdfs:label>
+        <altLabel>Framework</altLabel>
+        <altLabel>Library</altLabel>
     </owl:Class>
     
 
