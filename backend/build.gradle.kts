@@ -50,6 +50,7 @@ dependencies {
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-auth")
+    implementation("io.ktor:ktor-server-caching-headers")
 
     //implementation("net.sourceforge.owlapi:owlapi-api:5.5.0")
     implementation("edu.stanford.swrl:swrlapi:2.1.2")

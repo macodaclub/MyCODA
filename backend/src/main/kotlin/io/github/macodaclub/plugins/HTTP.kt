@@ -1,12 +1,15 @@
 package io.github.macodaclub.plugins
 
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.cachingheaders.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.plugins.partialcontent.*
+import io.ktor.server.request.*
 
 fun Application.configureHTTP() {
     install(Compression) {
@@ -27,6 +30,19 @@ fun Application.configureHTTP() {
     install(PartialContent)
     install(DefaultHeaders) {
         header("X-Engine", "Ktor") // will send this header with each response
+    }
+    install(CachingHeaders) {
+        options { call, content ->
+            when (call.request.httpMethod) {
+                HttpMethod.Get -> {
+                    when (content.contentType?.withoutParameters()) {
+                        ContentType.Application.Json -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 60))
+                        else -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 3600))
+                    }
+                }
+                else -> null
+            }
+        }
     }
     install(CORS) {
         allowMethod(HttpMethod.Options)
