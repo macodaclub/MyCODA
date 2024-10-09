@@ -11,8 +11,11 @@ fun Application.configureDatabase() {
     val password = System.getenv("MYSQL_PASSWORD") ?: error("Database Error: MYSQL_PASSWORD not defined")
     val db = System.getenv("MYSQL_DATABASE") ?: error("Database Error: MYSQL_DATABASE not defined")
     val dbPort = System.getenv("MYSQL_PORT") ?: "3306"
+    val host = System.getenv("MYSQL_HOST") ?: "localhost"
+    val url = "jdbc:mysql://$host:$dbPort/$db"
+    println("Connecting to DB using URL: $url")
     Database.connect(
-        "jdbc:mysql://localhost:$dbPort/$db",
+        url,
         driver = "com.mysql.cj.jdbc.Driver",
         user = user,
         password = password
