@@ -36,7 +36,7 @@ fun Application.configureHTTP() {
             when (call.request.httpMethod) {
                 HttpMethod.Get -> {
                     when (content.contentType?.withoutParameters()) {
-                        ContentType.Application.Json -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 60))
+                        ContentType.Application.Json -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 300))
                         else -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 3600))
                     }
                 }
