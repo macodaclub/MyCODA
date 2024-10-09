@@ -6,10 +6,10 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import {UseClipboard} from '@vueuse/components'
 import {RouterLink, useRoute, useRouter} from 'vue-router';
 import {computed, onMounted, ref, watch} from "vue";
 import {useOntologyStore} from "@/store";
+import Clipboard from "@/components/Clipboard.vue";
 
 const props = defineProps({
   usesRouter: {
@@ -225,10 +225,10 @@ defineExpose({
     <div class="info-panel">
       <div class="info-panel-title flex flex-row flex-wrap place-content-between items-center gap-2">
         <h4 class="font-semibold text-lg">{{ infoPanelTitle }}</h4>
-        <UseClipboard v-slot="{ copy, copied }" :source="selectedIri" v-if="selectedIri">
+        <Clipboard v-slot="{ copy, copied }" :text="selectedIri" v-if="selectedIri">
           <Button :label="copied ? 'Copied IRI' : 'Copy IRI'" :icon="copied ? 'pi pi-check' : 'pi pi-clipboard'" size="small" outlined
                   severity="secondary" @click="copy()"/>
-        </UseClipboard>
+        </Clipboard>
       </div>
       <div class="header-divider">
         <Divider layout="horizontal" align="center"/>
