@@ -24,7 +24,9 @@
 
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#altLabel -->
 
-    <owl:AnnotationProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#altLabel"/>
+    <owl:AnnotationProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#altLabel">
+        <rdfs:label>Synonym</rdfs:label>
+    </owl:AnnotationProperty>
     
 
 
