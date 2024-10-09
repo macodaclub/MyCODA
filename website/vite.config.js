@@ -14,8 +14,8 @@ export default defineConfig({
         },
     },
     define: {
-        'import.meta.env.MYCODA_ONTOLOGY_IRI_PREFIX': JSON.stringify(process.env.MYCODA_ONTOLOGY_IRI_PREFIX),
-        'import.meta.env.GITHUB_REPO_URL': JSON.stringify(process.env.GITHUB_REPO_URL),
-        'import.meta.env.MYCODA_ONTOLOGY_URL': JSON.stringify(process.env.MYCODA_ONTOLOGY_URL),
+        'import.meta.env.MYCODA_ONTOLOGY_IRI_PREFIX': JSON.stringify("https://mycoda.ddns.net/ontologies/MYCODA"),
+        'import.meta.env.GITHUB_REPO_URL': JSON.stringify("https://github.com/macodaclub/MyCODA"),
+        'import.meta.env.MYCODA_ONTOLOGY_URL': JSON.stringify("https://raw.githubusercontent.com/macodaclub/MyCODA/refs/heads/main/ontologies/MaCODA.owl"),
     }
 })

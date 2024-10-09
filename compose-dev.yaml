@@ -18,9 +18,7 @@ services:
 #      - logs:/backend/logs
     environment:
 #      LOGS_FOLDER_PATH: XXXXXX
-      MYCODA_ONTOLOGY_IRI_PREFIX: https://mycoda.ddns.net/ontologies/MYCODA
       MYCODA_ONTOLOGY_URL: https://raw.githubusercontent.com/macodaclub/MyCODA/refs/heads/main/ontologies/MaCODA.owl
-      GITHUB_REPO_URL: https://github.com/macodaclub/MyCODA
       CURATOR_PASSWORD: password
       MYSQL_HOST: mysql
       MYSQL_USER: root
