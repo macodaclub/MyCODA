@@ -13,22 +13,32 @@ class EntityFinder(private val ontologyManager: OntologyManager, private val lem
 
     fun searchEntities(query: String, type: String?) =
         if (type == null) {
-            ontologyManager.mergedOntology.signature.filter {
-                it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query)
-            }
-        } else {
-            entitiesByType.getValue(type)
+            (ontologyManager.mergedOntology.signature
                 .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query) }
+                    + ontologyManager.mergedOntology.signature
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().contains(query) }
+                    ).distinctBy { it.iri }
+        } else {
+            (entitiesByType.getValue(type)
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query) }
+                    + entitiesByType.getValue(type)
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().contains(query) }
+                    ).distinctBy { it.iri }
         }
 
     fun searchEntities(query: String, types: List<String>?) =
         types?.flatMap { type ->
-            entitiesByType.getValue(type)
+            (entitiesByType.getValue(type)
                 .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query) }
+                    + entitiesByType.getValue(type)
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().contains(query) }
+                    ).distinctBy { it.iri }
         }
-            ?: ontologyManager.mergedOntology.signature.filter {
-                it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query)
-            }
+            ?: (ontologyManager.mergedOntology.signature
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().startsWith(query) }
+                    + ontologyManager.mergedOntology.signature
+                .filter { it.getLabel(ontologyManager.mergedOntology).lowercase().contains(query) }
+                    ).distinctBy { it.iri }
 
     fun findSynonymSuggestions(query: String): List<OWLEntity> {
         val initials = query.getInitials()
