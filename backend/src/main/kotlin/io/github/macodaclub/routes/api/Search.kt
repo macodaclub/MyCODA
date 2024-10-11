@@ -15,11 +15,11 @@ import org.semanticweb.owlapi.model.IRI
 
 fun Routing.searchRoutes(
     ontologyManager: OntologyManager,
-    entityFinder: EntityFinder,
 ) {
     route("/api") {
         route("/search") {
             get {
+                val entityFinder = ontologyManager.entityFinder
                 val query = call.request.queryParameters["query"]?.lowercase()
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
                 val types = call.request.queryParameters["types"]?.let {

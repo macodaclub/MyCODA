@@ -15,11 +15,11 @@ import org.semanticweb.owlapi.search.EntitySearcher
 
 fun Routing.editorRoutes(
     ontologyManager: OntologyManager,
-    entityFinder: EntityFinder,
 ) {
     route("/api") {
         route("/editor") {
             get("/individualProperties") {
+                val entityFinder = ontologyManager.entityFinder
                 val classIri = call.request.queryParameters["classIri"]
                 val query = call.request.queryParameters["query"]?.lowercase()
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -88,6 +88,7 @@ fun Routing.editorRoutes(
                 call.respond(GetEditorIndividualPropertiesResponse(properties))
             }
             get("/synonymSuggestions") {
+                val entityFinder = ontologyManager.entityFinder
                 val query = call.request.queryParameters["query"]?.lowercase()
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
 

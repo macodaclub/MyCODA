@@ -5,11 +5,12 @@ import {createPinia} from 'pinia'
 import PrimeVue from 'primevue/config';
 import DialogService from 'primevue/dialogservice';
 import ConfirmationService from 'primevue/confirmationservice';
+import Tooltip from 'primevue/tooltip';
 import theme from '@/theme';
 import App from './App.vue'
 import router from "@/router";
 
-createApp(App).use(createPinia()).use(router).use(DialogService).use(ConfirmationService).use(PrimeVue, {
+createApp(App).use(createPinia()).use(router).use(DialogService).use(ConfirmationService).directive('tooltip', Tooltip).use(PrimeVue, {
     theme: {
         preset: theme,
         options: {
@@ -23,7 +24,7 @@ createApp(App).use(createPinia()).use(router).use(DialogService).use(Confirmatio
 }).mount('#app');
 
 router.beforeEach((to) => {
-    const { title } = to.meta;
+    const {title} = to.meta;
     const defaultTitle = 'MyCODA';
     document.title = `${title} | MyCODA` || defaultTitle;
 });

@@ -262,12 +262,6 @@ defineExpose({
               <p>{{ selectedEntityInfo.comment }}</p>
             </div>
           </template>
-          <template v-for="annotation in selectedEntityInfo.annotations">
-            <div class="info-field">
-              <h4 class="capitalize font-semibold">{{ annotation.propertyLabel }}</h4>
-              <p>{{ annotation.value }}</p>
-            </div>
-          </template>
           <template v-if="selectedEntityInfo.entity.type === 'Class' && selectedEntityInfo.classInfo">
             <div
                 v-if="selectedEntityInfo.classInfo.equivalentClasses && selectedEntityInfo.classInfo.equivalentClasses.length > 0"
@@ -279,6 +273,34 @@ defineExpose({
                 }}</a>
             </div>
           </template>
+          <div
+              v-if="selectedEntityInfo.annotations && selectedEntityInfo.annotations.length > 0"
+              class="info-field">
+            <h4 class="capitalize font-semibold">Annotations</h4>
+            <DataTable :value="selectedEntityInfo.annotations" stripedRows pt:root:class="mt-2">
+              <Column field="property" header="Property">
+                <template #body="{data}">
+                  <a :href="data.property.iri"
+                     class="font-medium"
+                     @click.prevent>{{
+                      data.property.label
+                    }}</a>
+                </template>
+              </Column>
+              <Column field="values" header="Value(s)">
+                <template #body="{data}">
+                  <template v-for="(entity, index) in data.values">
+                    <a :href="entity.iri"
+                       @click.prevent="entity.type !== 'Datatype' ? onSelectEntity(entity.iri, entity.type) : {}">{{
+                        entity.label
+                      }}
+                    </a>
+                    <span v-if="index < data.values.length - 1" class="font-medium">, </span>
+                  </template>
+                </template>
+              </Column>
+            </DataTable>
+          </div>
           <template v-if="selectedEntityInfo.entity.type === 'Individual' && selectedEntityInfo.individualInfo">
             <div
                 v-if="selectedEntityInfo.individualInfo.types && selectedEntityInfo.individualInfo.types.length > 0"

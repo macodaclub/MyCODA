@@ -23,10 +23,10 @@ import {useDialog} from 'primevue/usedialog';
 import {useConfirm} from "primevue/useconfirm";
 import {useDebounceFn} from "@vueuse/core"
 import {useRouter} from 'vue-router'
-import {computed, defineAsyncComponent, reactive, ref, watch, watchEffect} from "vue";
+import {computed, defineAsyncComponent, reactive, ref, watch} from "vue";
 import _ from "lodash"
 import {useOntologyStore} from "@/store";
-import {camelCaseToCapitalized, deepToRaw, generateIriSuffix, nonNulls} from "@/utils/utils/utils.js";
+import {camelCaseToCapitalized, deepToRaw, delay, generateIriSuffix} from "@/utils/utils/utils.js";
 
 const EntitiesTree = defineAsyncComponent(() => import("@/components/EntitiesTree.vue"));
 const TutorialVideoPlayer = defineAsyncComponent(() => import('@/components/TutorialVideoPlayer.vue'));
@@ -68,7 +68,7 @@ const popoverHelpIdentifiedTerms = ref();
 const popoverHelpContribute = ref();
 
 const titleInput = ref(isDev ? "A Kotlin implementation of the pNSGA-II algorithm (PMOEA)" : "");
-const abstractInput = ref(isDev ? "The p NSGA-II algorithm, a preference-based multi-objective evolutionary algorithm—a subclass of multi-objective evolutionary algorithm—has been widely recognized for its efficiency in handling complex optimization problems involving multiple objectives. Originally implemented in Java, the algorithm has recently been adapted to Kotlin, reflecting a growing trend in modern software development towards more concise and expressive programming languages. The adaptation to Kotlin not only preserves the algorithm's robust performance but also enhances its usability and integration with contemporary software ecosystems. One of the principal contributors to the development of the p NSGA-II algorithm was Carlos Coello Coello, whose work has significantly influenced the field of evolutionary computation. The algorithm's capability to incorporate user preferences in the optimization process makes it particularly valuable for real-world applications where decision-makers often have specific goals or priorities. As such, the p NSGA-II algorithm continues to be a vital tool in both academic research and industrial applications, driving advancements in fields ranging from engineering design to artificial intelligence." : "");
+const abstractInput = ref(isDev ? "The p NSGA-II algorithm, a preference-based multi-objective evolutionary algorithm—a subclass of multi-objective evolutionary algorithm—has been widely recognized for its efficiency in handling complex optimization problems involving multiple objectives. Originally implemented in a Java Library, the algorithm has recently been adapted to Kotlin, reflecting a growing trend in modern software development towards more concise and expressive programming languages. The adaptation to Kotlin not only preserves the algorithm's robust performance but also enhances its usability and integration with contemporary software ecosystems. One of the principal contributors to the development of the p NSGA-II algorithm was Carlos Coello Coello, whose work has significantly influenced the field of evolutionary computation. The algorithm's capability to incorporate user preferences in the optimization process makes it particularly valuable for real-world applications where decision-makers often have specific goals or priorities. As such, the p NSGA-II algorithm continues to be a vital tool in both academic research and industrial applications, driving advancements in fields ranging from engineering design to artificial intelligence." : "");
 const keywordsInput = ref(isDev ? "pNSGA-II, Kotlin, PMOEA" : "");
 const authorsInput = ref(isDev ? "Tiago Nunes, Vítor B. Fernandes, Michael T.M. Emmerich" : "");
 const emailInput = ref(isDev ? "tmlns@iscte-iul.pt" : "");
@@ -126,6 +126,10 @@ watch(isEntityEditorDialogVisible, (to) => {
     editingEntityInputDefaultValues.forEach(it => editingEntityInfo[it.key] = it.defaultValue);
     editingEntityLabelDebounced.value = null;
     synonymSuggestions.value = null;
+    shouldHideSynonymSuggestions.value = false;
+    editingEntitySynonymOfInput.value = null;
+    shouldShowSynonymOfInput.value = false;
+    editingEntitySynonymOfInputRef.value = null;
   }
 });
 const editingEntityLabelDebounced = ref(null);
@@ -159,6 +163,7 @@ watch(selectedNewProperty, (to) => {
 const editingEntityInfo = reactive({
   iri: null,
   label: null,
+  synonyms: [],
   type: null,
   comment: null,
   subClassOf: null,
@@ -198,9 +203,14 @@ const editExistingEntityInput = ref(null);
 const editExistingEntityInputRef = ref();
 const editExistingEntityAutoCompleteOptions = ref([]);
 
+const shouldHideSynonymSuggestions = ref(false);
 const synonymSuggestions = ref(null);
+const editingEntitySynonymOfInputRef = ref(null);
+watch(editingEntitySynonymOfInputRef, (to) => to && to.$el && to.$el.querySelector('input') ? to.$el.querySelector('input').focus() : {});
+const editingEntitySynonymOfInput = ref(null);
+const shouldShowSynonymOfInput = ref(false);
 watch(editingEntityLabelDebounced, async (to) => {
-  if (!to || editingEntityInfo.iri) return
+  if (!to || editingEntityInfo.iri) return;
   const url = new URL(`${backendHost}/api/editor/synonymSuggestions`);
   url.search = new URLSearchParams({query: to}).toString();
   const response = await fetch(url, {
@@ -210,7 +220,7 @@ watch(editingEntityLabelDebounced, async (to) => {
     },
   });
   if (!response.ok) return console.error('Failed to find synonym suggestions', response);
-  synonymSuggestions.value = (await response.json()).synonymSuggestions
+  synonymSuggestions.value = (await response.json()).synonymSuggestions;
 });
 
 const githubIssueUrl = ref(null);
@@ -236,7 +246,7 @@ const onSubmitForm = async (stepperActivateCallback) => {
     body: formData,
   });
   if (!response.ok) return console.error('Failed to fetch ontology info', response);
-  const responseData = await response.json()
+  const responseData = await response.json();
   titleSegments.value = responseData.titleSegments;
   abstractSegments.value = responseData.abstractSegments;
   keywordSegments.value = responseData.keywordSegments;
@@ -322,13 +332,17 @@ const addNewArticleEntity = () => {
           }
         }
       });
-  const properties = [].concat(keywordProperties, authorProperties)
+  const properties = [].concat(
+      keywordProperties,
+      authorProperties,
+  )
   const articleEntity = {
     entity: {
       iri: `[New Entity]#${generateIriSuffix("OWLIndividual")}`,
       label: titleInput.value,
       type: "Individual",
     },
+    synonyms: [],
     individualType: {
       iri: `${mycodaOntologyIriPrefix}#Article`,
       label: "Article",
@@ -341,6 +355,7 @@ const addNewArticleEntity = () => {
 
 const onSaveEditedEntity = () => {
   const label = editingEntityInfo.label;
+  const synonyms = editingEntityInfo.synonyms.filter(it => it.trim() !== "");
   const type = editingEntityInfo.type.value;
   const comment = editingEntityInfo.comment;
   let newEntity;
@@ -351,6 +366,7 @@ const onSaveEditedEntity = () => {
         label,
         type,
       },
+      synonyms,
       comment,
       subClassOf: editingEntityInfo.subClassOf,
     }
@@ -361,6 +377,7 @@ const onSaveEditedEntity = () => {
         label,
         type,
       },
+      synonyms,
       comment,
       individualType: editingEntityInfo.individualType,
       properties: editingEntityInfo.properties.slice(0, -1).map(it => ({
@@ -376,6 +393,7 @@ const onSaveEditedEntity = () => {
         label,
         type,
       },
+      synonyms,
       comment,
       domain: editingEntityInfo.domain,
       range: editingEntityInfo.range,
@@ -528,6 +546,7 @@ const onEditEntity = async (entity) => {
   editingEntityInfo.type = entityTypeOptions.find(it => it.value === entity.type);
   if (entity.iri.startsWith("[New Entity]")) {
     const entityInfo = addedEntities.value.find(it => it.entity.iri === entity.iri);
+    editingEntityInfo.synonyms = entityInfo.synonyms.filter(it => it.trim() !== "");
     editingEntityInfo.comment = entityInfo.comment;
     if (entity.type === "Class") {
       editingEntityInfo.subClassOf = entityInfo.subClassOf;
@@ -549,6 +568,7 @@ const onEditEntity = async (entity) => {
     const editedEntity = editedEntities.value.find(it => it.entity.iri === entity.iri);
     if (editedEntity) {
       const entityInfo = deepToRaw(editedEntity.entityInfo);
+      editingEntityInfo.synonyms = entityInfo.synonyms.filter(it => it.trim() !== "");
       editingEntityInfo.comment = entityInfo.comment;
       if (entity.type === "Class") {
         editingEntityInfo.subClassOf = entityInfo.subClassOf;
@@ -565,6 +585,12 @@ const onEditEntity = async (entity) => {
       }
     } else {
       const entityInfo = await fetchEntityInfo(entity.iri);
+      const synonymsAnnotation = entityInfo.annotations.find(it => it.property.iri === `${mycodaOntologyIriPrefix}#altLabel`);
+      if (synonymsAnnotation) {
+        editingEntityInfo.synonyms = synonymsAnnotation.values.map(it => it.label);
+      } else {
+        editingEntityInfo.synonyms = [];
+      }
       editingEntityInfo.comment = entityInfo.comment;
       if (entity.type === "Class") {
         editingEntityInfo.subClassOf = entityInfo.classInfo.subClassOf.length > 0 ? entityInfo.classInfo.subClassOf[0] : null;
@@ -608,7 +634,7 @@ const onEditAnExistingTerm = async () => {
 const onSelectSynonym = async (synonym) => {
   confirm.require({
     group: 'addSynonym',
-    message: `Would you like to add "${editingEntityInfo.label}" as a synonym of <a href="${synonym.iri}" target="_blank">${synonym.label}</a>?`,
+    message: `Would you like to add "<span class="font-semibold">${editingEntityInfo.label}</span>" as a synonym of <a href="${synonym.iri}" target="_blank">${synonym.label}</a>?`,
     header: 'Add Synonym',
     rejectProps: {
       label: 'Cancel',
@@ -620,8 +646,14 @@ const onSelectSynonym = async (synonym) => {
       label: 'Add Synonym',
       size: 'small'
     },
-    accept: () => {
+    accept: async () => {
+      const synonymToAdd = editingEntityInfo.label
       isEntityEditorDialogVisible.value = false;
+      await delay(500);
+      await onEditEntity(synonym);
+      if (!editingEntityInfo.synonyms.includes(synonymToAdd) && synonymToAdd !== synonym.label) {
+        editingEntityInfo.synonyms.push(synonymToAdd);
+      }
     },
     reject: () => {
     }
@@ -675,7 +707,8 @@ const onSelectSynonym = async (synonym) => {
                       use for assisting me in contributing to the MyCODA Knowledge Base, contacting me regarding my
                       contribution, and helping improve the MyCODA platform.
                       I consent to the addition of the title, keywords and authors to the Knowledge Base.
-                      (Your contact information and abstract will not be imported to the Knowledge Base, and will not be shared with
+                      (Your contact information and abstract will not be imported to the Knowledge Base, and will not be
+                      shared with
                       the public.)</label>
                   </div>
                 </div>
@@ -822,13 +855,14 @@ const onSelectSynonym = async (synonym) => {
                   <div class="flex flex-row items-center gap-2 text-sm">
                     <Checkbox v-model="consentContribution" binary required id="consentContribution"
                               name="consentContribution"/>
-                    <label for="consentContribution"><strong class="text-red-700">*</strong> I consent to the storage and
+                    <label for="consentContribution"><strong class="text-red-700">*</strong> I consent to the storage
+                      and
                       sharing of all the information provided above, with the understanding that it will be publicly
                       accessible in the MyCODA Knowledge Base.</label>
                   </div>
                 </div>
                 <Divider/>
-                <Button @click="activateCallback(3)" label="Submit Contribution"
+                <Button @click="consentContribution ? activateCallback(3) : {}" label="Submit Contribution"
                         icon="pi pi-check-circle"/>
               </div>
             </div>
@@ -845,24 +879,68 @@ const onSelectSynonym = async (synonym) => {
                   <label for="newEntityLabelInput" class="font-medium">{{
                       editingEntityInfo.iri ? 'What is the label of this term?' : 'What term would you like to introduce?'
                     }}</label>
-                  <InputText v-model="editingEntityInfo.label"
-                             @input="editingEntityLabelInputDebounceFn"
-                             id="newEntityLabelInput"
-                             fluid
-                             :disabled="editingEntityInfo.iri && !editingEntityInfo.iri.startsWith('[New Entity]')"
-                             :placeholder="editingEntityInfo.iri ? 'Label...' : 'New term...'"/>
+                  <div class="flex flex-row gap-2">
+                    <InputText v-model="editingEntityInfo.label"
+                               @input="editingEntityLabelInputDebounceFn"
+                               id="newEntityLabelInput"
+                               fluid
+                               :disabled="editingEntityInfo.iri && !editingEntityInfo.iri.startsWith('[New Entity]')"
+                               :placeholder="editingEntityInfo.iri ? 'Label…' : 'New term…'"/>
+                    <Button v-if="editingEntityInfo.synonyms.length === 0" icon="pi pi-equals" severity="secondary"
+                            v-tooltip.bottom="'Add Synonyms'" @click="editingEntityInfo.synonyms.push('')"/>
+                  </div>
                 </div>
-                <div v-if="editingEntityLabelDebounced && !editingEntityInfo.iri"
+                <div v-if="editingEntityInfo.synonyms && editingEntityInfo.synonyms.length > 0">
+                  <DataTable :value="editingEntityInfo.synonyms" stripedRows size="small">
+                    <Column header="Synonyms" style="width: 12rem">
+                      <template #body="{index}">
+                        <InputText fluid v-model="editingEntityInfo.synonyms[index]"
+                                   placeholder="Synonym…"/>
+                      </template>
+                    </Column>
+                    <Column>
+                      <template #body="{ data, index }" style="width: 0">
+                        <div class="flex flex-row justify-end gap-2">
+                          <Button
+                              @click="data.trim() !== '' ? editingEntityInfo.synonyms.push('') : {}" icon="pi pi-plus"
+                              size="small" severity="secondary" rounded
+                              pt:root:class="!px-0 !py-0 size-6" outlined
+                              v-if="index === editingEntityInfo.synonyms.length - 1 && data.trim() !== ''"/>
+                          <Button @click="editingEntityInfo.synonyms.splice(index, 1)" icon="pi pi-times" size="small"
+                                  severity="danger" rounded
+                                  pt:root:class="!px-0 !py-0 size-6" outlined/>
+                        </div>
+                      </template>
+                    </Column>
+                  </DataTable>
+                </div>
+                <div v-if="editingEntityLabelDebounced && !editingEntityInfo.iri && !shouldHideSynonymSuggestions"
                      class="flex flex-col gap-3 border rounded-border border-primary relative px-4 pt-2 pb-3 text-sm">
                   <h4 class="absolute top-[-0.55rem] start-[0.5rem] text-xs bg-surface-0 px-2 text-primary">
                     Suggestion</h4>
-                  <a href=""><i
+                  <a href="" @click.prevent="shouldHideSynonymSuggestions = true"><i
                       class="pi pi-times-circle text-sm absolute top-[-0.4rem] right-2 text-primary bg-surface-0 px-1"/></a>
                   <div>Is <span class="font-semibold">{{ editingEntityLabelDebounced }}</span> a synonym of an
                     existing term?
                   </div>
-                  <div class="flex flex-row gap-2">
-                    <Button label="Select Synonym..." severity="secondary" outlined rounded size="small"/>
+                  <div class="flex flex-row gap-2 items-start">
+                    <form
+                        @submit.prevent="editingEntitySynonymOfInput && editingEntitySynonymOfInput.iri ? onSelectSynonym(editingEntitySynonymOfInput) : {}">
+                      <InputGroup v-if="shouldShowSynonymOfInput" pt:root:class="w-auto">
+                        <AutoComplete v-model="editingEntitySynonymOfInput"
+                                      id="editingEntitySynonymOfInput"
+                                      ref="editingEntitySynonymOfInputRef"
+                                      forceSelection
+                                      optionLabel="label"
+                                      :suggestions="entitiesAutoCompleteOptions"
+                                      @complete="e => autoCompleteEntities(e)"
+                                      placeholder="Synonym of…"/>
+                        <Button type="submit" icon="pi pi-check" outlined severity="secondary"
+                                :disabled="!editingEntitySynonymOfInput || !editingEntitySynonymOfInput.iri"/>
+                      </InputGroup>
+                    </form>
+                    <Button v-if="!shouldShowSynonymOfInput" label="Select Synonym…" severity="secondary" outlined
+                            rounded size="small" @click="shouldShowSynonymOfInput = true;"/>
                     <template v-for="synonymSuggestion in synonymSuggestions">
                       <Button :label="synonymSuggestion.label" severity="secondary" outlined rounded size="small"
                               @click="onSelectSynonym(synonymSuggestion)"/>
@@ -937,7 +1015,7 @@ const onSelectSynonym = async (synonym) => {
                                             optionLabel="property.label"
                                             :suggestions="selectedNewPropertyOptions"
                                             @complete="e => autoCompleteNewIndividualProperties(e)"
-                                            placeholder="Add property..."/>
+                                            placeholder="Add property…"/>
                             </template>
                             <template v-else>
                               {{ data.property.label }}
@@ -1007,7 +1085,7 @@ const onSelectSynonym = async (synonym) => {
                                   optionLabel="label"
                                   :suggestions="entitiesAutoCompleteOptions"
                                   @complete="e => autoCompleteEntities(e, ['Datatype', 'Class'])"
-                                  placeholder="Value type..."/>
+                                  placeholder="Value type…"/>
                   </div>
                 </template>
                 <div class="flex flex-row justify-end gap-2">
@@ -1047,7 +1125,7 @@ const onSelectSynonym = async (synonym) => {
       </Stepper>
     </div>
   </main>
-  <Popover ref="popoverHelpArticleForm" pt:root:class="bg-gray-100">
+  <Popover ref="popoverHelpArticleForm" pt:root:class="bg-gray-50">
     <div class="flex flex-col gap-2 max-w-[28rem]">
       <h2 class="font-semibold">Help: Article Submission Form</h2>
       <Divider class="m-0"/>
@@ -1063,7 +1141,7 @@ const onSelectSynonym = async (synonym) => {
           href="mailto: macodaclub@gmail.com">contact us</a>.</p>
     </div>
   </Popover>
-  <Popover ref="popoverHelpSubmittedArticle" pt:root:class="bg-gray-100">
+  <Popover ref="popoverHelpSubmittedArticle" pt:root:class="bg-gray-50">
     <div class="flex flex-col gap-2 max-w-[28rem]">
       <h2 class="font-semibold">Help: Submitted Article</h2>
       <Divider class="m-0"/>
@@ -1080,7 +1158,7 @@ const onSelectSynonym = async (synonym) => {
         us</a>.</p>
     </div>
   </Popover>
-  <Popover ref="popoverHelpIdentifiedTerms" pt:root:class="bg-gray-100">
+  <Popover ref="popoverHelpIdentifiedTerms" pt:root:class="bg-gray-50">
     <div class="flex flex-col gap-2 max-w-[28rem]">
       <h2 class="font-semibold">Help: Identified Terms</h2>
       <Divider class="m-0"/>
@@ -1098,7 +1176,7 @@ const onSelectSynonym = async (synonym) => {
         us</a>.</p>
     </div>
   </Popover>
-  <Popover ref="popoverHelpContribute" pt:root:class="bg-gray-100">
+  <Popover ref="popoverHelpContribute" pt:root:class="bg-gray-50">
     <div class="flex flex-col gap-2 max-w-[28rem]">
       <h2 class="font-semibold">Help: Contribute</h2>
       <Divider class="m-0"/>

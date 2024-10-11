@@ -8,15 +8,14 @@ import org.kohsuke.github.GHRepository
 
 fun Routing.apiRoutes(
     ontologyManager: OntologyManager,
-    entityFinder: EntityFinder,
     ghRepo: GHRepository,
 ) {
     queryRoutes(ontologyManager)
     treeRoutes(ontologyManager)
     entityInfoRoutes(ontologyManager)
     ontologyInfoRoutes(ontologyManager)
-    articleSubmissionRoutes(ontologyManager, entityFinder, ghRepo)
-    editorRoutes(ontologyManager, entityFinder)
-    searchRoutes(ontologyManager, entityFinder)
+    articleSubmissionRoutes(ontologyManager, ghRepo)
+    editorRoutes(ontologyManager)
+    searchRoutes(ontologyManager)
     curatorRoutes(ontologyManager)
 }

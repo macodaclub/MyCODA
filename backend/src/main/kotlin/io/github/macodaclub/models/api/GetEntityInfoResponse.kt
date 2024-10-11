@@ -14,9 +14,8 @@ data class GetEntityInfoResponse(
 ) {
     @Serializable
     data class Annotation(
-        val propertyLabel: String,
-        val propertyIri: String,
-        val value: String
+        val property: Entity,
+        val values: List<Entity>?
     )
 
     @Serializable

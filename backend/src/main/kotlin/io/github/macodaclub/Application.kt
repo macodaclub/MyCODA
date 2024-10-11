@@ -10,13 +10,11 @@ fun main(args: Array<String>) {
 
 fun Application.module() {
     val ontologyManager = configureOntology()
-    val lemmatize: String.() -> String = /* configureCoreNLP() */ { contextReceiver() }
-    val entityFinder = configureEntityFinder(ontologyManager, lemmatize)
     val ghRepo = configureGithub()
     configureHTTP()
     configureMonitoring()
     configureSerialization()
     configureDatabase()
     configureCuratorAuthentication()
-    configureRouting(ontologyManager, entityFinder, ghRepo)
+    configureRouting(ontologyManager, ghRepo)
 }

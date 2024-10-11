@@ -27,20 +27,41 @@ fun Routing.entityInfoRoutes(
                     else -> return@get call.respond(HttpStatusCode.BadRequest)
                 }
             }
-            val entity = ontologyManager.mergedOntology.getEntitiesInSignature(IRI.create(iri)).firstOrNull() // TODO: Ensure type
+            val entity = ontologyManager.mergedOntology.getEntitiesInSignature(IRI.create(iri))
+                .firstOrNull() // TODO: Ensure type
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
             val label = entity.getLabel(ontologyManager.mergedOntology)
             val annotationAxioms = ontologyManager.mergedOntology.getAnnotationAssertionAxioms(entity.iri)
             val comment =
                 annotationAxioms.firstOrNull { it.property.isComment }?.value?.asLiteral()?.orNull()?.literal
-            val annotations = annotationAxioms
+            val annotations = EntitySearcher.getAnnotations(entity, ontologyManager.mergedOntology)
                 .filterNot { it.property.isComment }
                 .filterNot { it.property.isLabel }
-                .map {
+                .groupBy { it.property }
+                .map { (property, annotations) ->
                     GetEntityInfoResponse.Annotation(
-                        it.property.getLabel(ontologyManager.mergedOntology),
-                        it.property.iri.toString(),
-                        it.value.asLiteral().orNull()?.literal.toString(),
+                        GetEntityInfoResponse.Entity(
+                            property.iri.toString(),
+                            property.getLabel(ontologyManager.mergedOntology),
+                            "Annotation"
+                        ),
+                        annotations.mapNotNull {
+                            when {
+                                it.value.isLiteral -> {
+                                    val literal = it.value.asLiteral().get()
+                                    GetEntityInfoResponse.Entity(
+                                        literal.datatype.iri.toString(),
+                                        it.literalValue().get().literal,
+                                        "Datatype",
+                                    )
+                                }
+
+                                else -> {
+                                    // TODO: Support non-literal annotations
+                                    return@mapNotNull null
+                                }
+                            }
+                        }
                     )
                 }
             when (type) {
@@ -85,8 +106,11 @@ fun Routing.entityInfoRoutes(
                     when {
                         entity.isOWLDataProperty -> {
                             val property = entity.asOWLDataProperty()
-                            val domain = EntitySearcher.getDomains(property, ontologyManager.mergedOntology).firstOrNull()?.asOWLClass()
-                            val range = EntitySearcher.getRanges(property, ontologyManager.mergedOntology).firstOrNull()?.asOWLDatatype()
+                            val domain =
+                                EntitySearcher.getDomains(property, ontologyManager.mergedOntology).firstOrNull()
+                                    ?.asOWLClass()
+                            val range = EntitySearcher.getRanges(property, ontologyManager.mergedOntology).firstOrNull()
+                                ?.asOWLDatatype()
                                 ?: return@get call.respond(HttpStatusCode.BadRequest)
                             // TODO: Support complex domains/ranges
 
@@ -119,8 +143,11 @@ fun Routing.entityInfoRoutes(
 
                         entity.isOWLObjectProperty -> {
                             val property = entity.asOWLObjectProperty()
-                            val domain = EntitySearcher.getDomains(property, ontologyManager.mergedOntology).firstOrNull()?.asOWLClass()
-                            val range = EntitySearcher.getRanges(property, ontologyManager.mergedOntology).firstOrNull()?.asOWLClass()
+                            val domain =
+                                EntitySearcher.getDomains(property, ontologyManager.mergedOntology).firstOrNull()
+                                    ?.asOWLClass()
+                            val range = EntitySearcher.getRanges(property, ontologyManager.mergedOntology).firstOrNull()
+                                ?.asOWLClass()
                                 ?: return@get call.respond(HttpStatusCode.BadRequest)
                             // TODO: Support complex domains/ranges
 
@@ -158,65 +185,69 @@ fun Routing.entityInfoRoutes(
                 "Individual" -> {
                     val individual = entity.asOWLNamedIndividual()
                     val individualTypes = ontologyManager.reasoner.getTypes(individual, true)
-                    val properties = EntitySearcher.getDataPropertyValues(individual, ontologyManager.mergedOntology).asMap()
-                        .mapNotNull { (propertyExp, literals) ->
-                            val property = propertyExp.asOWLDataProperty()
-                            val range =
-                                EntitySearcher.getRanges(property, ontologyManager.mergedOntology).map { it.asOWLDatatype() }
-                                    .firstOrNull()
-                                    ?: return@mapNotNull null
-                            // TODO: Support complex ranges
+                    val properties =
+                        EntitySearcher.getDataPropertyValues(individual, ontologyManager.mergedOntology).asMap()
+                            .mapNotNull { (propertyExp, literals) ->
+                                val property = propertyExp.asOWLDataProperty()
+                                val range =
+                                    EntitySearcher.getRanges(property, ontologyManager.mergedOntology)
+                                        .map { it.asOWLDatatype() }
+                                        .firstOrNull()
+                                        ?: return@mapNotNull null
+                                // TODO: Support complex ranges
 
-                            GetEntityInfoResponse.IndividualInfo.Property(
-                                GetEntityInfoResponse.Entity(
-                                    property.iri.toString(),
-                                    property.getLabel(ontologyManager.mergedOntology),
-                                    "Property"
-                                ),
-                                GetEntityInfoResponse.Entity(
-                                    range.iri.toString(),
-                                    range.getLabel(ontologyManager.mergedOntology),
-                                    range.simpleType ?: return@mapNotNull null
-                                ),
-                                literals.map { literal ->
+                                GetEntityInfoResponse.IndividualInfo.Property(
                                     GetEntityInfoResponse.Entity(
-                                        literal.datatype.iri.toString(),
-                                        literal.literal,
-                                        "Datatype"
-                                    )
-                                },
-                            )
-                        } + EntitySearcher.getObjectPropertyValues(individual, ontologyManager.mergedOntology).asMap()
-                        .mapNotNull { (propertyExp, literals) ->
-                            val property = propertyExp.asOWLObjectProperty()
-                            val range =
-                                EntitySearcher.getRanges(property, ontologyManager.mergedOntology).map { it.asOWLClass() }
-                                    .firstOrNull()
-                                    ?: return@mapNotNull null
-                            // TODO: Support complex ranges
-
-                            GetEntityInfoResponse.IndividualInfo.Property(
-                                GetEntityInfoResponse.Entity(
-                                    property.iri.toString(),
-                                    property.getLabel(ontologyManager.mergedOntology),
-                                    "Property"
-                                ),
-                                GetEntityInfoResponse.Entity(
-                                    range.iri.toString(),
-                                    range.getLabel(ontologyManager.mergedOntology),
-                                    range.simpleType ?: return@mapNotNull null
-                                ),
-                                literals.map { literal ->
-                                    literal.asOWLNamedIndividual().let { individual ->
+                                        property.iri.toString(),
+                                        property.getLabel(ontologyManager.mergedOntology),
+                                        "Property"
+                                    ),
+                                    GetEntityInfoResponse.Entity(
+                                        range.iri.toString(),
+                                        range.getLabel(ontologyManager.mergedOntology),
+                                        range.simpleType ?: return@mapNotNull null
+                                    ),
+                                    literals.map { literal ->
                                         GetEntityInfoResponse.Entity(
-                                            individual.iri.toString(),
-                                            individual.getLabel(ontologyManager.mergedOntology),
-                                            individual.simpleType ?: return@mapNotNull null
+                                            literal.datatype.iri.toString(),
+                                            literal.literal,
+                                            "Datatype"
                                         )
-                                    }
-                                },
-                            )
-                        }
+                                    },
+                                )
+                            } + EntitySearcher.getObjectPropertyValues(individual, ontologyManager.mergedOntology)
+                            .asMap()
+                            .mapNotNull { (propertyExp, literals) ->
+                                val property = propertyExp.asOWLObjectProperty()
+                                val range =
+                                    EntitySearcher.getRanges(property, ontologyManager.mergedOntology)
+                                        .map { it.asOWLClass() }
+                                        .firstOrNull()
+                                        ?: return@mapNotNull null
+                                // TODO: Support complex ranges
+
+                                GetEntityInfoResponse.IndividualInfo.Property(
+                                    GetEntityInfoResponse.Entity(
+                                        property.iri.toString(),
+                                        property.getLabel(ontologyManager.mergedOntology),
+                                        "Property"
+                                    ),
+                                    GetEntityInfoResponse.Entity(
+                                        range.iri.toString(),
+                                        range.getLabel(ontologyManager.mergedOntology),
+                                        range.simpleType ?: return@mapNotNull null
+                                    ),
+                                    literals.map { literal ->
+                                        literal.asOWLNamedIndividual().let { individual ->
+                                            GetEntityInfoResponse.Entity(
+                                                individual.iri.toString(),
+                                                individual.getLabel(ontologyManager.mergedOntology),
+                                                individual.simpleType ?: return@mapNotNull null
+                                            )
+                                        }
+                                    },
+                                )
+                            }
                     call.respond(
                         GetEntityInfoResponse(
                             GetEntityInfoResponse.Entity(

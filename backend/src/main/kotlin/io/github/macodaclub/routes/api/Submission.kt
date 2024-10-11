@@ -22,7 +22,6 @@ import org.kohsuke.github.GHRepository
 
 fun Routing.articleSubmissionRoutes(
     ontologyManager: OntologyManager,
-    entityFinder: EntityFinder,
     ghRepo: GHRepository,
 ) {
     route("/api") {
@@ -36,7 +35,7 @@ fun Routing.articleSubmissionRoutes(
 
                 val (referencedEntities, textSegments) =
                     listOf(title, abstract, keywords, authors)
-                        .findEntityReferences(entityFinder, ontologyManager.mergedOntology)
+                        .findEntityReferences(ontologyManager.entityFinder, ontologyManager.mergedOntology)
                 val (titleTextSegments, abstractTextSegments, keywordsTextSegments, authorsTextSegments) = textSegments
 
                 call.respond(
@@ -85,7 +84,7 @@ ${editedEntity.edits.toHtmlTable()}
                             }
 
                 val issue = ghRepo
-                    .createIssue("Article Submission")
+                    .createIssue("Article Submission: ${body.formData.articleTitle}")
                     .label("article submission")
                     .label("ontology change proposal")
                     .label("generated")

@@ -10,7 +10,6 @@ import org.kohsuke.github.GHRepository
 
 fun Application.configureRouting(
     ontologyManager: OntologyManager,
-    entityFinder: EntityFinder,
     ghRepo: GHRepository,
 ) {
     /*install(StatusPages) {
@@ -21,6 +20,6 @@ fun Application.configureRouting(
     routing {
         staticRoutes()
         ontologyBrowseRedirectionRoutes()
-        apiRoutes(ontologyManager, entityFinder, ghRepo)
+        apiRoutes(ontologyManager, ghRepo)
     }
 }

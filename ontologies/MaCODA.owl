@@ -226,16 +226,6 @@
     
 
 
-    <!-- https://mycoda.ddns.net/ontologies/MYCODA#hasKeyword -->
-
-    <owl:ObjectProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#hasKeyword">
-        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
-        <rdfs:domain rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Article"/>
-        <rdfs:label>has keyword</rdfs:label>
-    </owl:ObjectProperty>
-    
-
-
     <!-- 
     ///////////////////////////////////////////////////////////////////////////////////////
     //
@@ -423,6 +413,16 @@
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
         <rdfs:comment>Objective function components of a problem that differ in complexity, latency, uncertainty, domain type, co-domain type, black box vs analytically known, or in other ways that might affect search.</rdfs:comment>
         <rdfs:label xml:lang="en">has heterogeneous objectives</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- https://mycoda.ddns.net/ontologies/MYCODA#hasKeyword -->
+
+    <owl:DatatypeProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#hasKeyword">
+        <rdfs:domain rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Article"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:label>has keyword</rdfs:label>
     </owl:DatatypeProperty>
     
 
@@ -1226,8 +1226,8 @@
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_cccfbe7c_e1d1_4a2d_8022_5603a6e0257b">
         <rdfs:label xml:lang="en">Implementation Library</rdfs:label>
-        <altLabel >Framework</altLabel>
-        <altLabel >Library</altLabel>
+        <altLabel>Framework</altLabel>
+        <altLabel>Library</altLabel>
     </owl:Class>
     
 

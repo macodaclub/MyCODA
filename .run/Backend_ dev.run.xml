@@ -12,6 +12,7 @@
     <option name="vmParameters" value="" />
     <option name="workingDirectory" value="" />
     <envs>
+      <env name="CURATOR_PASSWORD" value="password" />
       <env name="DEVELOPMENT" value="true" />
       <env name="FRONTEND_PORT" value="5173" />
       <env name="GITHUB_PROPERTY_FILE_PATH" value="$PROJECT_DIR$/backend/.github" />
@@ -21,7 +22,7 @@
       <env name="MYSQL_PORT" value="8082" />
       <env name="MYSQL_USER" value="root" />
       <env name="PORT" value="8081" />
-      <env name="CURATOR_PASSWORD" value="password" />
+      <env name="MYCODA_ONTOLOGY_IRI_PREFIX" value="https://mycoda.ddns.net/ontologies/MYCODA" />
     </envs>
     <method v="2">
       <option name="Make" enabled="true" />

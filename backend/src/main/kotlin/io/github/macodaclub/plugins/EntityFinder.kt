@@ -2,6 +2,7 @@ package io.github.macodaclub.plugins
 
 import io.github.macodaclub.utils.*
 import org.semanticweb.owlapi.model.OWLEntity
+import org.semanticweb.owlapi.search.EntitySearcher
 
 class EntityFinder(private val ontologyManager: OntologyManager, private val lemmatize: String.() -> String) {
 
@@ -87,6 +88,10 @@ class EntityFinder(private val ontologyManager: OntologyManager, private val lem
     }
 
     init {
+        val mycodaOntologyIriPrefix = System.getenv("MYCODA_ONTOLOGY_IRI_PREFIX")
+            ?: error("Please provide environment variable MYCODA_ONTOLOGY_IRI_PREFIX")
+        val altLabelAnnotation = ontologyManager.mergedOntology.annotationPropertiesInSignature
+            .firstOrNull { it.iri.toString() == "$mycodaOntologyIriPrefix#altLabel" }
         ontologyManager.mergedOntology.signature.forEach { entity ->
             val label = ontologyManager.mergedOntology.getAnnotationAssertionAxioms(entity.iri)
                 .find { it.property.isLabel }?.value?.asLiteral()?.orNull()?.literal
@@ -94,7 +99,16 @@ class EntityFinder(private val ontologyManager: OntologyManager, private val lem
                 ?.trim('"')
                 ?.lowercase()
             val lenientLabel = label?.lenient(lemmatize)
-            // TODO: Support Alt Labels
+            if (altLabelAnnotation != null) {
+                val altLabels =
+                    EntitySearcher.getAnnotations(entity, ontologyManager.mergedOntology, altLabelAnnotation)
+                        .map { altLabelAnnotation ->
+                            altLabelAnnotation.value.asLiteral().get().literal
+                        }
+                altLabels.forEach { altLabel ->
+                    mapEntityByLength(entity, altLabel.lowercase(), ComparisonField.AltLabel)
+                }
+            }
             val comment = ontologyManager.mergedOntology.getAnnotationAssertionAxioms(entity.iri)
                 .find { it.property.isComment }
                 ?.value?.asLiteral()?.orNull()?.literal
@@ -126,8 +140,4 @@ class EntityFinder(private val ontologyManager: OntologyManager, private val lem
             entitiesMappedByLength[value.length] = mutableMapOf(value to Result(entity, comparisonField))
         }
     }
-}
-
-fun configureEntityFinder(ontologyManager: OntologyManager, lemmatize: String.() -> String): EntityFinder {
-    return EntityFinder(ontologyManager, lemmatize)
 }
