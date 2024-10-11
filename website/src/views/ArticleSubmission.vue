@@ -282,28 +282,24 @@ function findChangesInProperties(oldList, newList) {
 }
 
 const addNewArticleEntity = () => {
-  const keywordProperties = keywordSegments.value
-      .filter(it => it.entityReferenceIndex !== null)
-      .map(it => {
-        const entity = referencedEntities.value[it.entityReferenceIndex];
-        return {
-          property: {
-            iri: `${mycodaOntologyIriPrefix}#hasKeyword`,
-            label: "has keyword",
-            type: "Property"
-          },
-          range: {
-            iri: "",
-            label: "Entity",
-            type: "Entity"
-          },
-          value: {
-            iri: entity.iri,
-            label: entity.label,
-            type: entity.type
-          }
-        }
-      });
+  const keywordProperties =
+      keywordsInput.value.split(",")
+          .map(it => it.trim())
+          .map(it => {
+            return {
+              property: {
+                iri: `${mycodaOntologyIriPrefix}#hasKeyword`,
+                label: "has keyword",
+                type: "Property"
+              },
+              range: {
+                iri: "http://www.w3.org/2001/XMLSchema#string",
+                label: "string",
+                type: "Datatype"
+              },
+              value: it
+            }
+          });
   const authorProperties = authorsSegments.value
       .filter(it => it.entityReferenceIndex !== null)
       .map(it => {
