@@ -24,6 +24,7 @@ services:
       GITHUB_OAUTH: [[ GitHub OAuth Token ]]
       HOST_NAME: [[ Domain Name ]]
       MYCODA_ONTOLOGY_URL: https://raw.githubusercontent.com/macodaclub/MyCODA/refs/heads/main/ontologies/MaCODA.owl
+      MYCODA_ONTOLOGY_IRI_PREFIX: https://mycoda.ddns.net/ontologies/MYCODA
       CURATOR_PASSWORD: [[ Curator Password ]]
       LOGS_FOLDER_PATH: /backend/logs
       MYSQL_HOST: mysql
