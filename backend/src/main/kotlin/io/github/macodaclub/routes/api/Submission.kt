@@ -1,15 +1,14 @@
 package io.github.macodaclub.routes.api
 
-import io.github.macodaclub.models.api.submission.PostSubmitChangesRequest
-import io.github.macodaclub.models.api.submission.PostSubmitChangesResponse
-import io.github.macodaclub.models.api.submission.PostSubmitFormResponse
+import io.github.macodaclub.models.api.submission.*
 import io.github.macodaclub.models.db.ArticleSubmission
-import io.github.macodaclub.plugins.EntityFinder
+import io.github.macodaclub.models.db.ArticleSubmissions
 import io.github.macodaclub.plugins.OntologyManager
 import io.github.macodaclub.utils.MdTemplate
 import io.github.macodaclub.utils.findEntityReferences
 import io.github.macodaclub.utils.prettyJson
 import io.github.macodaclub.utils.toHtmlTable
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -18,6 +17,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import org.kohsuke.github.GHRepository
 
 fun Routing.articleSubmissionRoutes(
@@ -94,7 +94,7 @@ ${editedEntity.edits.toHtmlTable()}
                     )
                     .create()
                 val formData = body.formData
-                transaction {
+                val submission = transaction {
                     ArticleSubmission.new {
                         articleTitle = formData.articleTitle
                         articleAbstract = formData.articleAbstract
@@ -104,7 +104,39 @@ ${editedEntity.edits.toHtmlTable()}
                         githubIssueUrl = issue.htmlUrl.toString()
                     }
                 }
-                call.respond(PostSubmitChangesResponse(issue.htmlUrl.toString()))
+                call.respond(PostSubmitChangesResponse(submission.id.value, issue.htmlUrl.toString()))
+            }
+            post("/submitSus") {
+                val body = call.receive<PostSubmitSusRequest>()
+                val submissionId = body.submissionId
+                val answers = body.answers
+                val submission = transaction {
+                    ArticleSubmission.findByIdAndUpdate(submissionId) {
+                        it.susAnswer1 = answers[0]
+                        it.susAnswer2 = answers[1]
+                        it.susAnswer3 = answers[2]
+                        it.susAnswer4 = answers[3]
+                        it.susAnswer5 = answers[4]
+                        it.susAnswer6 = answers[5]
+                        it.susAnswer7 = answers[6]
+                        it.susAnswer8 = answers[7]
+                        it.susAnswer9 = answers[8]
+                        it.susAnswer10 = answers[9]
+                    }
+                }
+                if(submission == null) return@post call.respond(HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.OK, submission.id.value)
+            }
+            post("/submitFeedback") {
+                val body = call.receive<PostSubmitFeedbackRequest>()
+                val submissionId = body.submissionId
+                val submission = transaction {
+                    ArticleSubmission.findByIdAndUpdate(submissionId) {
+                        it.feedback = body.feedback
+                    }
+                }
+                if(submission == null) return@post call.respond(HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.OK, submission.id.value)
             }
         }
     }

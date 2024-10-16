@@ -27,6 +27,7 @@ import {computed, defineAsyncComponent, reactive, ref, watch} from "vue";
 import _ from "lodash"
 import {useOntologyStore} from "@/store";
 import {camelCaseToCapitalized, deepToRaw, delay, generateIriSuffix} from "@/utils/utils/utils.js";
+import TransitionExpand from "@/components/TransitionExpand.vue";
 
 const EntitiesTree = defineAsyncComponent(() => import("@/components/EntitiesTree.vue"));
 const TutorialVideoPlayer = defineAsyncComponent(() => import('@/components/TutorialVideoPlayer.vue'));
@@ -223,16 +224,68 @@ watch(editingEntityLabelDebounced, async (to) => {
   synonymSuggestions.value = (await response.json()).synonymSuggestions;
 });
 
+const submissionId = ref(null);
 const githubIssueUrl = ref(null);
 
 watch(activeStep, async (to) => {
-  if (to === 3) {
-    githubIssueUrl.value = await submitChanges();
-  }
   window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
+  if (to === 3) {
+    const response = await submitChanges();
+    submissionId.value = response.submissionId;
+    githubIssueUrl.value = response.githubIssueUrl;
+  }
 });
 
 const browseRoute = router.resolve({name: 'browse'});
+
+const susForm = ref([
+  {
+    question: "I think that I would like to use this system frequently.",
+    answer: null
+  },
+  {
+    question: "I found the system unnecessarily complex.",
+    answer: null
+  },
+  {
+    question: "I thought the system was easy to use.",
+    answer: null
+  },
+  {
+    question: "I think that I would need the support of a technical person to be able to use this system.",
+    answer: null
+  },
+  {
+    question: "I found the various functions in this system were well integrated.",
+    answer: null
+  },
+  {
+    question: "I thought there was too much inconsistency in this system.",
+    answer: null
+  },
+  {
+    question: "I would imagine that most people would learn to use this system very quickly.",
+    answer: null
+  },
+  {
+    question: "I found the system very cumbersome to use.",
+    answer: null
+  },
+  {
+    question: "I felt very confident using the system.",
+    answer: null
+  },
+  {
+    question: "I needed to learn a lot of things before I could get going with this system.",
+    answer: null
+  },
+]);
+const susFormSubmitted = ref(false);
+const susFormExpanded = ref(true);
+
+const feedbackInput = ref("");
+const feedbackSubmitted = ref(false);
+const feedbackExpanded = ref(true);
 
 const onSubmitForm = async (stepperActivateCallback) => {
   const url = `${backendHost}/api/submission/submitForm`;
@@ -533,7 +586,7 @@ const submitChanges = async () => {
     body: JSON.stringify(body),
   });
   if (!response.ok) return console.error('Failed to submit changes', response);
-  return (await response.json()).githubIssueUrl
+  return await response.json();
 };
 
 const openTargetBlank = url => {
@@ -659,6 +712,40 @@ const onSelectSynonym = async (synonym) => {
     }
   });
 };
+
+const submitSus = async () => {
+  const url = `${backendHost}/api/submission/submitSus`;
+  const body = {
+    submissionId: submissionId.value,
+    answers: susForm.value.map(it => it.answer)
+  }
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) return console.error('Failed to submit SUS Answers', response);
+  return await response.json();
+};
+
+const submitFeedback = async () => {
+  const url = `${backendHost}/api/submission/submitFeedback`;
+  const body = {
+    submissionId: submissionId.value,
+    feedback: feedbackInput.value
+  }
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) return console.error('Failed to submit Feedback', response);
+  return await response.json();
+};
 </script>
 
 <template>
@@ -684,7 +771,7 @@ const onSelectSynonym = async (synonym) => {
                   <label for="titleInput">Title</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
-                  <Textarea fluid id="abstractInput" v-model="abstractInput" rows="5" cols="30"/>
+                  <Textarea fluid id="abstractInput" v-model="abstractInput" rows="5" cols="30" autoResize/>
                   <label for="abstractInput">Abstract</label>
                 </FloatLabel>
                 <FloatLabel>
@@ -955,7 +1042,7 @@ const onSelectSynonym = async (synonym) => {
                 <template v-if="editingEntityLabelDebounced">
                   <div class="flex flex-col gap-2">
                     <label for="newEntityCommentInput" class="font-medium">How would you describe the term?</label>
-                    <Textarea fluid v-model="editingEntityInfo.comment" id="newEntityCommentInput" rows="3"
+                    <Textarea fluid v-model="editingEntityInfo.comment" id="newEntityCommentInput" rows="3" autoResize
                               placeholder="Describe the term…"/>
                   </div>
                   <div class="flex flex-col gap-2">
@@ -1111,13 +1198,107 @@ const onSelectSynonym = async (synonym) => {
                 <div class="flex flex-col gap-2">
                   <p>Your contribution has been submitted through a GitHub Issue on the <a
                       :href="ghRepoUrl" target="_blank">MyCODA Github Repository</a>.</p>
-                  <p>A curator will review the proposed changes and update the ontology accordingly.</p>
+                  <p>A curator will review the proposed changes and update the ontology accordingly. This may take a few
+                    days.</p>
                 </div>
                 <Button class="mt-6" :icon="githubIssueUrl ? 'pi pi-github' : 'pi pi-spin pi-spinner'"
                         label="View GitHub Issue" size="small"
                         :disabled="!githubIssueUrl"
                         severity="contrast"
                         @click="openTargetBlank(githubIssueUrl)"/>
+                <Divider class="my-6"/>
+                <div class="text-lg font-semibold mb-5">How was your experience while using this tool?</div>
+                <div class="flex flex-col border px-2 py-2 overflow-auto"
+                     :class="[susFormExpanded ? 'bg-gray-50' : 'cursor-pointer hover:bg-gray-50', susFormSubmitted ? 'bg-gray-50' : '']"
+                     @[!susFormExpanded&&`click`]="susFormExpanded = true">
+                  <div class="text-sm font-semibold text-gray-500 flex flex-row gap-2 items-center"
+                       :class="susFormExpanded ? 'cursor-pointer hover:bg-gray-50' : ''"
+                       @click="susFormExpanded = !susFormExpanded">
+                    <i class="pi"
+                       :class="susFormSubmitted ? 'pi-check-circle text-emerald-700' : susFormExpanded ? 'pi-minus-circle' : 'pi-plus-circle'"/>
+                    System Usability Scale (10 questions)
+                  </div>
+                  <TransitionExpand :expanded="susFormExpanded">
+                    <div v-if="susFormExpanded">
+                      <div class="flex flex-col gap-10 px-2 pt-6">
+                        <div class="flex flex-col gap-4" v-for="(question, index) in susForm">
+                          <div class="font-medium">{{ index + 1 }}. {{ question.question }}</div>
+                          <div class="flex flex-row items-end">
+                            <div class="flex flex-col items-center gap-1">
+                              <div class="text-xs font-semibold text-center text-gray-700">Strongly<br/>disagree</div>
+                              <div
+                                  class="flex items-center justify-center border border-black border-r-0 h-7 w-20 text-xs cursor-pointer hover:bg-primary-50"
+                                  :class="question.answer === 1 ? 'bg-primary-400 text-white hover:!bg-primary-400' : ''"
+                                  @click="susForm[index].answer = 1"
+                              >
+                                1
+                              </div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                              <div
+                                  class="flex items-center justify-center border border-black border-r-0 h-7 w-20 text-xs cursor-pointer hover:bg-primary-50"
+                                  :class="question.answer === 2 ? 'bg-primary-400 text-white hover:!bg-primary-400' : ''"
+                                  @click="susForm[index].answer = 2"
+                              >
+                                2
+                              </div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                              <div
+                                  class="flex items-center justify-center border border-black border-r-0 h-7 w-20 text-xs cursor-pointer hover:bg-primary-50"
+                                  :class="question.answer === 3 ? 'bg-primary-400 text-white hover:!bg-primary-400' : ''"
+                                  @click="susForm[index].answer = 3"
+                              >
+                                3
+                              </div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                              <div
+                                  class="flex items-center justify-center border border-black border-r-0 h-7 w-20 text-xs cursor-pointer hover:bg-primary-50"
+                                  :class="question.answer === 4 ? 'bg-primary-400 text-white hover:!bg-primary-400' : ''"
+                                  @click="susForm[index].answer = 4"
+                              >
+                                4
+                              </div>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                              <div class="text-xs font-semibold text-center text-gray-700">Strongly<br/>agree</div>
+                              <div
+                                  class="flex items-center justify-center border border-black h-7 w-20 text-xs cursor-pointer hover:bg-primary-50"
+                                  :class="question.answer === 5 ? 'bg-primary-400 text-white hover:!bg-primary-400' : ''"
+                                  @click="susForm[index].answer = 5"
+                              >
+                                5
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Button icon="pi pi-check" class="self-start mt-8 ms-2 mb-2" label="Submit Answers" size="small"
+                              :disabled="susForm.some(it=> it.answer === null)"
+                              @click="submitSus(); susFormSubmitted = true; susFormExpanded = false"/>
+                    </div>
+                  </TransitionExpand>
+                </div>
+                <div class="flex flex-col border px-2 py-2 overflow-auto mt-4"
+                     :class="[feedbackExpanded ? 'bg-gray-50' : 'cursor-pointer hover:bg-gray-50', feedbackSubmitted ? 'bg-gray-50' : '']"
+                     @[!feedbackExpanded&&`click`]="feedbackExpanded = true">
+                  <div class="text-sm font-semibold text-gray-500 flex flex-row gap-2 items-center"
+                       :class="feedbackExpanded ? 'cursor-pointer hover:bg-gray-50' : ''"
+                       @click="feedbackExpanded = !feedbackExpanded">
+                    <i class="pi"
+                       :class="feedbackSubmitted ? 'pi-check-circle text-emerald-700' : feedbackExpanded ? 'pi-minus-circle' : 'pi-plus-circle'"/>
+                    Provide Your Feedback
+                  </div>
+                  <TransitionExpand :expanded="feedbackExpanded">
+                    <div v-if="feedbackExpanded" class="flex flex-col mt-4 mx-2">
+                      <Textarea v-model="feedbackInput" autoResize rows="6" cols="30" />
+                      <Button icon="pi pi-check" class="self-start mt-4 mb-2" label="Submit Feedback" size="small"
+                              :disabled="feedbackInput.length === 0"
+                              @click="submitFeedback(); feedbackSubmitted = true; feedbackExpanded = false"/>
+                    </div>
+                  </TransitionExpand>
+                </div>
               </div>
             </div>
           </StepPanel>
