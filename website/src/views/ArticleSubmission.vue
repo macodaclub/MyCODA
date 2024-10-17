@@ -124,7 +124,13 @@ const identifiedTerms = computed(() => {
 const isEntityEditorDialogVisible = ref(false);
 watch(isEntityEditorDialogVisible, (to) => {
   if (!to) {
-    editingEntityInputDefaultValues.forEach(it => editingEntityInfo[it.key] = it.defaultValue);
+    editingEntityInputDefaultValues.forEach(it => {
+      if (Array.isArray(it.defaultValue)) {
+        editingEntityInfo[it.key] = _.cloneDeep(it.defaultValue);
+      } else {
+        editingEntityInfo[it.key] = it.defaultValue;
+      }
+    });
     editingEntityLabelDebounced.value = null;
     synonymSuggestions.value = null;
     shouldHideSynonymSuggestions.value = false;
@@ -348,6 +354,7 @@ const addNewArticleEntity = () => {
   const keywordProperties =
       keywordsInput.value.split(",")
           .map(it => it.trim())
+          .filter(it => it !== "")
           .map(it => {
             return {
               property: {
@@ -1292,7 +1299,7 @@ const submitFeedback = async () => {
                   </div>
                   <TransitionExpand :expanded="feedbackExpanded">
                     <div v-if="feedbackExpanded" class="flex flex-col mt-4 mx-2">
-                      <Textarea v-model="feedbackInput" autoResize rows="6" cols="30" />
+                      <Textarea v-model="feedbackInput" autoResize rows="6" cols="30"/>
                       <Button icon="pi pi-check" class="self-start mt-4 mb-2" label="Submit Feedback" size="small"
                               :disabled="feedbackInput.length === 0"
                               @click="submitFeedback(); feedbackSubmitted = true; feedbackExpanded = false"/>
