@@ -832,11 +832,11 @@ const submitFeedback = async () => {
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="referenceInput" v-model="referenceInput"/>
-                  <label for="referenceInput">Full reference (if applicable) – Preferred format: APA or BIBTEX</label>
+                  <label for="referenceInput">Full reference (if available) – Preferred format: APA or BIBTEX</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="doiInput" v-model="doiInput"/>
-                  <label for="doiInput">DOI (if applicable)</label>
+                  <label for="doiInput">DOI (if available)</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="emailInput" v-model="emailInput"/>
