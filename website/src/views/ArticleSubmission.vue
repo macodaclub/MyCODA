@@ -832,7 +832,7 @@ const submitFeedback = async () => {
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="referenceInput" v-model="referenceInput"/>
-                  <label for="referenceInput">Full reference (if available) – Preferred format: APA or BIBTEX</label>
+                  <label for="referenceInput">Full reference (if available) – Preferred format: APA or BibTeX</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="doiInput" v-model="doiInput"/>
