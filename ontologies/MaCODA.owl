@@ -395,6 +395,16 @@
     
 
 
+    <!-- https://mycoda.ddns.net/ontologies/MYCODA#hasDoi -->
+
+    <owl:DatatypeProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#hasDoi">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+        <rdfs:domain rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Article"/>
+        <rdfs:label>has doi</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#hasHeterogeneousConstraints -->
 
     <owl:DatatypeProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#hasHeterogeneousConstraints">
@@ -4923,7 +4933,7 @@ netic and Evolutionary Computation Conference, pages
 
     <owl:NamedIndividual rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_901dad16_ddef_4703_ba18_007532056b30">
         <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_9598b33d_f57f_4f27_942e_fa47ade955e3"/>
-        <rdfs:label xml:lang="en">H.Schmeck</rdfs:label>
+        <rdfs:label xml:lang="en">Hartmut Schmeck</rdfs:label>
     </owl:NamedIndividual>
     
 
