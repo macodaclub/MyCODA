@@ -330,9 +330,9 @@ const getSeverityForContext = context => ({
   "Edited": "info",
 })[context];
 
-const autoCompleteEntities = async (event, types = null, subClassOf = null) => {
+const autoCompleteEntities = async (event, types = null, subClassOf = null, offset = null, limit = null) => {
   const filteredAddedEntities = [...addedEntities.value.map(it => it.entity).filter(it => (types === null || types.includes(it.type)) && it.label.toLowerCase().startsWith(event.query.toLowerCase()))];
-  entitiesAutoCompleteOptions.value = filteredAddedEntities.concat(await fetchSearchEntities(event.query, types, subClassOf && !subClassOf.startsWith("[New Entity]") ? subClassOf : null));
+  entitiesAutoCompleteOptions.value = filteredAddedEntities.concat(await fetchSearchEntities(event.query, types, subClassOf && !subClassOf.startsWith("[New Entity]") ? subClassOf : null, offset, limit));
 };
 
 const autoCompleteEditExistingEntity = async (event) => {
@@ -1124,9 +1124,10 @@ const submitFeedback = async () => {
                                   id="newClassSubClassOfInput"
                                   pt:pcInput:root:class="w-full"
                                   forceSelection
+                                  dropdown
                                   optionLabel="label"
                                   :suggestions="entitiesAutoCompleteOptions"
-                                  @complete="e => autoCompleteEntities(e, ['Class'])"
+                                  @complete="e => autoCompleteEntities(e, ['Class'], null, 0, 200)"
                                   placeholder="No."/>
                   </div>
                 </template>
@@ -1138,9 +1139,10 @@ const submitFeedback = async () => {
                                   id="newIndividualTypeInput"
                                   pt:pcInput:root:class="w-full"
                                   forceSelection
+                                  dropdown
                                   optionLabel="label"
                                   :suggestions="entitiesAutoCompleteOptions"
-                                  @complete="e => autoCompleteEntities(e, ['Class'])"
+                                  @complete="e => autoCompleteEntities(e, ['Class'], null, 0, 200)"
                                   placeholder="Type…"/>
                   </div>
                   <template v-if="editingEntityInfo.individualType && editingEntityInfo.individualType.iri">
@@ -1214,9 +1216,10 @@ const submitFeedback = async () => {
                                   id="newPropertyDomain"
                                   pt:pcInput:root:class="w-full"
                                   forceSelection
+                                  dropdown
                                   optionLabel="label"
                                   :suggestions="entitiesAutoCompleteOptions"
-                                  @complete="e => autoCompleteEntities(e, ['Class'])"
+                                  @complete="e => autoCompleteEntities(e, ['Class'], null, 0, 200)"
                                   placeholder="Every type."/>
                   </div>
                   <div class="flex flex-col gap-2">

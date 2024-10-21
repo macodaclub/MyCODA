@@ -137,9 +137,9 @@ export const useOntologyStore = defineStore('ontology', () => {
         return await response.json();
     }
 
-    async function fetchSearchEntities(query, types = null, subClassOf = null) {
+    async function fetchSearchEntities(query, types = null, subClassOf = null, offset = null, limit = null) {
         const url = new URL(`${backendHost}/api/search`);
-        url.search = new URLSearchParams(nonNulls({query, types: types ? JSON.stringify(types) : null, subClassOf})).toString();
+        url.search = new URLSearchParams(nonNulls({query, types: types ? JSON.stringify(types) : null, subClassOf, offset, limit})).toString();
         const response = await fetch(url);
         if (!response.ok) return console.error('Failed to fetch search entities', response);
         const responseObj = await response.json();
