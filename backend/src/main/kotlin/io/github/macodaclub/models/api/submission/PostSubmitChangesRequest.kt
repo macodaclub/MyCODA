@@ -16,6 +16,8 @@ data class PostSubmitChangesRequest(
         val articleAbstract: String,
         val articleKeywords: String,
         val articleAuthors: String,
+        val articleReference: String,
+        val articleDoi: String,
         val emailAddress: String,
     )
 

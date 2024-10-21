@@ -71,7 +71,9 @@ const popoverHelpContribute = ref();
 const titleInput = ref(isDev ? "A Kotlin implementation of the pNSGA-II algorithm (PMOEA)" : "");
 const abstractInput = ref(isDev ? "The p NSGA-II algorithm, a preference-based multi-objective evolutionary algorithm—a subclass of multi-objective evolutionary algorithm—has been widely recognized for its efficiency in handling complex optimization problems involving multiple objectives. Originally implemented in a Java Library, the algorithm has recently been adapted to Kotlin, reflecting a growing trend in modern software development towards more concise and expressive programming languages. The adaptation to Kotlin not only preserves the algorithm's robust performance but also enhances its usability and integration with contemporary software ecosystems. One of the principal contributors to the development of the p NSGA-II algorithm was Carlos Coello Coello, whose work has significantly influenced the field of evolutionary computation. The algorithm's capability to incorporate user preferences in the optimization process makes it particularly valuable for real-world applications where decision-makers often have specific goals or priorities. As such, the p NSGA-II algorithm continues to be a vital tool in both academic research and industrial applications, driving advancements in fields ranging from engineering design to artificial intelligence." : "");
 const keywordsInput = ref(isDev ? "pNSGA-II, Kotlin, PMOEA" : "");
-const authorsInput = ref(isDev ? "Tiago Nunes, Vítor B. Fernandes, Michael T.M. Emmerich" : "");
+const authorsInput = ref(isDev ? "Tiago-Miguel Nunes, Vítor Basto-Fernandes, Michael Emmerich" : "");
+const referenceInput = ref("");
+const doiInput = ref("");
 const emailInput = ref(isDev ? "tmlns@iscte-iul.pt" : "");
 const consentStorage = ref(isDev);
 const consentContribution = ref(isDev);
@@ -300,6 +302,8 @@ const onSubmitForm = async (stepperActivateCallback) => {
   formData.append("abstract", abstractInput.value);
   formData.append("keywords", keywordsInput.value);
   formData.append("authors", authorsInput.value);
+  formData.append("reference", referenceInput.value);
+  formData.append("doi", doiInput.value);
   const response = await fetch(url, {
     method: "POST",
     body: formData,
@@ -392,10 +396,44 @@ const addNewArticleEntity = () => {
           }
         }
       });
+  const referenceProperty =
+      referenceInput.value.length > 0 ? {
+        property: {
+          iri: `${mycodaOntologyIriPrefix}#OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae`,
+          label: "has reference",
+          type: "Property"
+        },
+        range: {
+          iri: "http://www.w3.org/2001/XMLSchema#string",
+          label: "string",
+          type: "Datatype"
+        },
+        value: referenceInput.value
+      } : null;
+  const doiProperty =
+      doiInput.value.length > 0 ? {
+        property: {
+          iri: `${mycodaOntologyIriPrefix}#hasDoi`,
+          label: "has doi",
+          type: "Property"
+        },
+        range: {
+          iri: "http://www.w3.org/2001/XMLSchema#string",
+          label: "string",
+          type: "Datatype"
+        },
+        value: doiInput.value
+      } : null;
   const properties = [].concat(
       keywordProperties,
       authorProperties,
   )
+  if (referenceProperty !== null) {
+    properties.push(referenceProperty);
+  }
+  if (doiProperty !== null) {
+    properties.push(doiProperty);
+  }
   const articleEntity = {
     entity: {
       iri: `[New Entity]#${generateIriSuffix("OWLIndividual")}`,
@@ -577,6 +615,8 @@ const submitChanges = async () => {
       articleAbstract: abstractInput.value,
       articleKeywords: keywordsInput.value,
       articleAuthors: authorsInput.value,
+      articleReference: referenceInput.value,
+      articleDoi: doiInput.value,
       emailAddress: emailInput.value
     },
     addedEntities: addedEntities.value,
@@ -787,7 +827,16 @@ const submitFeedback = async () => {
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="authorsInput" v-model="authorsInput"/>
-                  <label for="authorsInput">Authors – Preferred Format: "[First-names] [Last-names]" – e.g. "Michael Emmerich, Tiago-Miguel Nunes, Vítor Basto-Fernandes"</label>
+                  <label for="authorsInput">Authors – Preferred format: "[First-names] [Last-names]" – e.g. "Michael
+                    Emmerich, Vítor Basto-Fernandes, Tiago-Miguel Nunes"</label>
+                </FloatLabel>
+                <FloatLabel pt:root:class="mt-2">
+                  <InputText fluid id="referenceInput" v-model="referenceInput"/>
+                  <label for="referenceInput">Full reference (if applicable) – Preferred format: APA or BIBTEX</label>
+                </FloatLabel>
+                <FloatLabel pt:root:class="mt-2">
+                  <InputText fluid id="doiInput" v-model="doiInput"/>
+                  <label for="doiInput">DOI (if applicable)</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="emailInput" v-model="emailInput"/>
@@ -800,7 +849,8 @@ const submitFeedback = async () => {
                       contact and article information and its
                       use for assisting me in contributing to the MyCODA Knowledge Base, contacting me regarding my
                       contribution, and helping improve the MyCODA platform.
-                      I consent to the addition of the title, keywords and authors to the Knowledge Base.
+                      I consent to the addition of the title, keywords, authors, reference and DOI to the Knowledge
+                      Base.
                       (Your contact information and abstract will not be imported to the Knowledge Base, and will not be
                       shared with
                       the public.)</label>
