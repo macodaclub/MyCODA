@@ -787,7 +787,7 @@ const submitFeedback = async () => {
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="authorsInput" v-model="authorsInput"/>
-                  <label for="authorsInput">Authors (separated by commas)</label>
+                  <label for="authorsInput">Authors – Preferred Format: "[First-names] [Last-names]" – e.g. "Michael Emmerich, Tiago-Miguel Nunes, Vítor Basto-Fernandes"</label>
                 </FloatLabel>
                 <FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="emailInput" v-model="emailInput"/>

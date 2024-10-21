@@ -3494,7 +3494,7 @@ LNCS, vol. 4403, pp. 922–936. Springer, Heidelberg (2007)</OWLDataProperty_de9
 
     <owl:NamedIndividual rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_4cb662b5_c762_42ec_ba4f_b9ac29a75775">
         <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_9598b33d_f57f_4f27_942e_fa47ade955e3"/>
-        <rdfs:label xml:lang="en">T.Kaupler</rdfs:label>
+        <rdfs:label xml:lang="en">Thomas Kaußler</rdfs:label>
     </owl:NamedIndividual>
     
 
@@ -4416,8 +4416,9 @@ of the hypervolumes internally computed.</rdfs:comment>
 
     <owl:NamedIndividual rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_7b3308bd_1f71_4f9b_9ac9_d2fc9e269fff">
         <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_9598b33d_f57f_4f27_942e_fa47ade955e3"/>
-        <rdfs:comment>Michael T.M. Emmerich</rdfs:comment>
         <rdfs:label xml:lang="en">Michael Emmerich</rdfs:label>
+        <altLabel>Michael T. Emmerich</altLabel>
+        <altLabel>Michael T.M. Emmerich</altLabel>
     </owl:NamedIndividual>
     
 
