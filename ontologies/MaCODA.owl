@@ -459,7 +459,7 @@
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#AsynchronousEA">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Parallelisation"/>
         <rdfs:comment>Evolutionary algorithms that work on parallel architectures supporting asynchronous solution evaluations, selection and search operators.</rdfs:comment>
-        <rdfs:label>Asynchronous EA</rdfs:label>
+        <rdfs:label>Asynchronous Evolutionary Algorithm</rdfs:label>
     </owl:Class>
     
 
@@ -809,8 +809,7 @@
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_4e69019e_1869_4d93_9be1_7f1012651493">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_78aa5e30_4a52_440d_b144_1b2414334f9e"/>
-        <rdfs:comment>single-objective evolutionary algorithm</rdfs:comment>
-        <rdfs:label xml:lang="en">SOEA</rdfs:label>
+        <rdfs:label xml:lang="en">Single-Objective Evolutionary Algorithm</rdfs:label>
     </owl:Class>
     
 
@@ -878,7 +877,7 @@
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_5ddfed7a_8920_4236_a2c8_1fe8eabf36f2 -->
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_5ddfed7a_8920_4236_a2c8_1fe8eabf36f2">
-        <rdfs:label xml:lang="en">Preference Information From DM</rdfs:label>
+        <rdfs:label xml:lang="en">Preference Information</rdfs:label>
     </owl:Class>
     
 
@@ -905,8 +904,8 @@
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_643650de_6ffc_44d1_a837_c19e8cbb8d57">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_e22632f2_ed62_4a09_8abc_9ca90b36426b"/>
-        <rdfs:comment>Preference-based Multi-Objective Evolutionary Algorithm</rdfs:comment>
-        <rdfs:label xml:lang="en">PMOEA</rdfs:label>
+        <rdfs:label xml:lang="en">Preference-based Multi-Objective Evolutionary Algorithm</rdfs:label>
+        <altLabel>PMOEA</altLabel>
     </owl:Class>
     
 
@@ -1253,8 +1252,8 @@
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_dc777a2b_5b14_4674_ba36_f1f9e90da118 -->
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_dc777a2b_5b14_4674_ba36_f1f9e90da118">
-        <rdfs:comment>Multi objective Optimization Problem</rdfs:comment>
-        <rdfs:label xml:lang="en">MOP</rdfs:label>
+        <rdfs:label xml:lang="en">Multi-Objective Optimization Problem</rdfs:label>
+        <altLabel>Multi-Objective Optimisation Problem</altLabel>
     </owl:Class>
     
 
@@ -1263,8 +1262,7 @@
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_e22632f2_ed62_4a09_8abc_9ca90b36426b">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_78aa5e30_4a52_440d_b144_1b2414334f9e"/>
-        <rdfs:comment>Multi Objective Evolutionary Algorithm</rdfs:comment>
-        <rdfs:label xml:lang="en">MOEA</rdfs:label>
+        <rdfs:label xml:lang="en">Multi-Objective Evolutionary Algorithm</rdfs:label>
     </owl:Class>
     
 
@@ -1292,6 +1290,18 @@
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_f5b1da6e_bf6c_4881_9170_d0e48266de05">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_11dcccfb_65f7_407d_9e45_6a8381ebc968"/>
         <rdfs:label xml:lang="en">Sample Ranks</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_fa63ba15_6288_c74e_f9ad_8964d304a62e -->
+
+    <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_fa63ba15_6288_c74e_f9ad_8964d304a62e">
+        <rdfs:comment>Optimization with a larger number of objective functions, typically more than 3.</rdfs:comment>
+        <rdfs:label>Many-Objective Optimization</rdfs:label>
+        <altLabel>Many-Criteria Optimisation</altLabel>
+        <altLabel>Many-Criteria Optimization</altLabel>
+        <altLabel>Many-Objective Optimisation</altLabel>
     </owl:Class>
     
 
