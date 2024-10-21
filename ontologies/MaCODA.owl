@@ -398,7 +398,6 @@
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#hasDoi -->
 
     <owl:DatatypeProperty rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#hasDoi">
-        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdfs:domain rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Article"/>
         <rdfs:label>has doi</rdfs:label>
     </owl:DatatypeProperty>
