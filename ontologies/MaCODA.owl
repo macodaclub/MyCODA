@@ -931,7 +931,6 @@
 
     <owl:Class rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_678af363_b743_4f84_8034_afc14b1e3b65">
         <rdfs:subClassOf rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_dc777a2b_5b14_4674_ba36_f1f9e90da118"/>
-        <rdfs:comment>preference based evolutionary multi-objective optimization</rdfs:comment>
         <rdfs:label xml:lang="en">Academic Problem</rdfs:label>
     </owl:Class>
     
