@@ -1,16 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Backend: dev" type="KtorApplicationConfigurationType" factoryName="Ktor">
-    <output_file path="$PROJECT_DIR$/backend-logs.txt" />
-    <module name="backend.main" />
-    <option name="alternativeJrePath" />
-    <option name="alternativeJrePathEnabled" value="false" />
-    <option name="includeProvidedScope" value="true" />
-    <option name="mainClass" value="io.github.macodaclub.ApplicationKt" />
-    <option name="passParentEnvs" value="true" />
-    <option name="programParameters" value="" />
-    <option name="shortenCommandLine" value="NONE" />
-    <option name="vmParameters" value="" />
-    <option name="workingDirectory" value="" />
+    <option name="ALTERNATIVE_JRE_PATH" value="jbr-17" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <envs>
       <env name="CURATOR_PASSWORD" value="password" />
       <env name="DEVELOPMENT" value="true" />
@@ -24,6 +15,18 @@
       <env name="PORT" value="8081" />
       <env name="MYCODA_ONTOLOGY_IRI_PREFIX" value="https://mycoda.ddns.net/ontologies/MYCODA" />
     </envs>
+    <output_file path="$PROJECT_DIR$/backend-logs.txt" />
+    <option name="MAIN_CLASS_NAME" value="io.github.macodaclub.ApplicationKt" />
+    <module name="MyCODA" />
+    <option name="alternativeJrePath" value="jbr-17" />
+    <option name="alternativeJrePathEnabled" value="true" />
+    <option name="includeProvidedScope" value="false" />
+    <option name="mainClass" value="io.github.macodaclub.ApplicationKt" />
+    <option name="passParentEnvs" value="true" />
+    <option name="programParameters" value="" />
+    <option name="shortenCommandLine" />
+    <option name="vmParameters" />
+    <option name="workingDirectory" value="C:\Users\bruno\Documents\macoda\MyCODA" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

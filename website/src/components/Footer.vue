@@ -11,6 +11,7 @@ const ghRepoUrl = import.meta.env.GITHUB_REPO_URL;
       <router-link :to="{name: 'about'}" tag="div" class="!text-white hover:bg-primary-300">About</router-link> ·
       <router-link :to="{name: 'browse'}" tag="div" class="!text-white hover:bg-primary-300">Browse</router-link> ·
       <router-link :to="{name: 'contribute'}" tag="div" class="!text-white hover:bg-primary-300">Contribute</router-link>
+  
     </div>
     <div class="flex flex-row gap-3 pt-2">
       <Button as="a" :href="ghRepoUrl" target="_blank" icon="pi pi-github" rounded outlined/>

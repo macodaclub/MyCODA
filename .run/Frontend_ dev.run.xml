@@ -6,6 +6,7 @@
       <script value="dev" />
     </scripts>
     <node-interpreter value="project" />
+    <package-manager value="npm" />
     <envs>
       <env name="BACKEND_PORT" value="8081" />
       <env name="GITHUB_REPO_URL" value="https://github.com/macodaclub/MyCODA" />
