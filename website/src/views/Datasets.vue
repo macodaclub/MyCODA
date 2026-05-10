@@ -1,35 +1,41 @@
 <script setup>
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from "primevue/button";
-import { ref } from 'vue'
-
-// dados exemplo
-const datasets = ref([
-  { id: 1, name: 'Dataset A', size: '10MB' },
-  { id: 2, name: 'Dataset B', size: '25MB' },
-  { id: 3, name: 'Dataset C', size: '5MB' }
-])
+// Página temporária em construção
 </script>
 
 <template>
-  <div class="flex justify-center">
-    <div class="flex flex-col max-w-none w-11/12 border rounded-xl bg-surface-0 p-8 m-4 mt-5">
-      <div class="prose mb-10">
-        <h1>Datasets - Exemple</h1>
+  <div class="flex justify-center items-center min-h-[70vh] px-4">
+    <div
+      class="w-full max-w-4xl rounded-2xl border bg-surface-0 p-10 text-center shadow-lg"
+    >
+      <div class="flex justify-center mb-6">
+        <div
+          class="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 text-primary-600"
+        >
+          <i class="pi pi-database text-4xl"></i>
+        </div>
       </div>
 
-      <DataTable :value="datasets" paginator :rows="5">
-        <Column field="id" header="ID" />
-        <Column field="name" header="Nome" />
-        <Column field="size" header="Tamanho" />
+      <h1 class="text-4xl font-bold mb-4">
+        Datasets
+      </h1>
 
-        <Column header="Ações">
-          <template #body="slotProps">
-            <Button label="Ver" size="small" />
-          </template>
-        </Column>
-      </DataTable>
+      <h2 class="text-2xl font-semibold mb-4 text-surface-700">
+        Página em construção
+      </h2>
+
+      <p class="text-lg text-surface-600 mb-8">
+        Esta funcionalidade encontra-se em desenvolvimento.
+        Em breve teremos novidades disponíveis nesta área.
+      </p>
+
+      <div class="flex justify-center">
+        <div
+          class="inline-flex items-center gap-3 rounded-full border px-5 py-3 text-sm text-surface-600"
+        >
+          <i class="pi pi-clock"></i>
+          <span>Novas funcionalidades brevemente disponíveis</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
