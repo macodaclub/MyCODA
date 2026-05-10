@@ -48,12 +48,16 @@ fun Application.configureHTTP() {
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Get)
+
         allowHeader(HttpHeaders.AccessControlAllowOrigin)
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.ContentEncoding)
+
         if (this@configureHTTP.developmentMode) {
             anyHost()
+        } else {
+            allowHost("mycoda.iscte-iul.pt", schemes = listOf("https"))
         }
     }
     if (!this@configureHTTP.developmentMode) {
