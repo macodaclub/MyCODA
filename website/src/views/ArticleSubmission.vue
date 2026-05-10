@@ -617,7 +617,7 @@ const submitChanges = async () => {
       articleAuthors: authorsInput.value,
       articleReference: referenceInput.value,
       articleDoi: doiInput.value,
-      emailAddress: emailInput.value
+      //emailAddress: emailInput.value
     },
     addedEntities: addedEntities.value,
     editedEntities: editedEntities.value.map(it => ({
@@ -838,10 +838,11 @@ const submitFeedback = async () => {
                   <InputText fluid id="doiInput" v-model="doiInput"/>
                   <label for="doiInput">DOI (if available)</label>
                 </FloatLabel>
-                <FloatLabel pt:root:class="mt-2">
+                <!--<FloatLabel pt:root:class="mt-2">
                   <InputText fluid id="emailInput" v-model="emailInput"/>
                   <label for="emailInput">Email address</label>
                 </FloatLabel>
+              -->
                 <div class="flex flex-col gap-4">
                   <div class="flex flex-row items-center gap-2 text-sm">
                     <Checkbox v-model="consentStorage" binary required id="consentStorage" name="consentStorage"/>

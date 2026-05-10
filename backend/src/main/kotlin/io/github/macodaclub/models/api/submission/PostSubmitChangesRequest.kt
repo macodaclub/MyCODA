@@ -18,7 +18,7 @@ data class PostSubmitChangesRequest(
         val articleAuthors: String,
         val articleReference: String,
         val articleDoi: String,
-        val emailAddress: String,
+        //val emailAddress: String,
     )
 
     @Serializable

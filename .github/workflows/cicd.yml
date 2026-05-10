@@ -1,0 +1,26 @@
+name: Deploy VM ISCTE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    environment: production
+
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+
+      - name: Build da imagem da aplicação
+        run: |
+          docker build -t macodaclub/mycoda:latest-linux-amd64 .
+
+      - name: Deploy usando compose da VM
+        run: |
+          cd /home/tmlns/mycoda
+          docker compose -p mycoda up -d --no-deps --force-recreate mycoda
+          docker ps

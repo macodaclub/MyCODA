@@ -102,7 +102,7 @@ ${editedEntity.edits.toHtmlTable()}
                         articleAuthors = formData.articleAuthors
                         articleReference = formData.articleReference
                         articleDoi = formData.articleDoi
-                        emailAddress = formData.emailAddress
+                        //emailAddress = formData.emailAddress
                         githubIssueUrl = issue.htmlUrl.toString()
                     }
                 }

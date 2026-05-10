@@ -13,7 +13,7 @@ object ArticleSubmissions : IntIdTable() {
     val articleAuthors: Column<String> = varchar("article_authors", 500)
     val articleReference: Column<String?> = varchar("article_reference", 500).nullable()
     val articleDoi: Column<String?> = varchar("article_doi", 500).nullable()
-    val emailAddress: Column<String> = varchar("email_address", 100)
+    //val emailAddress: Column<String> = varchar("email_address", 100)
     val githubIssueUrl: Column<String> = varchar("github_issue_url", 300)
     val susAnswer1: Column<Int?> = integer("sus_answer1").nullable()
     val susAnswer2: Column<Int?> = integer("sus_answer2").nullable()
@@ -36,7 +36,7 @@ class ArticleSubmission(id: EntityID<Int>) : IntEntity(id) {
     var articleAuthors by ArticleSubmissions.articleAuthors
     var articleReference by ArticleSubmissions.articleReference
     var articleDoi by ArticleSubmissions.articleDoi
-    var emailAddress by ArticleSubmissions.emailAddress
+    //var emailAddress by ArticleSubmissions.emailAddress
     var githubIssueUrl by ArticleSubmissions.githubIssueUrl
     var susAnswer1 by ArticleSubmissions.susAnswer1
     var susAnswer2 by ArticleSubmissions.susAnswer2
