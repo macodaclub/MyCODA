@@ -15,12 +15,16 @@ jobs:
       - name: Build da imagem da aplicação
         env:
           PROXY_URL: ${{ vars.PROXY_URL }}
+          PROXY_HOST: ${{ vars.PROXY_HOST }}
+          PROXY_PORT: ${{ vars.PROXY_PORT }}
         run: |
           docker build \
             --build-arg HTTP_PROXY="$PROXY_URL" \
             --build-arg HTTPS_PROXY="$PROXY_URL" \
             --build-arg http_proxy="$PROXY_URL" \
             --build-arg https_proxy="$PROXY_URL" \
+            --build-arg PROXY_HOST="$PROXY_HOST" \
+            --build-arg PROXY_PORT="$PROXY_PORT" \
             -t macodaclub/mycoda:latest-linux-amd64 .
 
       - name: Deploy usando compose da VM

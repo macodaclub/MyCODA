@@ -21,6 +21,15 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG http_proxy
 ARG https_proxy
+ARG PROXY_HOST
+ARG PROXY_PORT
+
+ENV HTTP_PROXY=$HTTP_PROXY
+ENV HTTPS_PROXY=$HTTPS_PROXY
+ENV http_proxy=$http_proxy
+ENV https_proxy=$https_proxy
+
+ENV GRADLE_OPTS="-Dhttp.proxyHost=${PROXY_HOST} -Dhttp.proxyPort=${PROXY_PORT} -Dhttps.proxyHost=${PROXY_HOST} -Dhttps.proxyPort=${PROXY_PORT}"
 
 WORKDIR /backend
 COPY backend ./
