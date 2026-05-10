@@ -1,5 +1,5 @@
 <script setup>
-// Página temporária em construção
+// Temporary page under construction
 </script>
 
 <template>
@@ -20,12 +20,12 @@
       </h1>
 
       <h2 class="text-2xl font-semibold mb-4 text-surface-700">
-        Página em construção
+        Page under construction
       </h2>
 
       <p class="text-lg text-surface-600 mb-8">
-        Esta funcionalidade encontra-se em desenvolvimento.
-        Em breve teremos novidades disponíveis nesta área.
+        This feature is currently under development.
+        New updates will be available in this area soon.
       </p>
 
       <div class="flex justify-center">
@@ -33,7 +33,7 @@
           class="inline-flex items-center gap-3 rounded-full border px-5 py-3 text-sm text-surface-600"
         >
           <i class="pi pi-clock"></i>
-          <span>Novas funcionalidades brevemente disponíveis</span>
+          <span>New features coming soon</span>
         </div>
       </div>
     </div>

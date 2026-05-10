@@ -846,15 +846,12 @@ const submitFeedback = async () => {
                 <div class="flex flex-col gap-4">
                   <div class="flex flex-row items-center gap-2 text-sm">
                     <Checkbox v-model="consentStorage" binary required id="consentStorage" name="consentStorage"/>
-                    <label for="consentStorage"><strong class="text-red-700">*</strong> I consent to the storage of my
-                      contact and article information and its
-                      use for assisting me in contributing to the MyCODA Knowledge Base, contacting me regarding my
-                      contribution, and helping improve the MyCODA platform.
-                      I consent to the addition of the title, keywords, authors, reference and DOI to the Knowledge
-                      Base.
-                      (Your contact information and abstract will not be imported to the Knowledge Base, and will not be
-                      shared with
-                      the public.)</label>
+                      <label for="consentStorage">
+                        <strong class="text-red-700">*</strong>
+                        I consent to the storage of my article information and its use for assisting me in contributing to the MyCODA Knowledge Base and helping improve the MyCODA platform.
+                        I consent to the addition of the title, keywords, authors, reference and DOI to the Knowledge Base.
+                        (The abstract will not be imported to the Knowledge Base and will not be shared with the public.)
+                      </label>
                   </div>
                 </div>
               </div>
