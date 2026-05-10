@@ -11,7 +11,7 @@ WORKDIR /website
 COPY website ./
 
 RUN yarn config set registry https://registry.npmjs.org/
-RUN yarn install --network-timeout 600000 --ignore-optional
+RUN yarn install --network-timeout 600000
 RUN yarn run build
 
 
