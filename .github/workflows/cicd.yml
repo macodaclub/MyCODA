@@ -13,8 +13,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build da imagem da aplicação
+        env:
+          PROXY_URL: ${{ vars.PROXY_URL }}
         run: |
-          docker build -t macodaclub/mycoda:latest-linux-amd64 .
+          docker build \
+            --build-arg HTTP_PROXY="$PROXY_URL" \
+            --build-arg HTTPS_PROXY="$PROXY_URL" \
+            --build-arg http_proxy="$PROXY_URL" \
+            --build-arg https_proxy="$PROXY_URL" \
+            -t macodaclub/mycoda:latest-linux-amd64 .
 
       - name: Deploy usando compose da VM
         run: |
