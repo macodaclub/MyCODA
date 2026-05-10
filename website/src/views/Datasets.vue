@@ -15,7 +15,6 @@ const datasets = ref([
 <template>
   <div class="flex justify-center">
     <div class="flex flex-col max-w-none w-11/12 border rounded-xl bg-surface-0 p-8 m-4 mt-5">
-      
       <div class="prose mb-10">
         <h1>Datasets - Exemple</h1>
       </div>
@@ -31,7 +30,6 @@ const datasets = ref([
           </template>
         </Column>
       </DataTable>
-
     </div>
   </div>
 </template>
