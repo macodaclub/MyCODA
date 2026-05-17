@@ -77,6 +77,7 @@ fun Application.configureHTTP() {
  * https://ktor.io/docs/server-compression.html#security
  * https://en.wikipedia.org/wiki/BREACH
  */
+ /
 private fun CompressionEncoderBuilder.breachProtection() {
     condition {
         val hostName = application.environment.config.propertyOrNull("ktor.hostName")?.getString()

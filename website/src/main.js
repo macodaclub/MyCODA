@@ -9,8 +9,9 @@ import Tooltip from 'primevue/tooltip';
 import theme from '@/theme';
 import App from './App.vue'
 import router from "@/router";
+import Ripple from 'primevue/ripple'
 
-createApp(App).use(createPinia()).use(router).use(DialogService).use(ConfirmationService).directive('tooltip', Tooltip).use(PrimeVue, {
+createApp(App).use(createPinia()).use(router).use(DialogService).use(ConfirmationService).directive('tooltip', Tooltip).directive('ripple', Ripple).use(PrimeVue, {
     theme: {
         preset: theme,
         options: {

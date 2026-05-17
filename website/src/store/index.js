@@ -155,6 +155,19 @@ export const useOntologyStore = defineStore('ontology', () => {
         return responseObj.properties;
     }
 
+async function fetchOntologyEntities() {
+    const url = new URL(`${backendHost}/api/ontology/entities`);
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        return console.error('Failed to fetch ontology entities', response);
+    }
+
+    const responseObj = await response.json();
+
+    return responseObj.entities;
+}
+
     return {
         backendHost,
         entities,
@@ -163,6 +176,7 @@ export const useOntologyStore = defineStore('ontology', () => {
         entityTypes,
         fetchEntities,
         fetchOntologyInfo,
+        fetchOntologyEntities,
         fetchTaxonomyTree,
         fetchExpandedTaxonomyTree,
         fetchSelectedTaxonomyTree,

@@ -4,13 +4,9 @@
 
 <template>
   <div class="flex justify-center items-center min-h-[70vh] px-4">
-    <div
-      class="w-full max-w-4xl rounded-2xl border bg-surface-0 p-10 text-center shadow-lg"
-    >
+    <div class="w-full max-w-4xl rounded-2xl border bg-surface-0 p-10 text-center shadow-lg">
       <div class="flex justify-center mb-6">
-        <div
-          class="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 text-primary-600"
-        >
+        <div class="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 text-primary-600">
           <i class="pi pi-database text-4xl"></i>
         </div>
       </div>

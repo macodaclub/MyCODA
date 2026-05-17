@@ -1,20 +1,16 @@
 <script setup>
 
 import EntitiesTree from "@/components/EntitiesTree.vue";
+import OntologyQueries from "@/components/OntologyQueries.vue";
 </script>
 
 <template>
   <main class="browse-page">
-    <EntitiesTree usesRouter />
-    <!--    <EntitiesTable :entities="entities"/>
+     <!-- <EntitiesTree usesRouter />
+      <EntitiesTable :entities="entities"/>
         <TaxonomyTable/>
         <QueryBuilder/>-->
+        <OntologyQueries/>
   </main>
 </template>
 
-<style scoped>
-
-.browse-page {
-  padding: 20px;
-}
-</style>
