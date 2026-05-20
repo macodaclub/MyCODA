@@ -218,6 +218,7 @@ function createInitialFilters() {
             icon="pi pi-download"
             severity="secondary"
             outlined
+             class="mr-2"
             @click="exportEntitiesCsv"
             />
 
@@ -434,6 +435,7 @@ function createInitialFilters() {
   display: flex;
   justify-content: flex-end;
   margin-top: 1rem;
+  
 }
 
 .entity-details {

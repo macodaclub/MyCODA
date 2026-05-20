@@ -7,6 +7,7 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import Button from 'primevue/button'
 import Skeleton from 'primevue/skeleton'
+import EntitiesTree from "./EntitiesTree.vue";
 
 import {getOntologyEntities} from './services/ontologyApi' 
 import OntologyEntitiesTable from './ontology/OntologyEntitiesTable.vue'
@@ -57,12 +58,12 @@ const hasEntities = computed(() => entityData.value.length > 0)
 
       <Tabs value="entities">
         <TabList>
-<Tab value="entities">
-  Entities
-  <span class="tab-count">
-    {{ entityData.length }}
-  </span>
-</Tab>
+          <Tab value="entities">
+            Entities
+            <span class="tab-count">
+              {{ entityData.length }}
+            </span>
+          </Tab>
 
           <Tab value="taxonomy">
             <div class="tab-title">
@@ -75,6 +76,12 @@ const hasEntities = computed(() => entityData.value.length > 0)
             <div class="tab-title">
               <i class="pi pi-code"></i>
               <span>Query Builder</span>
+            </div>
+          </Tab>
+          <Tab value="browse-page">
+            <div class="tab-title">
+              <i class="pi pi-code"></i>
+              <span>Ontology Browser</span>
             </div>
           </Tab>
         </TabList>
@@ -161,6 +168,13 @@ const hasEntities = computed(() => entityData.value.length > 0)
 
               <!-- Aqui entra depois o query builder -->
               <!-- <OntologyQueryBuilder :entity-data="entityData" /> -->
+            </section>
+          </TabPanel>
+          <TabPanel value="browse-page">
+            <section class="tab-panel-content">
+                  <EntitiesTree usesRouter />
+                  <EntitiesTable :entities="entities"/>
+    
             </section>
           </TabPanel>
         </TabPanels>
