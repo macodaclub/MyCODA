@@ -1,37 +1,98 @@
 <script setup>
-// Temporary page under construction
+import { ref } from 'vue'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Dialog from 'primevue/dialog'
+
+const rows = ref([
+  {
+    id: 1,
+    cue: 'Inteligência Artificial Aplicada ao Negócio',
+  },
+  {
+    id: 2,
+    cue: 'Gestão de Sistemas de Informação',
+  },
+])
+
+const showDialog = ref(false)
+const newCue = ref('')
+
+function openDialog() {
+  newCue.value = ''
+  showDialog.value = true
+}
+
+function saveCue() {
+  if (!newCue.value.trim()) return
+
+  rows.value.push({
+    id: Date.now(),
+    cue: newCue.value.trim(),
+  })
+
+  showDialog.value = false
+}
 </script>
 
 <template>
-  <div class="flex justify-center items-center min-h-[70vh] px-4">
-    <div class="w-full max-w-4xl rounded-2xl border bg-surface-0 p-10 text-center shadow-lg">
-      <div class="flex justify-center mb-6">
-        <div class="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 text-primary-600">
-          <i class="pi pi-database text-4xl"></i>
-        </div>
-      </div>
-
-      <h1 class="text-4xl font-bold mb-4">
-        Datasets
+  <div class="p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-3xl font-bold">
+        CUE
       </h1>
 
-      <h2 class="text-2xl font-semibold mb-4 text-surface-700">
-        Page under construction
-      </h2>
-
-      <p class="text-lg text-surface-600 mb-8">
-        This feature is currently under development.
-        New updates will be available in this area soon.
-      </p>
-
-      <div class="flex justify-center">
-        <div
-          class="inline-flex items-center gap-3 rounded-full border px-5 py-3 text-sm text-surface-600"
-        >
-          <i class="pi pi-clock"></i>
-          <span>New features coming soon</span>
-        </div>
-      </div>
+      <Button
+        label="Criar CUE"
+        icon="pi pi-plus"
+        @click="openDialog"
+      />
     </div>
+
+    <DataTable
+      :value="rows"
+      class="w-full"
+      responsive-layout="scroll"
+    >
+      <Column field="id" header="ID" />
+      <Column field="cue" header="CUE" />
+    </DataTable>
+
+    <Dialog
+      v-model:visible="showDialog"
+      modal
+      header="Criar CUE"
+      :style="{ width: '30rem' }"
+    >
+      <div class="flex flex-col gap-3">
+        <label for="cue" class="font-semibold">
+          Nome da CUE
+        </label>
+
+        <InputText
+          id="cue"
+          v-model="newCue"
+          placeholder="Introduza o nome da CUE"
+          class="w-full"
+        />
+      </div>
+
+      <template #footer>
+        <Button
+          label="Cancelar"
+          severity="secondary"
+          outlined
+          @click="showDialog = false"
+        />
+
+        <Button
+          label="Guardar"
+          icon="pi pi-check"
+          @click="saveCue"
+        />
+      </template>
+    </Dialog>
   </div>
 </template>

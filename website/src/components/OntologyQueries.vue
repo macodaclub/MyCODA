@@ -8,6 +8,7 @@ import TabPanel from 'primevue/tabpanel'
 import Button from 'primevue/button'
 import Skeleton from 'primevue/skeleton'
 import EntitiesTree from "./EntitiesTree.vue";
+import OntologyQueryBuilder from '@/components/ontology/OntologyQueryBuilder.vue'
 
 import {getOntologyEntities} from './services/ontologyApi' 
 import OntologyEntitiesTable from './ontology/OntologyEntitiesTable.vue'
@@ -165,6 +166,7 @@ const hasEntities = computed(() => entityData.value.length > 0)
                   Select predefined queries or create your own semantic query.
                 </p>
               </div>
+              <OntologyQueryBuilder :entities="entities" />
 
               <!-- Aqui entra depois o query builder -->
               <!-- <OntologyQueryBuilder :entity-data="entityData" /> -->

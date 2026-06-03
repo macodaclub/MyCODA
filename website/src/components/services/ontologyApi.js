@@ -28,3 +28,20 @@ export async function getOntologyEntities() {
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
+
+
+export async function runOntologyQuery(query) {
+  const response = await fetch(`${API_BASE_URL}/api/ontology/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ query })
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to run ontology query')
+  }
+
+  return await response.json()
+}
