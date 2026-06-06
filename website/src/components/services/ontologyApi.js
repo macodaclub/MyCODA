@@ -25,23 +25,12 @@ export async function getOntologyEntities() {
   return sortEntitiesByName(entities)
 }
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+export async function runOntologyQuery(queryString) {
+  const ontologyStore = useOntologyStore()
+
+  return await ontologyStore.runSqwrlQuery(queryString)
 }
 
-
-export async function runOntologyQuery(query) {
-  const response = await fetch(`${API_BASE_URL}/api/ontology/query`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ query })
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to run ontology query')
-  }
-
-  return await response.json()
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }

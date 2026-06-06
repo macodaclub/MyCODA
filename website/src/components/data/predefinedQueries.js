@@ -1,6 +1,12 @@
 import { ENTITY_TYPES } from './entityTypes'
 
+
+
 export const predefinedQueryOptions = [
+    {
+    label: 'Show all individuals',
+    value: 'allIndividuals'
+  },
   {
     label: 'What are the metaheuristics published after 2015?',
     value: 'metaheuristicsAfter2015'
@@ -28,6 +34,15 @@ export const predefinedQueryOptions = [
 ]
 
 export const predefinedQueries = {
+    allIndividuals: [
+    {
+      entitytype: ENTITY_TYPES.CLASS,
+      entity: 'owl:Thing',
+      inoutput: true,
+      orderedby: false
+    }
+  ],
+  
   metaheuristicsAfter2015: [
     {
       entitytype: ENTITY_TYPES.CLASS,

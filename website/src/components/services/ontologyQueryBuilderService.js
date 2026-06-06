@@ -2,198 +2,180 @@ import { ENTITY_TYPES } from '../data/entityTypes'
 import { normalizeEntityType } from './ontologyEntityUtils'
 
 export function buildOntologyQuery(queryRows) {
-  let finalQuery = ''
-  let finalQueryOutput = ''
-  let finalQueryOrdering = ''
+  const atoms = []
+  const selectedVariables = []
+  const orderedVariables = []
 
-  let subject = ''
-  let object = ''
+  let lastSubjectVariable = null
 
-  const rows = queryRows ?? []
+  for (let i = 0; i < queryRows.length; i++) {
+    const currentRow = queryRows[i]
+    const currentType = normalizeEntityType(currentRow.entitytype)
 
-  for (let i = 0; i < rows.length; i++) {
-    const currentRow = rows[i]
-    const nextRow = rows[i + 1]
-
-    if (
-      !currentRow.entitytype ||
-      currentRow.entity === null ||
-      currentRow.entity === undefined ||
-      currentRow.entity === ''
-    ) {
+    if (!currentRow.entity) {
       continue
     }
 
-    const currentType = normalizeEntityType(currentRow.entitytype)
-    const nextType = normalizeEntityType(nextRow?.entitytype)
+    if (currentType === ENTITY_TYPES.CLASS) {
+      const classVariable = createVariableName(currentRow.entity)
 
-    switch (currentType) {
-      case ENTITY_TYPES.CLASS:
-        subject = `_${currentRow.entity}_`
+      atoms.push(`${currentRow.entity}(${classVariable})`)
+      lastSubjectVariable = classVariable
 
-        if (!queryAlreadyContainsClass(finalQuery, currentRow.entity)) {
-          finalQuery = appendQueryPart(
-            finalQuery,
-            `${currentRow.entity}(?${subject})`
-          )
+      if (currentRow.inoutput) {
+        addUnique(selectedVariables, classVariable)
+      }
+
+      if (currentRow.orderedby) {
+        addUnique(orderedVariables, classVariable)
+      }
+
+      continue
+    }
+
+    if (currentType === ENTITY_TYPES.OBJECT_PROPERTY) {
+      const nextRow = queryRows[i + 1]
+      const nextType = normalizeEntityType(nextRow?.entitytype)
+
+      const propertyVariable = createVariableName(currentRow.entity)
+
+      if (!lastSubjectVariable) {
+        return {
+          query: '',
+          error: `Object Property ${currentRow.entity} needs a previous Class.`
         }
+      }
+
+      if (!nextRow) {
+        atoms.push(
+          `${currentRow.entity}(${lastSubjectVariable}, ${propertyVariable})`
+        )
 
         if (currentRow.inoutput) {
-          finalQueryOutput = appendQueryPart(
-            finalQueryOutput,
-            `sqwrl:select(?${subject})`
-          )
+          addUnique(selectedVariables, propertyVariable)
         }
 
         if (currentRow.orderedby) {
-          finalQueryOrdering = appendQueryPart(
-            finalQueryOrdering,
-            `sqwrl:orderBy(?${subject})`
-          )
+          addUnique(orderedVariables, propertyVariable)
         }
 
-        break
+        continue
+      }
 
-      case ENTITY_TYPES.DATATYPE_PROPERTY:
-        if (!nextRow) break
+      if (nextType === ENTITY_TYPES.INDIVIDUAL) {
+        atoms.push(
+          `${currentRow.entity}(${lastSubjectVariable}, ${nextRow.entity})`
+        )
 
-        object = `_${currentRow.entity}_`
-
-        if (nextType === ENTITY_TYPES.RELATIONAL_OPERATOR) {
-          finalQuery = appendQueryPart(
-            finalQuery,
-            `${currentRow.entity}(?${subject} , ?${object})`
-          )
-
-          if (currentRow.inoutput) {
-            finalQueryOutput = appendQueryPart(
-              finalQueryOutput,
-              `sqwrl:select(?${object})`
-            )
-          }
-
-          if (currentRow.orderedby) {
-            finalQueryOrdering = appendQueryPart(
-              finalQueryOrdering,
-              `sqwrl:orderBy(?${object})`
-            )
-          }
+        if (currentRow.inoutput) {
+          addUnique(selectedVariables, propertyVariable)
         }
 
-        if (nextType === ENTITY_TYPES.LITERAL) {
-          finalQuery = appendQueryPart(
-            finalQuery,
-            `${currentRow.entity}(?${subject} , ${nextRow.entity})`
-          )
+        continue
+      }
 
-          if (currentRow.inoutput) {
-            finalQueryOutput = appendQueryPart(
-              finalQueryOutput,
-              `sqwrl:select(?${subject})`
-            )
-          }
+      if (nextType === ENTITY_TYPES.CLASS) {
+        const objectVariable = createVariableName(nextRow.entity)
 
-          if (currentRow.orderedby) {
-            finalQueryOrdering = appendQueryPart(
-              finalQueryOrdering,
-              `sqwrl:orderBy(?${subject})`
-            )
-          }
+        atoms.push(
+          `${currentRow.entity}(${lastSubjectVariable}, ${objectVariable})`
+        )
 
-          i++
+        if (currentRow.inoutput) {
+          addUnique(selectedVariables, objectVariable)
         }
 
-        break
+        continue
+      }
+    }
 
-      case ENTITY_TYPES.OBJECT_PROPERTY:
-        if (!nextRow) break
+    if (currentType === ENTITY_TYPES.DATATYPE_PROPERTY) {
+      const propertyVariable = createVariableName(currentRow.entity)
 
-        if (nextType === ENTITY_TYPES.CLASS) {
-          object = `_${nextRow.entity}_`
-
-          finalQuery = appendQueryPart(
-            finalQuery,
-            `${currentRow.entity}(?${subject} , ?${object})`
-          )
-
-          if (currentRow.inoutput) {
-            finalQueryOutput = appendQueryPart(
-              finalQueryOutput,
-              `sqwrl:select(?${object})`
-            )
-          }
-
-          if (currentRow.orderedby) {
-            finalQueryOrdering = appendQueryPart(
-              finalQueryOrdering,
-              `sqwrl:orderBy(?${object})`
-            )
-          }
+      if (!lastSubjectVariable) {
+        return {
+          query: '',
+          error: `Data Property ${currentRow.entity} needs a previous Class.`
         }
+      }
 
-        if (nextType === ENTITY_TYPES.INDIVIDUAL) {
-          finalQuery = appendQueryPart(
-            finalQuery,
-            `${currentRow.entity}(?${subject} , ${nextRow.entity})`
-          )
+      atoms.push(
+        `${currentRow.entity}(${lastSubjectVariable}, ${propertyVariable})`
+      )
 
-          if (currentRow.inoutput) {
-            finalQueryOutput = appendQueryPart(
-              finalQueryOutput,
-              `sqwrl:select(?${subject})`
-            )
-          }
+      if (currentRow.inoutput) {
+        addUnique(selectedVariables, propertyVariable)
+      }
 
-          if (currentRow.orderedby) {
-            finalQueryOrdering = appendQueryPart(
-              finalQueryOrdering,
-              `sqwrl:orderBy(?${subject})`
-            )
-          }
+      if (currentRow.orderedby) {
+        addUnique(orderedVariables, propertyVariable)
+      }
 
-          i++
-        }
+      continue
+    }
 
-        break
+    if (currentType === ENTITY_TYPES.RELATIONAL_OPERATOR) {
+      const previousRow = queryRows[i - 1]
+      const nextRow = queryRows[i + 1]
 
-      case ENTITY_TYPES.RELATIONAL_OPERATOR:
-        if (nextType === ENTITY_TYPES.LITERAL) {
-          finalQuery = appendQueryPart(
-            finalQuery,
-            `${currentRow.entity}(?${object} , ${nextRow.entity})`
-          )
+      if (!previousRow || !nextRow) {
+        continue
+      }
 
-          i++
-        }
+      const previousVariable = createVariableName(previousRow.entity)
 
-        break
+      atoms.push(
+        `${currentRow.entity}(${previousVariable}, ${nextRow.entity})`
+      )
 
-      default:
-        break
+      continue
     }
   }
 
-  if (!finalQuery || !finalQueryOutput) {
+  if (!atoms.length) {
     return {
       query: '',
-      error: 'The query is incomplete. Add at least one Class and mark one field as In Output.'
+      error: 'No valid query atoms were generated.'
     }
   }
 
+  if (!selectedVariables.length) {
+    return {
+      query: '',
+      error: 'Select at least one field as In Output.'
+    }
+  }
+
+  const selectAtoms = selectedVariables.map(variable =>
+    `sqwrl:select(${variable})`
+  )
+
+  const orderAtoms = orderedVariables.map(variable =>
+    `sqwrl:orderBy(${variable})`
+  )
+
+  const query = [
+    atoms.join(' ^ '),
+    '->',
+    [...selectAtoms, ...orderAtoms].join(' ^ ')
+  ].join(' ')
+
   return {
-    query:
-      finalQuery +
-      ' -> ' +
-      finalQueryOutput +
-      (finalQueryOrdering ? ' ^ ' + finalQueryOrdering : ''),
+    query,
     error: null
   }
 }
 
-function appendQueryPart(currentQuery, newPart) {
-  return currentQuery ? `${currentQuery} ^ ${newPart}` : newPart
+function createVariableName(entityName) {
+  const safeName = String(entityName)
+    .replace(/[^A-Za-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+
+  return `?_${safeName}_`
 }
 
-function queryAlreadyContainsClass(query, className) {
-  return query.startsWith(`${className}(`) || query.includes(` ${className}(`)
+function addUnique(array, value) {
+  if (!array.includes(value)) {
+    array.push(value)
+  }
 }

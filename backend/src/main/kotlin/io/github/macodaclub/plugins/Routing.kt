@@ -7,16 +7,10 @@ import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import org.kohsuke.github.GHRepository
 
-
 fun Application.configureRouting(
     ontologyManager: OntologyManager,
     ghRepo: GHRepository,
 ) {
-    /*install(StatusPages) {
-        exception<Throwable> { call, cause ->
-            call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
-        }
-    }*/
     routing {
         staticRoutes()
         ontologyBrowseRedirectionRoutes()

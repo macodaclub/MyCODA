@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import SelectButton from 'primevue/selectbutton'
 
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -16,6 +17,7 @@ import { buildOntologyQuery } from '../services/ontologyQueryBuilderService'
 import { executeOntologyQuery } from '../services/ontologyQueryRunnerService'
 import { useOntologyEntities } from '../composables/useOntologyEntities'
 import { createEmptyQueryRow, createQueryRowFromPredefined } from '../services/ontologyQueryRowService'
+import { validateQuery } from '../services/ontologyQueryValidationService'
 
 
 const props = defineProps({
@@ -26,6 +28,7 @@ const props = defineProps({
 })
 
 // State
+const invalidRowIndex = ref(null)
 const queryRows = ref([])
 const generatedQuery = ref('')
 const selectedPredefinedQuery = ref(null)
@@ -37,7 +40,68 @@ const queryError = ref(null)
 const copyMessage = ref('')
 const hasExecutedQuery = ref(false)
 
+const queryResultCount = ref(null)
+const executedQuery = ref('')
+
+const queryMode = ref('builder')
+const manualQuery = ref('')
+
+const queryModeOptions = [
+  {
+    label: 'Visual builder',
+    value: 'builder'
+  },
+  {
+    label: 'Advanced SQWRL',
+    value: 'advanced'
+  }
+]
+
 // Computed
+
+const canAddClassRow = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    normalizeEntityType(lastQueryRow.value?.entitytype) === ENTITY_TYPES.OBJECT_PROPERTY
+  )
+})
+
+const canAddObjectPropertyRow = computed(() => {
+  return canUseQueryBuilder.value && hasClassRow.value
+})
+
+const lastQueryRow = computed(() => {
+  if (!queryRows.value.length) {
+    return null
+  }
+
+  return queryRows.value[queryRows.value.length - 1]
+})
+
+const hasClassRow = computed(() => {
+  return queryRows.value.some(row =>
+    normalizeEntityType(row.entitytype) === ENTITY_TYPES.CLASS
+  )
+})
+
+const canAddDataPropertyRow = computed(() => {
+  return canUseQueryBuilder.value && hasClassRow.value
+})
+
+const canAddFilterRows = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    normalizeEntityType(lastQueryRow.value?.entitytype) === ENTITY_TYPES.DATATYPE_PROPERTY
+  )
+})
+
+const canAddIndividualRow = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    normalizeEntityType(lastQueryRow.value?.entitytype) === ENTITY_TYPES.OBJECT_PROPERTY
+  )
+})
+
 const propsEntities = computed(() => {
   if (Array.isArray(props.entities)) {
     return props.entities
@@ -80,12 +144,158 @@ const filteredEntitiesByType = computed(() => {
 })
 
 // Actions
+
+async function executeQuery() {
+  queryError.value = null
+  queryResults.value = []
+  hasExecutedQuery.value = false
+  queryResultCount.value = null
+  executedQuery.value = ''
+
+  let queryToExecute = ''
+
+  if (queryMode.value === 'builder') {
+    if (!generatedQuery.value) {
+      generateQuery()
+    }
+
+    if (!generatedQuery.value || queryError.value) {
+      return
+    }
+
+    queryToExecute = generatedQuery.value
+  } else {
+    queryToExecute = manualQuery.value?.trim()
+
+    if (!queryToExecute) {
+      queryError.value = 'Write a SQWRL query before running it.'
+      return
+    }
+  }
+
+  try {
+    isRunningQuery.value = true
+
+    const result = await executeOntologyQuery(queryToExecute)
+
+    queryResults.value = result.results
+    queryError.value = result.error
+    queryResultCount.value = result.count
+    executedQuery.value = result.executedQuery
+    hasExecutedQuery.value = true
+  } finally {
+    isRunningQuery.value = false
+  }
+}
+
+
+function moveRowUp(row) {
+  const index = queryRows.value.findIndex(item => item.id === row.id)
+
+  if (index <= 0) {
+    return
+  }
+
+  const rows = [...queryRows.value]
+  const previousRow = rows[index - 1]
+
+  rows[index - 1] = rows[index]
+  rows[index] = previousRow
+
+  queryRows.value = rows
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
+
+function moveRowDown(row) {
+  const index = queryRows.value.findIndex(item => item.id === row.id)
+
+  if (index === -1 || index >= queryRows.value.length - 1) {
+    return
+  }
+
+  const rows = [...queryRows.value]
+  const nextRow = rows[index + 1]
+
+  rows[index + 1] = rows[index]
+  rows[index] = nextRow
+
+  queryRows.value = rows
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
+
+function addIndividualRow() {
+  const newRow = createEmptyQueryRow()
+
+  newRow.entitytype = ENTITY_TYPES.INDIVIDUAL
+
+  queryRows.value.push(newRow)
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
+
+function addObjectPropertyRow() {
+  const newRow = createEmptyQueryRow()
+
+  newRow.entitytype = ENTITY_TYPES.OBJECT_PROPERTY
+
+  queryRows.value.push(newRow)
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
+
+function addClassRow() {
+  const newRow = createEmptyQueryRow()
+
+  newRow.entitytype = ENTITY_TYPES.CLASS
+
+  queryRows.value.push(newRow)
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
+
+function addDataPropertyRow() {
+  const newRow = createEmptyQueryRow()
+
+  newRow.entitytype = ENTITY_TYPES.DATATYPE_PROPERTY
+
+  queryRows.value.push(newRow)
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
+
+function addFilterRows() {
+  queryRows.value.push({
+    ...createEmptyQueryRow(),
+    entitytype: ENTITY_TYPES.RELATIONAL_OPERATOR
+  })
+
+  queryRows.value.push({
+    ...createEmptyQueryRow(),
+    entitytype: ENTITY_TYPES.LITERAL
+  })
+
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
+
 function resetGeneratedQueryState() {
   generatedQuery.value = ''
   queryResults.value = []
   queryError.value = null
   copyMessage.value = ''
   hasExecutedQuery.value = false
+  invalidRowIndex.value = null
+  queryResultCount.value = null
+  executedQuery.value = ''
 }
 
 function startNewQuery() {
@@ -104,9 +314,7 @@ function startNewQuery() {
 function addQueryRow() {
   const newRow = createEmptyQueryRow()
 
-  if (!queryRows.value.length) {
-    newRow.entitytype = ENTITY_TYPES.CLASS
-  }
+  newRow.entitytype = suggestNextEntityType()
 
   queryRows.value.push(newRow)
   selectedPredefinedQuery.value = null
@@ -124,6 +332,8 @@ function removeQueryRow(row) {
 function clearQuery() {
   queryRows.value = []
   selectedPredefinedQuery.value = null
+  manualQuery.value = ''
+  queryMode.value = 'builder'
 
   resetGeneratedQueryState()
 }
@@ -140,13 +350,15 @@ function loadPredefinedQuery() {
   resetGeneratedQueryState()
 }
 
+
 function generateQuery() {
-  const validationError = validateQueryRows()
+  const validationError = validateQuery(queryRows.value)
 
   if (validationError) {
     generatedQuery.value = ''
     queryResults.value = []
-    queryError.value = validationError
+    queryError.value = validationError.message
+    invalidRowIndex.value = validationError.rowIndex
     return
   }
 
@@ -154,31 +366,7 @@ function generateQuery() {
 
   generatedQuery.value = result.query
   queryError.value = result.error
-}
-
-async function executeQuery() {
-  queryError.value = null
-  queryResults.value = []
-
-  if (!generatedQuery.value) {
-    generateQuery()
-  }
-
-  if (!generatedQuery.value) {
-    return
-  }
-
-  try {
-    isRunningQuery.value = true
-
-    const result = await executeOntologyQuery(generatedQuery.value)
-
-    queryResults.value = result.results
-    queryError.value = result.error
-    hasExecutedQuery.value = true
-  } finally {
-    isRunningQuery.value = false
-  }
+  invalidRowIndex.value = null
 }
 
 const hasQueryRows = computed(() => queryRows.value.length > 0)
@@ -188,17 +376,22 @@ const canGenerateQuery = computed(() => {
 })
 
 const canRunQuery = computed(() => {
-  return Boolean(
-    generatedQuery.value &&
-    !queryError.value &&
-    !isRunningQuery.value
-  )
+  if (isRunningQuery.value) {
+    return false
+  }
+
+  if (queryMode.value === 'builder') {
+    return Boolean(generatedQuery.value) && !queryError.value
+  }
+
+  return Boolean(manualQuery.value?.trim())
 })
 
 const canClearQuery = computed(() => {
   return (
     queryRows.value.length > 0 ||
     generatedQuery.value ||
+    manualQuery.value ||
     queryResults.value.length > 0 ||
     queryError.value
   )
@@ -248,6 +441,70 @@ const canUseQueryBuilder = computed(() => {
 
 // Helpers
 
+function isFirstRow(row) {
+  return queryRows.value.findIndex(item => item.id === row.id) === 0
+}
+
+function isLastRow(row) {
+  return queryRows.value.findIndex(item => item.id === row.id) === queryRows.value.length - 1
+}
+
+function suggestNextEntityType() {
+  const lastRow = queryRows.value[queryRows.value.length - 1]
+
+  if (!lastRow?.entitytype) {
+    return ENTITY_TYPES.CLASS
+  }
+
+  const lastType = normalizeEntityType(lastRow.entitytype)
+
+  switch (lastType) {
+    case ENTITY_TYPES.CLASS:
+      return ENTITY_TYPES.OBJECT_PROPERTY
+
+    case ENTITY_TYPES.OBJECT_PROPERTY:
+      return ENTITY_TYPES.CLASS
+
+    case ENTITY_TYPES.DATATYPE_PROPERTY:
+      return ENTITY_TYPES.RELATIONAL_OPERATOR
+
+    case ENTITY_TYPES.RELATIONAL_OPERATOR:
+      return ENTITY_TYPES.LITERAL
+
+    case ENTITY_TYPES.LITERAL:
+      return ENTITY_TYPES.CLASS
+
+    case ENTITY_TYPES.INDIVIDUAL:
+      return ENTITY_TYPES.OBJECT_PROPERTY
+
+    default:
+      return ENTITY_TYPES.CLASS
+  }
+}
+
+function getEntityPlaceholder(row) {
+  const type = normalizeEntityType(row.entitytype)
+
+  switch (type) {
+    case ENTITY_TYPES.CLASS:
+      return 'Select a class'
+
+    case ENTITY_TYPES.OBJECT_PROPERTY:
+      return 'Select an object property'
+
+    case ENTITY_TYPES.DATATYPE_PROPERTY:
+      return 'Select a data property'
+
+    case ENTITY_TYPES.INDIVIDUAL:
+      return 'Select an individual'
+
+    case ENTITY_TYPES.RELATIONAL_OPERATOR:
+      return 'Select an operator'
+
+    default:
+      return 'Select entity'
+  }
+}
 
 function getEntityOptions(row) {
   const normalizedType = normalizeEntityType(row.entitytype)
@@ -294,27 +551,16 @@ function canUseOrderedBy(row) {
   ].includes(type)
 }
 
-function validateQueryRows() {
-  if (!queryRows.value.length) {
-    return 'Add at least one query row.'
+
+function getRowClass(data) {
+  const index = queryRows.value.findIndex(row => row.id === data.id)
+
+  return {
+    'invalid-query-row': invalidRowIndex.value === index
   }
-
-  const incompleteRowIndex = queryRows.value.findIndex(row => {
-    return !row.entitytype || row.entity === null || row.entity === undefined || row.entity === ''
-  })
-
-  if (incompleteRowIndex !== -1) {
-    return `Row ${incompleteRowIndex + 1} is incomplete. Select an Entity Type and an Entity.`
-  }
-
-  const hasOutput = queryRows.value.some(row => row.inoutput)
-
-  if (!hasOutput) {
-    return 'Select at least one field as In Output.'
-  }
-
-  return null
 }
+
+
 </script>
 
 <template>
@@ -331,13 +577,33 @@ function validateQueryRows() {
         <Select v-model="selectedPredefinedQuery" :options="predefinedQueryOptions" optionLabel="label"
           optionValue="value" placeholder="Select a predefined query" class="predefined-query-select"
           :disabled="!canUseQueryBuilder" @change="loadPredefinedQuery" />
-        <Button label="New query" icon="pi pi-file" severity="secondary" outlined :disabled="!canUseQueryBuilder"
-          @click="startNewQuery" />
 
-        <Button label="Add row" icon="pi pi-plus" :disabled="!canUseQueryBuilder" @click="addQueryRow" />
+        <div class="action-group">
+          <Button label="New query" icon="pi pi-file" severity="secondary" outlined :disabled="!canUseQueryBuilder"
+            @click="startNewQuery" />
 
-        <Button label="Clear" icon="pi pi-trash" severity="secondary" outlined :disabled="!canClearQuery"
-          @click="clearQuery" />
+          <Button label="Clear" icon="pi pi-trash" severity="secondary" outlined :disabled="!canClearQuery"
+            @click="clearQuery" />
+        </div>
+
+        <div class="action-group">
+          <Button label="Add row" icon="pi pi-plus" :disabled="!canUseQueryBuilder" @click="addQueryRow" />
+
+          <Button label="Object property" icon="pi pi-share-alt" severity="secondary" outlined
+            :disabled="!canAddObjectPropertyRow" @click="addObjectPropertyRow" />
+
+          <Button label="Class" icon="pi pi-box" severity="secondary" outlined :disabled="!canAddClassRow"
+            @click="addClassRow" />
+
+          <Button label="Individual" icon="pi pi-user" severity="secondary" outlined :disabled="!canAddIndividualRow"
+            @click="addIndividualRow" />
+
+          <Button label="Data property" icon="pi pi-database" severity="secondary" outlined
+            :disabled="!canAddDataPropertyRow" @click="addDataPropertyRow" />
+
+          <Button label="Filter" icon="pi pi-filter" severity="secondary" outlined :disabled="!canAddFilterRows"
+            @click="addFilterRows" />
+        </div>
       </div>
     </div>
 
@@ -374,68 +640,105 @@ function validateQueryRows() {
       </span>
     </div>
 
-    <DataTable :value="queryRows" dataKey="id" responsiveLayout="scroll" stripedRows showGridlines
-      emptyMessage="No query rows added yet. Click New query or Add row to start.">
-      <Column header="Entity">
-        <template #body="{ data }">
-          <InputText v-if="normalizeEntityType(data.entitytype) === ENTITY_TYPES.LITERAL" v-model="data.entity"
-            placeholder="Insert literal value" class="w-full" @input="resetGeneratedQueryState" />
-
-          <Select v-else v-model="data.entity" :options="getEntityOptions(data)" optionLabel="label" optionValue="value"
-            placeholder="Select entity" filter class="w-full" :disabled="!data.entitytype || !hasEntities"
-            @change="resetGeneratedQueryState" />
-        </template>
-      </Column>
-
-      <Column header="Entity">
-        <template #body="{ data }">
-          <InputText v-if="normalizeEntityType(data.entitytype) === ENTITY_TYPES.LITERAL" v-model="data.entity"
-            placeholder="Insert literal value" class="w-full" @input="resetGeneratedQueryState" />
-
-          <Select v-else v-model="data.entity" :options="getEntityOptions(data)" optionLabel="label" optionValue="value"
-            placeholder="Select entity" filter class="w-full" :disabled="!data.entitytype || !hasEntities"
-            @change="resetGeneratedQueryState" />
-        </template>
-      </Column>
-
-      <Column header="In Output">
-        <template #body="{ data }">
-          <Checkbox v-model="data.inoutput" binary :disabled="!canUseInOutput(data)"
-            @change="resetGeneratedQueryState" />
-        </template>
-      </Column>
-
-      <Column header="Ordered By">
-        <template #body="{ data }">
-          <Checkbox v-model="data.orderedby" binary :disabled="!canUseOrderedBy(data)"
-            @change="resetGeneratedQueryState" />
-        </template>
-      </Column>
-
-      <Column header="Actions">
-        <template #body="{ data }">
-          <Button icon="pi pi-times" severity="danger" text rounded @click="removeQueryRow(data)" />
-        </template>
-      </Column>
-    </DataTable>
-
-    <div class="generate-actions">
-      <Button label="Generate query" icon="pi pi-code" severity="secondary" outlined :disabled="!canGenerateQuery"
-        @click="generateQuery" />
-
-      <Button label="Run query" icon="pi pi-play" :loading="isRunningQuery" :disabled="!canRunQuery"
-        @click="executeQuery" />
-    </div>
-    <div class="generated-query-section">
-      <div class="generated-query-header">
-        <h3>Generated query</h3>
-
-        <Button v-if="generatedQuery" label="Copy" icon="pi pi-copy" severity="secondary" outlined size="small"
-          @click="copyGeneratedQuery" />
+    <div class="query-table-section">
+      <div class="query-table-header">
+        <h3>Query construction</h3>
+        <p>
+          Build the query step by step using classes, properties, individuals, operators and literals.
+        </p>
       </div>
 
-      <Textarea v-model="generatedQuery" rows="4" autoResize readonly class="w-full generated-query"
-        placeholder="Generated query will appear here..." />
+      <DataTable :value="queryRows" dataKey="id" responsiveLayout="scroll" stripedRows showGridlines
+        :rowClass="getRowClass" emptyMessage="No query rows added yet. Click New query or Add row to start.">
+        <Column header="#" style="width: 70px">
+          <template #body="{ index }">
+            {{ index + 1 }}
+          </template>
+        </Column>
+        <Column header="Entity Type">
+          <template #body="{ data }">
+            <Select v-model="data.entitytype" :options="entityTypeOptions" optionLabel="label" optionValue="value"
+              placeholder="Select type" class="w-full" @change="onEntityTypeChange(data)" />
+          </template>
+        </Column>
+
+        <Column header="Entity">
+          <template #body="{ data }">
+            <InputText v-if="normalizeEntityType(data.entitytype) === ENTITY_TYPES.LITERAL" v-model="data.entity"
+              placeholder="Insert literal value" class="w-full" @input="resetGeneratedQueryState" />
+
+            <Select v-else v-model="data.entity" :options="getEntityOptions(data)" optionLabel="label"
+              optionValue="value" :placeholder="getEntityPlaceholder(data)" filter class="w-full"
+              :disabled="!data.entitytype || !hasEntities" @change="resetGeneratedQueryState" />
+          </template>
+        </Column>
+
+        <Column header="In Output">
+          <template #body="{ data }">
+            <Checkbox v-model="data.inoutput" binary :disabled="!canUseInOutput(data)"
+              @change="resetGeneratedQueryState" />
+          </template>
+        </Column>
+
+        <Column header="Ordered By">
+          <template #body="{ data }">
+            <Checkbox v-model="data.orderedby" binary :disabled="!canUseOrderedBy(data)"
+              @change="resetGeneratedQueryState" />
+          </template>
+        </Column>
+
+        <Column header="Actions" style="width: 150px">
+          <template #body="{ data }">
+            <div class="row-actions">
+              <Button icon="pi pi-arrow-up" severity="secondary" text rounded :disabled="isFirstRow(data)"
+                @click="moveRowUp(data)" />
+
+              <Button icon="pi pi-arrow-down" severity="secondary" text rounded :disabled="isLastRow(data)"
+                @click="moveRowDown(data)" />
+
+              <Button icon="pi pi-times" severity="danger" text rounded @click="removeQueryRow(data)" />
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+    <div class="query-actions-section">
+      <div class="query-actions-header">
+        <h3>Build and execute</h3>
+        <p>
+          Generate the SQWRL query and run it against the ontology.
+        </p>
+      </div>
+      <div class="generate-actions">
+        <Button label="Generate query" icon="pi pi-code" severity="secondary" outlined
+          :disabled="queryMode !== 'builder' || !canGenerateQuery" @click="generateQuery" />
+
+        <Button label="Run query" icon="pi pi-play" :loading="isRunningQuery" :disabled="!canRunQuery"
+          @click="executeQuery" />
+      </div>
+    </div>
+
+    <div class="query-mode-selector">
+      <SelectButton v-model="queryMode" :options="queryModeOptions" optionLabel="label" optionValue="value" />
+    </div>
+
+    <div class="generated-query-section">
+      <div v-if="queryMode === 'builder'">
+        <h3>Generated query</h3>
+
+        <Textarea v-model="generatedQuery" readonly rows="5" class="w-full"
+          placeholder="Generated query will appear here..." />
+      </div>
+
+      <div v-else>
+        <h3>Advanced SQWRL query</h3>
+
+        <Textarea v-model="manualQuery" rows="6" class="w-full" placeholder="Write your SQWRL query here..." />
+
+        <small>
+          Example: owl:Thing(?x) -> sqwrl:select(?x)
+        </small>
+      </div>
 
       <Message v-if="copyMessage" severity="success" :closable="false">
         {{ copyMessage }}
@@ -449,8 +752,8 @@ function validateQueryRows() {
     <div v-if="hasExecutedQuery || queryResults.length" class="query-results-section">
       <h3>Query results</h3>
 
-      <Message v-if="hasExecutedQuery && !queryError && !queryResults.length" severity="info" :closable="false">
-        The query executed successfully, but no results were returned.
+      <Message v-if="hasExecutedQuery && !queryError" severity="info" :closable="false">
+        Query executed successfully. Results found: {{ queryResultCount ?? queryResults.length }}.
       </Message>
 
       <DataTable v-if="queryResults.length" :value="queryResults" paginator :rows="10" stripedRows showGridlines
@@ -489,7 +792,16 @@ function validateQueryRows() {
 
 .actions {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.action-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .generate-actions {
@@ -513,7 +825,11 @@ function validateQueryRows() {
 
   .actions {
     width: 100%;
-    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .action-group {
+    justify-content: flex-start;
   }
 
   .predefined-query-select {
@@ -554,6 +870,7 @@ function validateQueryRows() {
   font-size: 1rem;
   font-weight: 700;
 }
+
 .query-results-section {
   display: flex;
   flex-direction: column;
@@ -564,5 +881,52 @@ function validateQueryRows() {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+}
+
+.query-table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.query-table-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.query-table-header p {
+  margin: 0.25rem 0 0;
+  color: var(--text-color-secondary);
+  font-size: 0.9rem;
+}
+
+.query-actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.query-actions-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.query-actions-header p {
+  margin: 0.25rem 0 0;
+  color: var(--text-color-secondary);
+  font-size: 0.9rem;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+  align-items: center;
+}
+
+:deep(.invalid-query-row) {
+  background: #ffe4e6;
 }
 </style>

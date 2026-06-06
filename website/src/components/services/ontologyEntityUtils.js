@@ -74,7 +74,7 @@ export function buildEntityOptionsByType(entities, type) {
     .filter(entity => entity.type === type)
     .map(entity => ({
       label: entity.name,
-      value: entity.name
+      value: entity.queryName ?? entity.name
     }))
     .sort((a, b) =>
       a.label.localeCompare(b.label, undefined, { sensitivity: 'base' })
