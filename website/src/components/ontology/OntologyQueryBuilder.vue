@@ -10,6 +10,7 @@ import InputText from 'primevue/inputtext'
 import Checkbox from 'primevue/checkbox'
 import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
+
 import { ENTITY_TYPES, entityTypeOptions, relationalOperatorOptions } from '../data/entityTypes'
 import { predefinedQueryOptions, predefinedQueries } from '../data/predefinedQueries'
 import { normalizeEntityType, buildEntityOptionsByType } from '../services/ontologyEntityUtils'
@@ -19,7 +20,6 @@ import { useOntologyEntities } from '../composables/useOntologyEntities'
 import { createEmptyQueryRow, createQueryRowFromPredefined } from '../services/ontologyQueryRowService'
 import { validateQuery } from '../services/ontologyQueryValidationService'
 
-
 const props = defineProps({
   entities: {
     type: [Array, Object],
@@ -27,11 +27,18 @@ const props = defineProps({
   }
 })
 
-// State
+/**
+ * State
+ */
 const invalidRowIndex = ref(null)
 const queryRows = ref([])
+
 const generatedQuery = ref('')
+const executableQuery = ref('')
+const manualQuery = ref('')
+
 const selectedPredefinedQuery = ref(null)
+const queryMode = ref('builder')
 
 const queryResults = ref([])
 const isRunningQuery = ref(false)
@@ -42,9 +49,6 @@ const hasExecutedQuery = ref(false)
 
 const queryResultCount = ref(null)
 const executedQuery = ref('')
-
-const queryMode = ref('builder')
-const manualQuery = ref('')
 
 const queryModeOptions = [
   {
@@ -57,51 +61,9 @@ const queryModeOptions = [
   }
 ]
 
-// Computed
-
-const canAddClassRow = computed(() => {
-  return (
-    canUseQueryBuilder.value &&
-    normalizeEntityType(lastQueryRow.value?.entitytype) === ENTITY_TYPES.OBJECT_PROPERTY
-  )
-})
-
-const canAddObjectPropertyRow = computed(() => {
-  return canUseQueryBuilder.value && hasClassRow.value
-})
-
-const lastQueryRow = computed(() => {
-  if (!queryRows.value.length) {
-    return null
-  }
-
-  return queryRows.value[queryRows.value.length - 1]
-})
-
-const hasClassRow = computed(() => {
-  return queryRows.value.some(row =>
-    normalizeEntityType(row.entitytype) === ENTITY_TYPES.CLASS
-  )
-})
-
-const canAddDataPropertyRow = computed(() => {
-  return canUseQueryBuilder.value && hasClassRow.value
-})
-
-const canAddFilterRows = computed(() => {
-  return (
-    canUseQueryBuilder.value &&
-    normalizeEntityType(lastQueryRow.value?.entitytype) === ENTITY_TYPES.DATATYPE_PROPERTY
-  )
-})
-
-const canAddIndividualRow = computed(() => {
-  return (
-    canUseQueryBuilder.value &&
-    normalizeEntityType(lastQueryRow.value?.entitytype) === ENTITY_TYPES.OBJECT_PROPERTY
-  )
-})
-
+/**
+ * Entities
+ */
 const propsEntities = computed(() => {
   if (Array.isArray(props.entities)) {
     return props.entities
@@ -121,29 +83,216 @@ const {
   entitiesError
 } = useOntologyEntities(propsEntities)
 
-const filteredEntitiesByType = computed(() => {
+const filteredEntitiesByType = computed(() => ({
+  [ENTITY_TYPES.CLASS]: [
+    {
+      label: 'owl:Thing',
+      value: 'owl:Thing'
+    },
+    ...buildEntityOptionsByType(normalizedEntities.value, ENTITY_TYPES.CLASS)
+  ],
+  [ENTITY_TYPES.INDIVIDUAL]: buildEntityOptionsByType(normalizedEntities.value, ENTITY_TYPES.INDIVIDUAL),
+  [ENTITY_TYPES.DATATYPE_PROPERTY]: buildEntityOptionsByType(normalizedEntities.value, ENTITY_TYPES.DATATYPE_PROPERTY),
+  [ENTITY_TYPES.OBJECT_PROPERTY]: buildEntityOptionsByType(normalizedEntities.value, ENTITY_TYPES.OBJECT_PROPERTY),
+  [ENTITY_TYPES.RELATIONAL_OPERATOR]: relationalOperatorOptions
+}))
+
+const entityCounts = computed(() => {
   return {
-    [ENTITY_TYPES.CLASS]: buildEntityOptionsByType(
-      normalizedEntities.value,
-      ENTITY_TYPES.CLASS
-    ),
-    [ENTITY_TYPES.INDIVIDUAL]: buildEntityOptionsByType(
-      normalizedEntities.value,
-      ENTITY_TYPES.INDIVIDUAL
-    ),
-    [ENTITY_TYPES.DATATYPE_PROPERTY]: buildEntityOptionsByType(
-      normalizedEntities.value,
-      ENTITY_TYPES.DATATYPE_PROPERTY
-    ),
-    [ENTITY_TYPES.OBJECT_PROPERTY]: buildEntityOptionsByType(
-      normalizedEntities.value,
-      ENTITY_TYPES.OBJECT_PROPERTY
-    ),
-    [ENTITY_TYPES.RELATIONAL_OPERATOR]: relationalOperatorOptions
+    classes: normalizedEntities.value.filter(
+      entity => entity.type === ENTITY_TYPES.CLASS
+    ).length,
+
+    individuals: normalizedEntities.value.filter(
+      entity => entity.type === ENTITY_TYPES.INDIVIDUAL
+    ).length,
+
+    objectProperties: normalizedEntities.value.filter(
+      entity => entity.type === ENTITY_TYPES.OBJECT_PROPERTY
+    ).length,
+
+    datatypeProperties: normalizedEntities.value.filter(
+      entity => entity.type === ENTITY_TYPES.DATATYPE_PROPERTY
+    ).length
   }
 })
 
-// Actions
+/**
+ * Builder state
+ */
+const lastQueryRow = computed(() => {
+  if (!queryRows.value.length) {
+    return null
+  }
+
+  return queryRows.value[queryRows.value.length - 1]
+})
+
+const hasQueryRows = computed(() => {
+  return queryRows.value.length > 0
+})
+
+const canUseQueryBuilder = computed(() => {
+  return hasEntities.value && !isLoadingEntities.value && !entitiesError.value
+})
+
+const canGenerateQuery = computed(() => {
+  return canUseQueryBuilder.value && hasQueryRows.value
+})
+
+const canRunQuery = computed(() => {
+  if (isRunningQuery.value) {
+    return false
+  }
+
+  if (queryMode.value === 'builder') {
+    return Boolean(executableQuery.value) && !queryError.value
+  }
+
+  return Boolean(manualQuery.value?.trim())
+})
+
+const canClearQuery = computed(() => {
+  return (
+    queryRows.value.length > 0 ||
+    generatedQuery.value ||
+    executableQuery.value ||
+    manualQuery.value ||
+    queryResults.value.length > 0 ||
+    queryError.value
+  )
+})
+
+/**
+ * Add row buttons
+ */
+const canAddObjectPropertyRow = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    isLastRowType(ENTITY_TYPES.CLASS) &&
+    isRowFilled(lastQueryRow.value)
+  )
+})
+
+const canAddDataPropertyRow = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    isLastRowType(ENTITY_TYPES.CLASS) &&
+    isRowFilled(lastQueryRow.value)
+  )
+})
+
+const canAddClassRow = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    isLastRowType(ENTITY_TYPES.OBJECT_PROPERTY) &&
+    isRowFilled(lastQueryRow.value)
+  )
+})
+
+const canAddIndividualRow = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    isLastRowType(ENTITY_TYPES.OBJECT_PROPERTY) &&
+    isRowFilled(lastQueryRow.value)
+  )
+})
+
+const canAddFilterRows = computed(() => {
+  return (
+    canUseQueryBuilder.value &&
+    isLastRowType(ENTITY_TYPES.DATATYPE_PROPERTY) &&
+    isRowFilled(lastQueryRow.value)
+  )
+})
+
+/**
+ * Main actions
+ */
+function startNewQuery() {
+  queryRows.value = [
+    {
+      ...createEmptyQueryRow(),
+      entitytype: ENTITY_TYPES.CLASS,
+      entity: null,
+      inoutput: true,
+      orderedby: false
+    }
+  ]
+
+  selectedPredefinedQuery.value = null
+  resetGeneratedQueryState()
+}
+
+function clearQuery() {
+  queryRows.value = []
+  selectedPredefinedQuery.value = null
+  manualQuery.value = ''
+  queryMode.value = 'builder'
+
+  resetGeneratedQueryState()
+}
+
+function loadPredefinedQuery() {
+  if (!selectedPredefinedQuery.value) {
+    return
+  }
+
+  const selectedRows = predefinedQueries[selectedPredefinedQuery.value] ?? []
+
+  queryRows.value = selectedRows.map(row => {
+    const queryRow = createQueryRowFromPredefined(row)
+    syncRowEntityWithCurrentOptions(queryRow)
+    return queryRow
+  })
+
+  resetGeneratedQueryState()
+}
+
+function generateQuery() {
+  generatedQuery.value = ''
+  executableQuery.value = ''
+  queryResults.value = []
+  queryError.value = null
+  invalidRowIndex.value = null
+
+  const invalidOptionIndex = queryRows.value.findIndex(row => {
+    return !syncRowEntityWithCurrentOptions(row)
+  })
+
+  if (invalidOptionIndex !== -1) {
+    queryError.value = 'There are invalid entities or entities that no longer exist in the current ontology options.'
+    invalidRowIndex.value = invalidOptionIndex
+    return
+  }
+
+  const validationError = validateQuery(queryRows.value)
+
+  if (validationError) {
+    queryError.value = validationError.message
+    invalidRowIndex.value = validationError.rowIndex
+    return
+  }
+
+  const executableResult = buildOntologyQuery(queryRows.value)
+
+  if (executableResult.error) {
+    queryError.value = executableResult.error
+    invalidRowIndex.value = null
+    return
+  }
+
+  const readableResult = buildReadableOntologyQuery(queryRows.value)
+
+  if (readableResult.error) {
+    queryError.value = readableResult.error
+    invalidRowIndex.value = null
+    return
+  }
+
+  executableQuery.value = executableResult.query
+  generatedQuery.value = readableResult.query
+}
 
 async function executeQuery() {
   queryError.value = null
@@ -155,27 +304,27 @@ async function executeQuery() {
   let queryToExecute = ''
 
   if (queryMode.value === 'builder') {
-    if (!generatedQuery.value) {
-      generateQuery()
-    }
+    if (!executableQuery.value) generateQuery()
 
-    if (!generatedQuery.value || queryError.value) {
-      return
-    }
+    if (!executableQuery.value || queryError.value) return
 
-    queryToExecute = generatedQuery.value
+    queryToExecute = executableQuery.value
   } else {
-    queryToExecute = manualQuery.value?.trim()
+    const readableAdvancedQuery = manualQuery.value?.trim()
 
-    if (!queryToExecute) {
+    if (!readableAdvancedQuery) {
       queryError.value = 'Write a SQWRL query before running it.'
       return
     }
+
+    queryToExecute = normalizeAdvancedQueryToExecutableQuery(readableAdvancedQuery)
+
+    console.log('Advanced readable query:', readableAdvancedQuery)
+    console.log('Advanced executable query:', queryToExecute)
   }
 
   try {
     isRunningQuery.value = true
-
     const result = await executeOntologyQuery(queryToExecute)
 
     queryResults.value = result.results
@@ -187,7 +336,87 @@ async function executeQuery() {
     isRunningQuery.value = false
   }
 }
+async function copyGeneratedQuery() {
+  if (!generatedQuery.value) {
+    return
+  }
 
+  try {
+    await navigator.clipboard.writeText(generatedQuery.value)
+
+    copyMessage.value = 'Query copied to clipboard.'
+
+    setTimeout(() => {
+      copyMessage.value = ''
+    }, 2500)
+  } catch (error) {
+    copyMessage.value = 'Unable to copy query.'
+  }
+}
+
+/**
+ * Row actions
+ */
+function addQueryRow() {
+  if (queryRows.value.length > 0 && !isRowFilled(lastQueryRow.value)) {
+    queryError.value = 'Complete the last row before adding a new one.'
+    invalidRowIndex.value = queryRows.value.length - 1
+    return
+  }
+
+  addTypedQueryRow(suggestNextEntityType())
+}
+
+function addObjectPropertyRow() {
+  addTypedQueryRow(ENTITY_TYPES.OBJECT_PROPERTY)
+}
+
+function addDataPropertyRow() {
+  addTypedQueryRow(ENTITY_TYPES.DATATYPE_PROPERTY)
+}
+
+function addClassRow() {
+  addTypedQueryRow(ENTITY_TYPES.CLASS)
+}
+
+function addIndividualRow() {
+  addTypedQueryRow(ENTITY_TYPES.INDIVIDUAL)
+}
+
+function addFilterRows() {
+  if (
+    !isLastRowType(ENTITY_TYPES.DATATYPE_PROPERTY) ||
+    !isRowFilled(lastQueryRow.value)
+  ) {
+    return
+  }
+
+  queryRows.value.push({
+    ...createEmptyQueryRow(),
+    entitytype: ENTITY_TYPES.RELATIONAL_OPERATOR,
+    entity: null,
+    inoutput: false,
+    orderedby: false
+  })
+
+  queryRows.value.push({
+    ...createEmptyQueryRow(),
+    entitytype: ENTITY_TYPES.LITERAL,
+    entity: '',
+    inoutput: false,
+    orderedby: false
+  })
+
+  selectedPredefinedQuery.value = null
+  resetGeneratedQueryState()
+}
+
+function removeQueryRow(row) {
+  queryRows.value = queryRows.value.filter(item => item.id !== row.id)
+  selectedPredefinedQuery.value = null
+
+  resetGeneratedQueryState()
+}
 
 function moveRowUp(row) {
   const index = queryRows.value.findIndex(item => item.id === row.id)
@@ -227,68 +456,24 @@ function moveRowDown(row) {
   resetGeneratedQueryState()
 }
 
-function addIndividualRow() {
-  const newRow = createEmptyQueryRow()
+function onEntityTypeChange(row) {
+  row.entitytype = normalizeEntityType(row.entitytype)
+  row.entity = null
 
-  newRow.entitytype = ENTITY_TYPES.INDIVIDUAL
+  if (!canUseInOutput(row)) {
+    row.inoutput = false
+  }
 
-  queryRows.value.push(newRow)
-  selectedPredefinedQuery.value = null
-
-  resetGeneratedQueryState()
-}
-
-function addObjectPropertyRow() {
-  const newRow = createEmptyQueryRow()
-
-  newRow.entitytype = ENTITY_TYPES.OBJECT_PROPERTY
-
-  queryRows.value.push(newRow)
-  selectedPredefinedQuery.value = null
-
-  resetGeneratedQueryState()
-}
-
-function addClassRow() {
-  const newRow = createEmptyQueryRow()
-
-  newRow.entitytype = ENTITY_TYPES.CLASS
-
-  queryRows.value.push(newRow)
-  selectedPredefinedQuery.value = null
-
-  resetGeneratedQueryState()
-}
-
-function addDataPropertyRow() {
-  const newRow = createEmptyQueryRow()
-
-  newRow.entitytype = ENTITY_TYPES.DATATYPE_PROPERTY
-
-  queryRows.value.push(newRow)
-  selectedPredefinedQuery.value = null
-
-  resetGeneratedQueryState()
-}
-
-function addFilterRows() {
-  queryRows.value.push({
-    ...createEmptyQueryRow(),
-    entitytype: ENTITY_TYPES.RELATIONAL_OPERATOR
-  })
-
-  queryRows.value.push({
-    ...createEmptyQueryRow(),
-    entitytype: ENTITY_TYPES.LITERAL
-  })
-
-  selectedPredefinedQuery.value = null
+  if (!canUseOrderedBy(row)) {
+    row.orderedby = false
+  }
 
   resetGeneratedQueryState()
 }
 
 function resetGeneratedQueryState() {
   generatedQuery.value = ''
+  executableQuery.value = ''
   queryResults.value = []
   queryError.value = null
   copyMessage.value = ''
@@ -298,148 +483,21 @@ function resetGeneratedQueryState() {
   executedQuery.value = ''
 }
 
-function startNewQuery() {
-  queryRows.value = [
-    {
-      ...createEmptyQueryRow(),
-      entitytype: ENTITY_TYPES.CLASS
-    }
-  ]
+/**
+ * Row helpers
+ */
+function addTypedQueryRow(entitytype) {
+  queryRows.value.push({
+    ...createEmptyQueryRow(),
+    entitytype,
+    entity: null,
+    inoutput: false,
+    orderedby: false
+  })
 
   selectedPredefinedQuery.value = null
-
   resetGeneratedQueryState()
 }
-
-function addQueryRow() {
-  const newRow = createEmptyQueryRow()
-
-  newRow.entitytype = suggestNextEntityType()
-
-  queryRows.value.push(newRow)
-  selectedPredefinedQuery.value = null
-
-  resetGeneratedQueryState()
-}
-
-function removeQueryRow(row) {
-  queryRows.value = queryRows.value.filter(item => item.id !== row.id)
-  selectedPredefinedQuery.value = null
-
-  resetGeneratedQueryState()
-}
-
-function clearQuery() {
-  queryRows.value = []
-  selectedPredefinedQuery.value = null
-  manualQuery.value = ''
-  queryMode.value = 'builder'
-
-  resetGeneratedQueryState()
-}
-
-function loadPredefinedQuery() {
-  if (!selectedPredefinedQuery.value) {
-    return
-  }
-
-  const selectedRows = predefinedQueries[selectedPredefinedQuery.value] ?? []
-
-  queryRows.value = selectedRows.map(createQueryRowFromPredefined)
-
-  resetGeneratedQueryState()
-}
-
-
-function generateQuery() {
-  const validationError = validateQuery(queryRows.value)
-
-  if (validationError) {
-    generatedQuery.value = ''
-    queryResults.value = []
-    queryError.value = validationError.message
-    invalidRowIndex.value = validationError.rowIndex
-    return
-  }
-
-  const result = buildOntologyQuery(queryRows.value)
-
-  generatedQuery.value = result.query
-  queryError.value = result.error
-  invalidRowIndex.value = null
-}
-
-const hasQueryRows = computed(() => queryRows.value.length > 0)
-
-const canGenerateQuery = computed(() => {
-  return canUseQueryBuilder.value && hasQueryRows.value
-})
-
-const canRunQuery = computed(() => {
-  if (isRunningQuery.value) {
-    return false
-  }
-
-  if (queryMode.value === 'builder') {
-    return Boolean(generatedQuery.value) && !queryError.value
-  }
-
-  return Boolean(manualQuery.value?.trim())
-})
-
-const canClearQuery = computed(() => {
-  return (
-    queryRows.value.length > 0 ||
-    generatedQuery.value ||
-    manualQuery.value ||
-    queryResults.value.length > 0 ||
-    queryError.value
-  )
-})
-
-const entityCounts = computed(() => {
-  return {
-    classes: normalizedEntities.value.filter(
-      entity => entity.type === ENTITY_TYPES.CLASS
-    ).length,
-
-    individuals: normalizedEntities.value.filter(
-      entity => entity.type === ENTITY_TYPES.INDIVIDUAL
-    ).length,
-
-    objectProperties: normalizedEntities.value.filter(
-      entity => entity.type === ENTITY_TYPES.OBJECT_PROPERTY
-    ).length,
-
-    datatypeProperties: normalizedEntities.value.filter(
-      entity => entity.type === ENTITY_TYPES.DATATYPE_PROPERTY
-    ).length
-  }
-})
-
-async function copyGeneratedQuery() {
-  if (!generatedQuery.value) {
-    return
-  }
-
-  try {
-    await navigator.clipboard.writeText(generatedQuery.value)
-
-    copyMessage.value = 'Query copied to clipboard.'
-
-    setTimeout(() => {
-      copyMessage.value = ''
-    }, 2500)
-  } catch (error) {
-    copyMessage.value = 'Unable to copy query.'
-  }
-}
-
-const canUseQueryBuilder = computed(() => {
-  return hasEntities.value && !isLoadingEntities.value && !entitiesError.value
-})
-
-// Helpers
 
 function isFirstRow(row) {
   return queryRows.value.findIndex(item => item.id === row.id) === 0
@@ -449,8 +507,30 @@ function isLastRow(row) {
   return queryRows.value.findIndex(item => item.id === row.id) === queryRows.value.length - 1
 }
 
+function isLastRowType(entityType) {
+  return normalizeEntityType(lastQueryRow.value?.entitytype) === entityType
+}
+
+function isRowFilled(row) {
+  if (!row) {
+    return false
+  }
+
+  const type = normalizeEntityType(row.entitytype)
+
+  if (!type) {
+    return false
+  }
+
+  if (type === ENTITY_TYPES.LITERAL) {
+    return row.entity !== null && row.entity !== undefined && String(row.entity).trim() !== ''
+  }
+
+  return row.entity !== null && row.entity !== undefined && row.entity !== ''
+}
+
 function suggestNextEntityType() {
-  const lastRow = queryRows.value[queryRows.value.length - 1]
+  const lastRow = lastQueryRow.value
 
   if (!lastRow?.entitytype) {
     return ENTITY_TYPES.CLASS
@@ -482,6 +562,93 @@ function suggestNextEntityType() {
   }
 }
 
+function getRowClass(data) {
+  const index = queryRows.value.findIndex(row => row.id === data.id)
+
+  return {
+    'invalid-query-row': invalidRowIndex.value === index
+  }
+}
+
+/**
+ * Entity helpers
+ */
+function normalizeForMatching(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+function syncRowEntityWithCurrentOptions(row) {
+  const type = normalizeEntityType(row.entitytype)
+
+  if (type === ENTITY_TYPES.LITERAL) {
+    return isRowFilled(row)
+  }
+
+  if (!type || !row.entity) {
+    return false
+  }
+
+  const currentValue = row.entity
+  const normalizedCurrentValue = normalizeForMatching(currentValue)
+
+  const options = getEntityOptions(row)
+
+  if (!options.length) {
+    return false
+  }
+
+  const exactOptionMatch = options.find(option => option.value === currentValue)
+
+  if (exactOptionMatch) {
+    return true
+  }
+
+  const compatibleOptionMatch = options.find(option => {
+    return (
+      normalizeForMatching(option.value) === normalizedCurrentValue ||
+      normalizeForMatching(option.label) === normalizedCurrentValue
+    )
+  })
+
+  if (compatibleOptionMatch) {
+    row.entity = compatibleOptionMatch.value
+    return true
+  }
+
+  const compatibleEntityMatch = normalizedEntities.value.find(entity => {
+    if (normalizeEntityType(entity.type) !== type) {
+      return false
+    }
+
+    return (
+      normalizeForMatching(entity.name) === normalizedCurrentValue ||
+      normalizeForMatching(entity.queryName) === normalizedCurrentValue ||
+      normalizeForMatching(entity.iri) === normalizedCurrentValue ||
+      normalizeForMatching(entity.details) === normalizedCurrentValue
+    )
+  })
+
+  if (compatibleEntityMatch) {
+    row.entity = compatibleEntityMatch.queryName ?? compatibleEntityMatch.name
+    return true
+  }
+
+  return false
+}
+
+function getEntityOptions(row) {
+  const normalizedType = normalizeEntityType(row.entitytype)
+
+  if (!normalizedType || normalizedType === ENTITY_TYPES.LITERAL) {
+    return []
+  }
+
+  return filteredEntitiesByType.value[normalizedType] ?? []
+}
+
 function getEntityPlaceholder(row) {
   const type = normalizeEntityType(row.entitytype)
 
@@ -506,29 +673,17 @@ function getEntityPlaceholder(row) {
   }
 }
 
-function getEntityOptions(row) {
-  const normalizedType = normalizeEntityType(row.entitytype)
+function getEntityDisplayLabel(row) {
+  const type = normalizeEntityType(row.entitytype)
 
-  if (!normalizedType || normalizedType === ENTITY_TYPES.LITERAL) {
-    return []
+  if (type === ENTITY_TYPES.LITERAL) {
+    return String(row.entity ?? '')
   }
 
-  return filteredEntitiesByType.value[normalizedType] ?? []
-}
+  const options = getEntityOptions(row)
+  const option = options.find(item => item.value === row.entity)
 
-function onEntityTypeChange(row) {
-  row.entitytype = normalizeEntityType(row.entitytype)
-  row.entity = null
-
-  if (!canUseInOutput(row)) {
-    row.inoutput = false
-  }
-
-  if (!canUseOrderedBy(row)) {
-    row.orderedby = false
-  }
-
-  resetGeneratedQueryState()
+  return option?.label ?? String(row.entity ?? '')
 }
 
 function canUseInOutput(row) {
@@ -536,6 +691,7 @@ function canUseInOutput(row) {
 
   return [
     ENTITY_TYPES.CLASS,
+    ENTITY_TYPES.INDIVIDUAL,
     ENTITY_TYPES.DATATYPE_PROPERTY,
     ENTITY_TYPES.OBJECT_PROPERTY
   ].includes(type)
@@ -546,21 +702,257 @@ function canUseOrderedBy(row) {
 
   return [
     ENTITY_TYPES.CLASS,
+    ENTITY_TYPES.INDIVIDUAL,
     ENTITY_TYPES.DATATYPE_PROPERTY,
     ENTITY_TYPES.OBJECT_PROPERTY
   ].includes(type)
 }
 
+/**
+ * Readable query builder
+ */
+function normalizeReadableOperator(operator) {
+  const value = String(operator ?? '').trim()
 
-function getRowClass(data) {
-  const index = queryRows.value.findIndex(row => row.id === data.id)
+  if (!value) {
+    return ''
+  }
+
+  if (value.startsWith('swrlb:')) {
+    return value
+  }
+
+  return `swrlb:${value}`
+}
+
+function formatReadableLiteral(value) {
+  if (typeof value === 'boolean') {
+    return String(value)
+  }
+
+  const text = String(value ?? '').trim()
+
+  if (text === 'true' || text === 'false') {
+    return text
+  }
+
+  if (text !== '' && !Number.isNaN(Number(text))) {
+    return text
+  }
+
+  return `"${text}"`
+}
+
+function buildReadableOntologyQuery(rows) {
+  const atoms = []
+  const outputAtoms = []
+  const orderByAtoms = []
+
+  let currentSubjectVariable = null
+  let pendingObjectProperty = null
+  let pendingOperator = null
+  let lastDataPropertyVariable = null
+
+  let classVariableIndex = 1
+  let valueVariableIndex = 1
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index]
+    const type = normalizeEntityType(row.entitytype)
+    const label = getEntityDisplayLabel(row)
+
+    if (!type || !label) {
+      return {
+        query: '',
+        error: `Row ${index + 1} is incomplete.`
+      }
+    }
+
+    if (type === ENTITY_TYPES.CLASS) {
+      const variable = `?x${classVariableIndex}`
+      classVariableIndex += 1
+
+      if (pendingObjectProperty && currentSubjectVariable) {
+        atoms.push(`${pendingObjectProperty}(${currentSubjectVariable}, ${variable})`)
+        pendingObjectProperty = null
+      }
+
+      atoms.push(`${label}(${variable})`)
+      currentSubjectVariable = variable
+
+      if (row.inoutput) {
+        outputAtoms.push(`sqwrl:select(${variable})`)
+      }
+
+      if (row.orderedby) {
+        orderByAtoms.push(`sqwrl:orderBy(${variable})`)
+      }
+
+      continue
+    }
+
+    if (type === ENTITY_TYPES.OBJECT_PROPERTY) {
+      if (!currentSubjectVariable) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has an object property without a previous class.`
+        }
+      }
+
+      pendingObjectProperty = label
+      continue
+    }
+
+    if (type === ENTITY_TYPES.INDIVIDUAL) {
+      if (!pendingObjectProperty || !currentSubjectVariable) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has an individual without a previous object property.`
+        }
+      }
+
+      atoms.push(`${pendingObjectProperty}(${currentSubjectVariable}, ${label})`)
+      pendingObjectProperty = null
+
+      if (row.inoutput) {
+        outputAtoms.push(`sqwrl:select(${label})`)
+      }
+
+      if (row.orderedby) {
+        orderByAtoms.push(`sqwrl:orderBy(${label})`)
+      }
+
+      continue
+    }
+
+    if (type === ENTITY_TYPES.DATATYPE_PROPERTY) {
+      if (!currentSubjectVariable) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has a data property without a previous class.`
+        }
+      }
+
+      const variable = `?v${valueVariableIndex}`
+      valueVariableIndex += 1
+
+      atoms.push(`${label}(${currentSubjectVariable}, ${variable})`)
+      lastDataPropertyVariable = variable
+
+      if (row.inoutput) {
+        outputAtoms.push(`sqwrl:select(${variable})`)
+      }
+
+      if (row.orderedby) {
+        orderByAtoms.push(`sqwrl:orderBy(${variable})`)
+      }
+
+      continue
+    }
+
+    if (type === ENTITY_TYPES.RELATIONAL_OPERATOR) {
+      if (!lastDataPropertyVariable) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has an operator without a previous data property.`
+        }
+      }
+
+      pendingOperator = normalizeReadableOperator(label)
+      continue
+    }
+
+    if (type === ENTITY_TYPES.LITERAL) {
+      if (!pendingOperator || !lastDataPropertyVariable) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has a literal without a previous relational operator.`
+        }
+      }
+
+      atoms.push(`${pendingOperator}(${lastDataPropertyVariable}, ${formatReadableLiteral(label)})`)
+      pendingOperator = null
+      continue
+    }
+
+    return {
+      query: '',
+      error: `Unsupported entity type in row ${index + 1}.`
+    }
+  }
+
+  if (pendingObjectProperty) {
+    return {
+      query: '',
+      error: 'There is an object property without a target class or individual.'
+    }
+  }
+
+  if (pendingOperator) {
+    return {
+      query: '',
+      error: 'There is a relational operator without a literal value.'
+    }
+  }
+
+  if (!atoms.length) {
+    return {
+      query: '',
+      error: 'No query atoms were generated.'
+    }
+  }
+
+  const selectedAtoms = outputAtoms.length
+    ? outputAtoms
+    : [`sqwrl:select(${currentSubjectVariable})`]
 
   return {
-    'invalid-query-row': invalidRowIndex.value === index
+    query: `${atoms.join(' ^ ')} -> ${[...selectedAtoms, ...orderByAtoms].join(' ^ ')}`,
+    error: null
   }
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
+function normalizeAdvancedQueryToExecutableQuery(query) {
+  let convertedQuery = String(query ?? '').trim()
+
+  if (!convertedQuery) {
+    return ''
+  }
+
+  const replacements = normalizedEntities.value
+    .filter(entity => entity?.name && entity?.queryName)
+    .map(entity => ({
+      label: entity.name,
+      queryName: entity.queryName
+    }))
+    .sort((a, b) => b.label.length - a.label.length)
+
+  replacements.forEach(({ label, queryName }) => {
+    const escapedLabel = escapeRegExp(label)
+
+    // Substitui classes/propriedades usadas como predicado:
+    // Implementation Library(?x1)
+    // has implementation language(?x1, Java)
+    convertedQuery = convertedQuery.replace(
+      new RegExp(`(^|\\^|\\s|->)\\s*${escapedLabel}\\s*\\(`, 'g'),
+      (match, prefix) => `${prefix} ${queryName}(`
+    )
+
+    // Substitui indivíduos usados como argumento:
+    // (?x1, Java)
+    // (?x1, p NSGA-II)
+    convertedQuery = convertedQuery.replace(
+      new RegExp(`([,(]\\s*)${escapedLabel}(\\s*[,)])`, 'g'),
+      `$1${queryName}$2`
+    )
+  })
+
+  return convertedQuery.replace(/\s+/g, ' ').trim()
+}
 </script>
 
 <template>

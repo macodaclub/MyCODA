@@ -228,7 +228,7 @@ export const useOntologyStore = defineStore('ontology', () => {
   }
 
   async function runSqwrlQuery(queryString) {
-    console.log("teste")
+    console.log(queryString)
     const url = new URL(`${backendHost}/api/sqwrl`);
 
     const response = await fetch(url, {

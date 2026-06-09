@@ -1,181 +1,203 @@
 import { ENTITY_TYPES } from '../data/entityTypes'
 import { normalizeEntityType } from './ontologyEntityUtils'
 
-export function buildOntologyQuery(queryRows) {
+function normalizeOperator(operator) {
+  const value = String(operator ?? '').trim()
+
+  if (!value) {
+    return ''
+  }
+
+  if (value.startsWith('swrlb:')) {
+    return value
+  }
+
+  return `swrlb:${value}`
+}
+
+function formatLiteralValue(value) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  const text = String(value ?? '').trim()
+
+  if (text === 'true' || text === 'false') {
+    return text
+  }
+
+  if (text !== '' && !Number.isNaN(Number(text))) {
+    return text
+  }
+
+  return `"${text}"`
+}
+
+export function buildOntologyQuery(rows) {
   const atoms = []
-  const selectedVariables = []
-  const orderedVariables = []
+  const outputAtoms = []
+  const orderByAtoms = []
 
-  let lastSubjectVariable = null
+  let currentSubject = null
+  let pendingObjectProperty = null
+  let pendingOperator = null
+  let lastDataVariable = null
 
-  for (let i = 0; i < queryRows.length; i++) {
-    const currentRow = queryRows[i]
-    const currentType = normalizeEntityType(currentRow.entitytype)
+  let classCounter = 1
+  let valueCounter = 1
 
-    if (!currentRow.entity) {
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index]
+    const type = normalizeEntityType(row.entitytype)
+    const entity = row.entity
+
+    if (!type || entity === null || entity === undefined || entity === '') {
+      return {
+        query: '',
+        error: `Row ${index + 1} is incomplete.`
+      }
+    }
+
+    if (type === ENTITY_TYPES.CLASS) {
+      const variable = `?x${classCounter}`
+      classCounter += 1
+
+      if (pendingObjectProperty && currentSubject) {
+        atoms.push(`${pendingObjectProperty}(${currentSubject}, ${variable})`)
+        pendingObjectProperty = null
+      }
+
+      atoms.push(`${entity}(${variable})`)
+      currentSubject = variable
+
+      if (row.inoutput) {
+        outputAtoms.push(`sqwrl:select(${variable})`)
+      }
+
+      if (row.orderedby) {
+        orderByAtoms.push(`sqwrl:orderBy(${variable})`)
+      }
+
       continue
     }
 
-    if (currentType === ENTITY_TYPES.CLASS) {
-      const classVariable = createVariableName(currentRow.entity)
-
-      atoms.push(`${currentRow.entity}(${classVariable})`)
-      lastSubjectVariable = classVariable
-
-      if (currentRow.inoutput) {
-        addUnique(selectedVariables, classVariable)
-      }
-
-      if (currentRow.orderedby) {
-        addUnique(orderedVariables, classVariable)
-      }
-
-      continue
-    }
-
-    if (currentType === ENTITY_TYPES.OBJECT_PROPERTY) {
-      const nextRow = queryRows[i + 1]
-      const nextType = normalizeEntityType(nextRow?.entitytype)
-
-      const propertyVariable = createVariableName(currentRow.entity)
-
-      if (!lastSubjectVariable) {
+    if (type === ENTITY_TYPES.OBJECT_PROPERTY) {
+      if (!currentSubject) {
         return {
           query: '',
-          error: `Object Property ${currentRow.entity} needs a previous Class.`
+          error: `Row ${index + 1} has an object property without a previous class.`
         }
       }
 
-      if (!nextRow) {
-        atoms.push(
-          `${currentRow.entity}(${lastSubjectVariable}, ${propertyVariable})`
-        )
-
-        if (currentRow.inoutput) {
-          addUnique(selectedVariables, propertyVariable)
-        }
-
-        if (currentRow.orderedby) {
-          addUnique(orderedVariables, propertyVariable)
-        }
-
-        continue
-      }
-
-      if (nextType === ENTITY_TYPES.INDIVIDUAL) {
-        atoms.push(
-          `${currentRow.entity}(${lastSubjectVariable}, ${nextRow.entity})`
-        )
-
-        if (currentRow.inoutput) {
-          addUnique(selectedVariables, propertyVariable)
-        }
-
-        continue
-      }
-
-      if (nextType === ENTITY_TYPES.CLASS) {
-        const objectVariable = createVariableName(nextRow.entity)
-
-        atoms.push(
-          `${currentRow.entity}(${lastSubjectVariable}, ${objectVariable})`
-        )
-
-        if (currentRow.inoutput) {
-          addUnique(selectedVariables, objectVariable)
-        }
-
-        continue
-      }
+      pendingObjectProperty = entity
+      continue
     }
 
-    if (currentType === ENTITY_TYPES.DATATYPE_PROPERTY) {
-      const propertyVariable = createVariableName(currentRow.entity)
-
-      if (!lastSubjectVariable) {
+    if (type === ENTITY_TYPES.INDIVIDUAL) {
+      if (!pendingObjectProperty || !currentSubject) {
         return {
           query: '',
-          error: `Data Property ${currentRow.entity} needs a previous Class.`
+          error: `Row ${index + 1} has an individual without a previous object property.`
         }
       }
 
-      atoms.push(
-        `${currentRow.entity}(${lastSubjectVariable}, ${propertyVariable})`
-      )
+      atoms.push(`${pendingObjectProperty}(${currentSubject}, ${entity})`)
+      pendingObjectProperty = null
 
-      if (currentRow.inoutput) {
-        addUnique(selectedVariables, propertyVariable)
+      if (row.inoutput) {
+        outputAtoms.push(`sqwrl:select(${entity})`)
       }
 
-      if (currentRow.orderedby) {
-        addUnique(orderedVariables, propertyVariable)
+      if (row.orderedby) {
+        orderByAtoms.push(`sqwrl:orderBy(${entity})`)
       }
 
       continue
     }
 
-    if (currentType === ENTITY_TYPES.RELATIONAL_OPERATOR) {
-      const previousRow = queryRows[i - 1]
-      const nextRow = queryRows[i + 1]
-
-      if (!previousRow || !nextRow) {
-        continue
+    if (type === ENTITY_TYPES.DATATYPE_PROPERTY) {
+      if (!currentSubject) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has a data property without a previous class.`
+        }
       }
 
-      const previousVariable = createVariableName(previousRow.entity)
+      const variable = `?v${valueCounter}`
+      valueCounter += 1
 
-      atoms.push(
-        `${currentRow.entity}(${previousVariable}, ${nextRow.entity})`
-      )
+      atoms.push(`${entity}(${currentSubject}, ${variable})`)
+      lastDataVariable = variable
+
+      if (row.inoutput) {
+        outputAtoms.push(`sqwrl:select(${variable})`)
+      }
+
+      if (row.orderedby) {
+        orderByAtoms.push(`sqwrl:orderBy(${variable})`)
+      }
 
       continue
+    }
+
+    if (type === ENTITY_TYPES.RELATIONAL_OPERATOR) {
+      if (!lastDataVariable) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has an operator without a previous data property.`
+        }
+      }
+
+      pendingOperator = normalizeOperator(entity)
+      continue
+    }
+
+    if (type === ENTITY_TYPES.LITERAL) {
+      if (!pendingOperator || !lastDataVariable) {
+        return {
+          query: '',
+          error: `Row ${index + 1} has a literal without a previous operator.`
+        }
+      }
+
+      atoms.push(`${pendingOperator}(${lastDataVariable}, ${formatLiteralValue(entity)})`)
+      pendingOperator = null
+      continue
+    }
+
+    return {
+      query: '',
+      error: `Unsupported entity type in row ${index + 1}.`
+    }
+  }
+
+  if (pendingObjectProperty) {
+    return {
+      query: '',
+      error: 'There is an object property without a target class or individual.'
+    }
+  }
+
+  if (pendingOperator) {
+    return {
+      query: '',
+      error: 'There is a relational operator without a literal value.'
     }
   }
 
   if (!atoms.length) {
     return {
       query: '',
-      error: 'No valid query atoms were generated.'
+      error: 'No query atoms were generated.'
     }
   }
 
-  if (!selectedVariables.length) {
-    return {
-      query: '',
-      error: 'Select at least one field as In Output.'
-    }
-  }
-
-  const selectAtoms = selectedVariables.map(variable =>
-    `sqwrl:select(${variable})`
-  )
-
-  const orderAtoms = orderedVariables.map(variable =>
-    `sqwrl:orderBy(${variable})`
-  )
-
-  const query = [
-    atoms.join(' ^ '),
-    '->',
-    [...selectAtoms, ...orderAtoms].join(' ^ ')
-  ].join(' ')
+  const selectAtoms = outputAtoms.length
+    ? outputAtoms
+    : [`sqwrl:select(${currentSubject})`]
 
   return {
-    query,
+    query: `${atoms.join(' ^ ')} -> ${[...selectAtoms, ...orderByAtoms].join(' ^ ')}`,
     error: null
-  }
-}
-
-function createVariableName(entityName) {
-  const safeName = String(entityName)
-    .replace(/[^A-Za-z0-9_]/g, '_')
-    .replace(/_+/g, '_')
-
-  return `?_${safeName}_`
-}
-
-function addUnique(array, value) {
-  if (!array.includes(value)) {
-    array.push(value)
   }
 }

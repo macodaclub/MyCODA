@@ -1,12 +1,16 @@
 package io.github.macodaclub.routes.api
-
+import io.github.macodaclub.utils.getLabel
 import io.github.macodaclub.models.api.GetOntologyInfoResponse
-import io.github.macodaclub.models.api.GetOntologyEntitiesResponse
 import io.github.macodaclub.plugins.OntologyManager
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.semanticweb.owlapi.model.OWLOntology
+import io.github.macodaclub.models.api.GetOntologyEntitiesResponse
+import io.ktor.http.HttpStatusCode
+import org.semanticweb.owlapi.model.OWLEntity
+import org.semanticweb.owlapi.model.OWLLiteral
+
 
 fun Routing.ontologyInfoRoutes(
     ontologyManager: OntologyManager
@@ -18,6 +22,7 @@ fun Routing.ontologyInfoRoutes(
                     listOf(
                         GetOntologyInfoResponse.Annotation(
                             "Ontology IRI",
+                            
                             ontologyManager.mycodaOntology.ontologyID.ontologyIRI.orNull().toString()
                         ),
                         /*GetOntologyInfoResponse.Annotation(
@@ -33,66 +38,99 @@ fun Routing.ontologyInfoRoutes(
                 )
             )
         }
-        get("/ontology/entities") {
-            val classes = ontologyManager.mergedOntology.classesInSignature.map { owlClass ->
-                val iri = owlClass.iri.toString()
-                val name = owlClass.iri.shortForm
+       get("/ontology/entities") {
+    try {
+        val requestedType = call.request.queryParameters["type"]
 
-                GetOntologyEntitiesResponse.Entity(
-                    id = "Class_$iri",
-                    type = "Class",
-                    name = name,
-                    details = iri,
-                    comment = null
-                )
-            }
+        fun getEntityLabel(
+            ontology: org.semanticweb.owlapi.model.OWLOntology,
+            entity: org.semanticweb.owlapi.model.OWLEntity
+        ): String {
+            val label = ontology.getAnnotationAssertionAxioms(entity.iri)
+                .firstOrNull { axiom ->
+                    axiom.property.isLabel &&
+                        axiom.value is org.semanticweb.owlapi.model.OWLLiteral
+                }
+                ?.value as? org.semanticweb.owlapi.model.OWLLiteral
 
-            val objectProperties = ontologyManager.mergedOntology.objectPropertiesInSignature.map { property ->
-                val iri = property.iri.toString()
-                val name = property.iri.shortForm
+            return label?.literal ?: entity.iri.shortForm
+        }
 
-                GetOntologyEntitiesResponse.Entity(
-                    id = "ObjectProperty_$iri",
-                    type = "ObjectProperty",
-                    name = name,
-                    details = iri,
-                    comment = null
-                )
-            }
+        fun getEntityComment(
+            ontology: org.semanticweb.owlapi.model.OWLOntology,
+            entity: org.semanticweb.owlapi.model.OWLEntity
+        ): String? {
+            val comment = ontology.getAnnotationAssertionAxioms(entity.iri)
+                .firstOrNull { axiom ->
+                    axiom.property.isComment &&
+                        axiom.value is org.semanticweb.owlapi.model.OWLLiteral
+                }
+                ?.value as? org.semanticweb.owlapi.model.OWLLiteral
 
-            val datatypeProperties = ontologyManager.mergedOntology.dataPropertiesInSignature.map { property ->
-                val iri = property.iri.toString()
-                val name = property.iri.shortForm
+            return comment?.literal
+        }
 
-                GetOntologyEntitiesResponse.Entity(
-                    id = "DatatypeProperty_$iri",
-                    type = "DatatypeProperty",
-                    name = name,
-                    details = iri,
-                    comment = null
-                )
-            }
+        fun buildEntity(
+            type: String,
+            entity: org.semanticweb.owlapi.model.OWLEntity
+        ): GetOntologyEntitiesResponse.Entity {
+            val iri = entity.iri
 
-            val individuals = ontologyManager.mergedOntology.individualsInSignature.map { individual ->
-                val iri = individual.iri.toString()
-                val name = individual.iri.shortForm
-
-                GetOntologyEntitiesResponse.Entity(
-                    id = "Individual_$iri",
-                    type = "Individual",
-                    name = name,
-                    details = iri,
-                    comment = null
-                )
-            }
-
-            val entities = classes + objectProperties + datatypeProperties + individuals
-
-            call.respond(
-                GetOntologyEntitiesResponse(
-                    entities = entities.sortedBy { it.name.lowercase() }
-                )
+            return GetOntologyEntitiesResponse.Entity(
+                id = "${type}_${iri}",
+                type = type,
+                name = getEntityLabel(ontologyManager.mergedOntology, entity),
+                queryName = iri.shortForm,
+                iri = iri.toString(),
+                details = iri.toString(),
+                comment = getEntityComment(ontologyManager.mergedOntology, entity)
             )
         }
+
+        val classes =
+            if (requestedType == null || requestedType == "Class") {
+                ontologyManager.mergedOntology.classesInSignature
+                    .filterNot { it.isTopEntity }
+                    .map { buildEntity("Class", it) }
+            } else {
+                emptyList()
+            }
+
+        val properties =
+            if (requestedType == null || requestedType == "Property") {
+                val objectProperties = ontologyManager.mergedOntology.objectPropertiesInSignature
+                    .filterNot { it.isTopEntity }
+                    .map { buildEntity("ObjectProperty", it) }
+
+                val dataProperties = ontologyManager.mergedOntology.dataPropertiesInSignature
+                    .filterNot { it.isTopEntity }
+                    .map { buildEntity("DatatypeProperty", it) }
+
+                objectProperties + dataProperties
+            } else {
+                emptyList()
+            }
+
+        val individuals =
+            if (requestedType == null || requestedType == "Individual") {
+                ontologyManager.mergedOntology.individualsInSignature
+                    .map { buildEntity("Individual", it) }
+            } else {
+                emptyList()
+            }
+
+        val entities = (classes + properties + individuals)
+            .sortedBy { it.name.lowercase() }
+
+        call.respond(GetOntologyEntitiesResponse(entities))
+    } catch (e: Exception) {
+        e.printStackTrace()
+
+        call.respondText(
+            text = e.message ?: "Error loading ontology entities",
+            status = HttpStatusCode.InternalServerError
+        )
+    }
+}
     }
 }

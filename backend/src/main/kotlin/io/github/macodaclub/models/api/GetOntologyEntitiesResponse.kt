@@ -11,6 +11,8 @@ data class GetOntologyEntitiesResponse(
         val id: String,
         val type: String,
         val name: String,
+        val queryName: String,
+        val iri: String,
         val details: String? = null,
         val comment: String? = null
     )
