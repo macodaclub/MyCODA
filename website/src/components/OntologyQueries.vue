@@ -44,13 +44,6 @@ const hasEntities = computed(() => entityData.value.length > 0)
   <div class="flex justify-center">
     <div class="w-11/12 border rounded-xl bg-surface-0 p-8 m-4 mt-5 ontology-card">
       <div class="mb-10">
-                <h1 class="page-title">
-          MyCODA Ontology Queries
-        </h1>
-        <span class="page-label">Ontology Explorer</span>
-
-
-
         <p class="ontology-description">
           Browse ontology entities, inspect taxonomy relationships and build
           semantic queries interactively.
@@ -61,10 +54,10 @@ const hasEntities = computed(() => entityData.value.length > 0)
         <TabList>
           <Tab value="entities">
             Entities
-            <span class="tab-count">
+<!--             <span class="tab-count">
               {{ entityData.length }}
             </span>
-          </Tab>
+ -->          </Tab>
 
           <Tab value="taxonomy">
             <div class="tab-title">
@@ -91,10 +84,6 @@ const hasEntities = computed(() => entityData.value.length > 0)
           <TabPanel value="entities">
             <section class="tab-panel-content">
             <div class="section-header">
-              <div>
-                <span class="section-number">01</span>
-                <h2>Ontology Entities</h2>
-              </div>
 
               <div class="section-actions">
                 <p>
@@ -140,7 +129,6 @@ const hasEntities = computed(() => entityData.value.length > 0)
             <section class="tab-panel-content">
               <div class="section-header">
                 <div>
-                  <span class="section-number">02</span>
                   <h2>Ontology Taxonomy</h2>
                 </div>
 
@@ -156,16 +144,6 @@ const hasEntities = computed(() => entityData.value.length > 0)
 
           <TabPanel value="query-builder">
             <section class="tab-panel-content">
-              <div class="section-header">
-                <div>
-                  <span class="section-number">03</span>
-                  <h2>Query Builder</h2>
-                </div>
-
-                <p>
-                  Select predefined queries or create your own semantic query.
-                </p>
-              </div>
               <OntologyQueryBuilder :entities="entities" />
 
               <!-- Aqui entra depois o query builder -->

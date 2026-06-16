@@ -1,5 +1,3 @@
-Home
-====
 
 The **MaCODA initiative** was launched in September 2019 in the context of the [MaCODA Workshop](https://www.universiteitleiden.nl/en/news/2019/09/over-fifty-scientists-come-together-for-macoda), organized by the Lorentz Center at the Leiden Institute of Advanced Computer Science (LIACS), University of Leiden.
 

@@ -10,7 +10,6 @@ const ghRepoUrl = import.meta.env.GITHUB_REPO_URL;
 <template>
   <div class="flex justify-center">
     <div class="flex flex-col max-w-none w-11/12 border rounded-xl bg-surface-0 p-8 m-4 mt-5">
-      <div class="prose mb-10"><h1>Contribute</h1></div>
       <div class="flex flex-row flex-wrap gap-4">
         <div class="flex grow flex-col basis-64 gap-6 place-content-between rounded-lg bg-neutral-100 p-6">
           <div class="flex flex-col gap-4">

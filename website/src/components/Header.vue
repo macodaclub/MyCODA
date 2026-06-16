@@ -47,10 +47,10 @@ const onSearchTerm = entity => {
     <div class="topbar flex flex-col-reverse justify-between max-w-[1300px] mx-auto my-0 gap-6">
       <div class="nav-bar">
         <router-link :to="{name: 'home'}" tag="div" class="nav-btn">Home</router-link>
-        <router-link :to="{name: 'about'}" tag="div" class="nav-btn">About</router-link>
         <router-link :to="{name: 'browse'}" tag="div" class="nav-btn">Browse</router-link>
         <router-link :to="{name: 'contribute'}" tag="div" class="nav-btn">Contribute</router-link>
         <router-link :to="{name: 'datasets'}" tag="div" class="nav-btn">Datasets</router-link> 
+        <router-link :to="{name: 'about'}" tag="div" class="nav-btn">About</router-link>
       </div>
       <div class="search-bar flex-row justify-start">
         <IconField>

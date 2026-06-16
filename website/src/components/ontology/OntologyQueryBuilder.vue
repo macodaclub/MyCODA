@@ -967,7 +967,7 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
 
       <div class="actions">
         <Select v-model="selectedPredefinedQuery" :options="predefinedQueryOptions" optionLabel="label"
-          optionValue="value" placeholder="Select a predefined query" class="predefined-query-select"
+          optionValue="value" placeholder="Or select a predefined query" class="predefined-query-select"
           :disabled="!canUseQueryBuilder" @change="loadPredefinedQuery" />
 
         <div class="action-group">
