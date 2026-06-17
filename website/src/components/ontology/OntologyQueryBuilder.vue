@@ -11,7 +11,7 @@ import Checkbox from 'primevue/checkbox'
 import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
 
-import { ENTITY_TYPES, entityTypeOptions, relationalOperatorOptions } from '../data/entityTypes'
+import { ENTITY_TYPES, entityTypeOptionsExtended, relationalOperatorOptions } from '../data/entityTypes'
 import { predefinedQueryOptions, predefinedQueries } from '../data/predefinedQueries'
 import { normalizeEntityType, buildEntityOptionsByType } from '../services/ontologyEntityUtils'
 import { buildOntologyQuery } from '../services/ontologyQueryBuilderService'
@@ -1047,7 +1047,7 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
         </Column>
         <Column header="Entity Type">
           <template #body="{ data }">
-            <Select v-model="data.entitytype" :options="entityTypeOptions" optionLabel="label" optionValue="value"
+            <Select v-model="data.entitytype" :options="entityTypeOptionsExtended" optionLabel="label" optionValue="value"
               placeholder="Select type" class="w-full" @change="onEntityTypeChange(data)" />
           </template>
         </Column>
