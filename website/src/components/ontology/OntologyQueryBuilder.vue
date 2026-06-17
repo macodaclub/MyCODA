@@ -960,14 +960,13 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
     <div class="section-header">
       <div>
         <p>
-          Create ontology queries by selecting classes, properties, individuals,
-          operators and literals.
+          Create your ontology query interactively or select a predefined query.
         </p>
       </div>
 
       <div class="actions">
         <Select v-model="selectedPredefinedQuery" :options="predefinedQueryOptions" optionLabel="label"
-          optionValue="value" placeholder="Or select a predefined query" class="predefined-query-select"
+          optionValue="value" placeholder="Select a predefined query..." class="predefined-query-select"
           :disabled="!canUseQueryBuilder" @change="loadPredefinedQuery" />
 
         <div class="action-group">
@@ -1014,7 +1013,7 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
       the Query Builder.
     </Message>
 
-    <div v-if="hasEntities" class="entities-summary">
+<!--     <div v-if="hasEntities" class="entities-summary">
       <span>
         Classes: <strong>{{ entityCounts.classes }}</strong>
       </span>
@@ -1031,7 +1030,7 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
         Data Properties: <strong>{{ entityCounts.datatypeProperties }}</strong>
       </span>
     </div>
-
+ -->
     <div class="query-table-section">
       <div class="query-table-header">
         <h3>Query construction</h3>

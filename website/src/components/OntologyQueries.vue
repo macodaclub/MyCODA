@@ -45,37 +45,34 @@ const hasEntities = computed(() => entityData.value.length > 0)
     <div class="w-11/12 border rounded-xl bg-surface-0 p-8 m-4 mt-5 ontology-card">
       <div class="mb-10">
         <p class="ontology-description">
-          Browse ontology entities, inspect taxonomy relationships and build
-          semantic queries interactively.
+          Explore, query and visualise the ontology interactively.
         </p>
       </div>
 
       <Tabs value="entities">
         <TabList>
           <Tab value="entities">
-            Entities
+            Ontology Entities
 <!--             <span class="tab-count">
               {{ entityData.length }}
             </span>
  -->          </Tab>
-
-          <Tab value="taxonomy">
-            <div class="tab-title">
-              <i class="pi pi-sitemap"></i>
-              <span>Ontology Taxonomy</span>
-            </div>
-          </Tab>
-
-          <Tab value="query-builder">
-            <div class="tab-title">
-              <i class="pi pi-code"></i>
-              <span>Query Builder</span>
-            </div>
-          </Tab>
           <Tab value="browse-page">
             <div class="tab-title">
               <i class="pi pi-code"></i>
               <span>Ontology Browser</span>
+            </div>
+          </Tab>
+          <Tab value="query-builder">
+            <div class="tab-title">
+              <i class="pi pi-code"></i>
+              <span>Interactive Query Builder</span>
+            </div>
+          </Tab>
+          <Tab value="taxonomy">
+            <div class="tab-title">
+              <i class="pi pi-sitemap"></i>
+              <span>Ontology Visualization</span>
             </div>
           </Tab>
         </TabList>
@@ -90,7 +87,7 @@ const hasEntities = computed(() => entityData.value.length > 0)
                   Browse and filter ontology entities by type.
                 </p>
 
-                <Button
+<!--                 <Button
                   label="Reload entities"
                   icon="pi pi-refresh"
                   severity="secondary"
@@ -100,7 +97,7 @@ const hasEntities = computed(() => entityData.value.length > 0)
                   :disabled="loading"
                   @click="loadEntities"
                 />
-              </div>
+ -->              </div>
             </div>
 
             <div v-if="loading" class="entities-loading">
@@ -129,11 +126,11 @@ const hasEntities = computed(() => entityData.value.length > 0)
             <section class="tab-panel-content">
               <div class="section-header">
                 <div>
-                  <h2>Ontology Taxonomy</h2>
+                  <h2>WebOWL</h2>
                 </div>
 
                 <p>
-                  Explore the hierarchy of ontology classes and their relationships.
+                  Explore visualy the ontology classes, individuals and their relationships.
                 </p>
               </div>
 

@@ -9,11 +9,11 @@ import Dialog from 'primevue/dialog'
 const rows = ref([
   {
     id: 1,
-    cue: 'Inteligência Artificial Aplicada ao Negócio',
+    cue: 'EMO Dataset 1',
   },
   {
     id: 2,
-    cue: 'Gestão de Sistemas de Informação',
+    cue: 'EMO Dataset 2',
   },
 ])
 
@@ -41,11 +41,11 @@ function saveCue() {
   <div class="p-6">
     <div class="flex justify-between items-center mb-4">
       <h1 class="text-3xl font-bold">
-        CUE
+        Query
       </h1>
 
       <Button
-        label="Criar CUE"
+        label="New query"
         icon="pi pi-plus"
         @click="openDialog"
       />

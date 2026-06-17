@@ -16,7 +16,7 @@ export const entityTableText = {
   filterNamePlaceholder: 'Filter name',
   filterDetailsPlaceholder: 'Filter details',
   filterCommentPlaceholder: 'Filter comment',
-  exportCsvLabel: 'Export CSV',
+  exportCsvLabel: 'Export to CSV',
   clearFiltersLabel: 'Clear filters',
   viewLabel: 'View'
 }

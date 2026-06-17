@@ -158,7 +158,7 @@ function createInitialFilters() {
 </script>
 
 <template>
-    <div class="entity-summary">
+<!--     <div class="entity-summary">
 <div
   class="summary-card"
   :class="{ active: activeTypeFilter === null }"
@@ -208,7 +208,7 @@ function createInitialFilters() {
     <span>Datatype Properties</span>
     <strong>{{ totalDatatypeProperties }}</strong>
     </div>
-</div>
+</div> -->
   <div>
     <div class="table-toolbar">
 
