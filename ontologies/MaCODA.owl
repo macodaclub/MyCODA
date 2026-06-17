@@ -1735,38 +1735,59 @@ Control Syst. Eng., Univ. Sheffield, Sheffield, U.K., 1995</rdfs:comment>
 
     <!-- https://mycoda.ddns.net/ontologies/MYCODA#GF-NSGA-II -->
 
-    <owl:NamedIndividual rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#GF-NSGA-II">
-        <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_643650de_6ffc_44d1_a837_c19e8cbb8d57"/>
-        <OWLObjectProperty_031566c5_f99c_4f6b_8555_595acea9068f rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#GaussionFunctionOnHyperplane"/>
-        <OWLObjectProperty_15fc460f_4fef_470f_87e3_dc02347ed396 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#ParametersInGaussionFunction"/>
-        <OWLObjectProperty_185232e4_8a8b_462d_9b80_0ea6a59b736c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_2d029ca9_dbd3_45d1_8edb_a8493375ee69"/>
-        <OWLObjectProperty_21ba1a99_c399_43c8_8788_9b52dea09f8c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_75ffbba1_157d_4328_ae9b_1362de6bf4b0"/>
-        <OWLObjectProperty_36a74d9e_88c5_4585_9d5b_d10d29b96875 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#R-NSGA-II"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#DTLZ5_3"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#DTLZ7_3"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#HybridCarControllerOptimizationProblem"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_0ee218be_1719_440f_9f27_5d79e6cc9b5a"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_27e97cb5_c864_40da_b4fd_c74e659329a2"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_35b7d3b2_d9c2_41b5_b2ed_61a9aa8e3002"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_85efa842_3fba_40fe_8273_e33ccb776fc2"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_bbf45b39_25b1_469b_984d_9af47c9da462"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_f5bf1e70_95e7_4b25_8f96_db7a3d8b8505"/>
-        <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#WeldedBeamDesign"/>
-        <OWLObjectProperty_798b8e21_8ca6_42f1_aed6_98adc1d19bb0 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_bbb2d4f8_0677_424a_9f2c_a3404fee3734"/>
-        <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Kaname_Narukawa"/>
-        <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Markus_Olhofer"/>
-        <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Yu_Setoguchi"/>
-        <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Yuki_Tanigaki"/>
-        <OWLObjectProperty_ccb61fa2_9a82_462e_b31c_099278749307 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_f1a8017a_fef3_43a9_be6b_7c99835a40df"/>
-        <OWLDataProperty_2d368f15_5420_4f5c_adb7_ebff6e417fc0 rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2015</OWLDataProperty_2d368f15_5420_4f5c_adb7_ebff6e417fc0>
-        <OWLDataProperty_8919cc64_3fce_4d40_80b5_43ef79409dbf rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</OWLDataProperty_8919cc64_3fce_4d40_80b5_43ef79409dbf>
-        <OWLDataProperty_b4070ba7_208b_43da_a537_69c0f02e1b99 rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</OWLDataProperty_b4070ba7_208b_43da_a537_69c0f02e1b99>
-        <OWLDataProperty_c6918b46_569d_4b38_bb83_45cd96e3df8d rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</OWLDataProperty_c6918b46_569d_4b38_bb83_45cd96e3df8d>
-        <OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>Narukawa, K., Y. Setoguchi, Y. Tanigaki, M. Olhofer, B. Sendhoff and H. Ishibuchi (2015). &quot;Preference representation using Gaussian functions on a hyperplane in evolutionary multi-objective optimization.&quot; Soft Computing</OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>
-        <OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>Tanigaki, Yuki, et al. &quot;Preference-based NSGA-II for many-objective knapsack problems.&quot; Soft Computing and Intelligent Systems (SCIS), 2014 Joint 7th International Conference on and Advanced Intelligent Systems (ISIS), 15th International Symposium on. IEEE, 2014.</OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>
-        <rdfs:comment>We previously proposed to represent the preference of the DM using Gaussian functions on a hyperplane. The DM specifies the center and spread vectors of the Gaussian functions so as to represent his/her preference. The preference handling is integrated into the framework of NSGA-II. This paper extends our previous work by considering an allowable radius and a shortest distance to realize a distribution that follows Gaussian functions. Our aim is to obtain dense solutions around center vectors and sparse solutions far away from the center vectors on a hyperplane.</rdfs:comment>
-        <rdfs:label>GF-NSGA-II</rdfs:label>
-    </owl:NamedIndividual>
+<!-- Individual: GF-NSGA-II -->
+<!-- Fica na secção Individuals da OWL, no mesmo local onde já existe o indivíduo GF-NSGA-II -->
+
+
+ <!-- FOI ALTERADA PARA TESTES, EXISTE BACKUP PARA REPOR -->
+<owl:NamedIndividual rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#GF-NSGA-II">
+
+    <!-- Tipo original: Preference-based Multi-Objective Evolutionary Algorithm -->
+    <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_643650de_6ffc_44d1_a837_c19e8cbb8d57"/>
+
+    <!-- ADICIONADO: também tipa este indivíduo como Meta Heuristic -->
+    <!-- Isto permite que a query Meta Heuristic(?x1) encontre este indivíduo -->
+    <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_78aa5e30_4a52_440d_b144_1b2414334f9e"/>
+
+    <!-- ADICIONADO: DOI associado ao GF-NSGA-II -->
+    <!-- Isto permite que a query has doi(?x1, ?v1) devolva o DOI -->
+    <hasDoi rdf:datatype="http://www.w3.org/2001/XMLSchema#string">10.1007/s00500-015-1630-1</hasDoi>
+
+    <OWLObjectProperty_031566c5_f99c_4f6b_8555_595acea9068f rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#GaussionFunctionOnHyperplane"/>
+    <OWLObjectProperty_15fc460f_4fef_470f_87e3_dc02347ed396 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#ParametersInGaussionFunction"/>
+    <OWLObjectProperty_185232e4_8a8b_462d_9b80_0ea6a59b736c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_2d029ca9_dbd3_45d1_8edb_a8493375ee69"/>
+    <OWLObjectProperty_21ba1a99_c399_43c8_8788_9b52dea09f8c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_75ffbba1_157d_4328_ae9b_1362de6bf4b0"/>
+    <OWLObjectProperty_36a74d9e_88c5_4585_9d5b_d10d29b96875 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#R-NSGA-II"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#DTLZ5_3"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#DTLZ7_3"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#HybridCarControllerOptimizationProblem"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_0ee218be_1719_440f_9f27_5d79e6cc9b5a"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_27e97cb5_c864_40da_b4fd_c74e659329a2"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_35b7d3b2_d9c2_41b5_b2ed_61a9aa8e3002"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_85efa842_3fba_40fe_8273_e33ccb776fc2"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_bbf45b39_25b1_469b_984d_9af47c9da462"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_f5bf1e70_95e7_4b25_8f96_db7a3d8b8505"/>
+    <OWLObjectProperty_6341b9ed_8594_47b2_9bc7_3075bcde4d20 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#WeldedBeamDesign"/>
+    <OWLObjectProperty_798b8e21_8ca6_42f1_aed6_98adc1d19bb0 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_bbb2d4f8_0677_424a_9f2c_a3404fee3734"/>
+    <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Kaname_Narukawa"/>
+    <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Markus_Olhofer"/>
+    <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Yu_Setoguchi"/>
+    <OWLObjectProperty_95ca6fad_b96f_472a_97ed_92795d67fd2c rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#Yuki_Tanigaki"/>
+    <OWLObjectProperty_ccb61fa2_9a82_462e_b31c_099278749307 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLNamedIndividual_f1a8017a_fef3_43a9_be6b_7c99835a40df"/>
+
+    <OWLDataProperty_2d368f15_5420_4f5c_adb7_ebff6e417fc0 rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2015</OWLDataProperty_2d368f15_5420_4f5c_adb7_ebff6e417fc0>
+    <OWLDataProperty_8919cc64_3fce_4d40_80b5_43ef79409dbf rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</OWLDataProperty_8919cc64_3fce_4d40_80b5_43ef79409dbf>
+    <OWLDataProperty_b4070ba7_208b_43da_a537_69c0f02e1b99 rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</OWLDataProperty_b4070ba7_208b_43da_a537_69c0f02e1b99>
+    <OWLDataProperty_c6918b46_569d_4b38_bb83_45cd96e3df8d rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</OWLDataProperty_c6918b46_569d_4b38_bb83_45cd96e3df8d>
+
+    <OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>Narukawa, K., Y. Setoguchi, Y. Tanigaki, M. Olhofer, B. Sendhoff and H. Ishibuchi (2015). &quot;Preference representation using Gaussian functions on a hyperplane in evolutionary multi-objective optimization.&quot; Soft Computing</OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>
+
+    <OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>Tanigaki, Yuki, et al. &quot;Preference-based NSGA-II for many-objective knapsack problems.&quot; Soft Computing and Intelligent Systems (SCIS), 2014 Joint 7th International Conference on and Advanced Intelligent Systems (ISIS), 15th International Symposium on. IEEE, 2014.</OWLDataProperty_de900583_e7eb_4ee9_9849_7567040b7aae>
+
+    <rdfs:comment>We previously proposed to represent the preference of the DM using Gaussian functions on a hyperplane. The DM specifies the center and spread vectors of the Gaussian functions so as to represent his/her preference. The preference handling is integrated into the framework of NSGA-II. This paper extends our previous work by considering an allowable radius and a shortest distance to realize a distribution that follows Gaussian functions. Our aim is to obtain dense solutions around center vectors and sparse solutions far away from the center vectors on a hyperplane.</rdfs:comment>
+
+    <rdfs:label>GF-NSGA-II</rdfs:label>
+</owl:NamedIndividual>
     
 
 
