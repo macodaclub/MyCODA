@@ -251,8 +251,8 @@ defineExpose({
           <div class="flex flex-row gap-2">
             <Button label="View graph" icon="pi pi-sitemap" severity="secondary" as="a"
                     :href="`https://service.tib.eu/webvowl/#iri=${mycodaOntologyUrl}`" target="_blank"/>
-            <Button label="View OWL File" icon="pi pi-file" severity="secondary" as="a" :href="mycodaOntologyUrl"
-                    target="_blank"/>
+<!--             <Button label="View OWL File" icon="pi pi-file" severity="secondary" as="a" :href="mycodaOntologyUrl"
+                    target="_blank"/> -->
           </div>
         </template>
         <template v-if="selectedEntityInfo">

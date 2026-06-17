@@ -67,7 +67,7 @@ export default createRouter({
       },
     },
     {
-      path: '/Datasets',
+      path: '/datasets',
       name: 'datasets',
       component: Datasets,
       meta: {

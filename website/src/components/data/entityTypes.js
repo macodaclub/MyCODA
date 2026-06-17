@@ -13,8 +13,8 @@ export const entityTypeOptions = [
   { label: 'Individual', value: ENTITY_TYPES.INDIVIDUAL },
   { label: 'Data Property', value: ENTITY_TYPES.DATATYPE_PROPERTY },
   { label: 'Object Property', value: ENTITY_TYPES.OBJECT_PROPERTY },
-  { label: 'Relational Operator', value: ENTITY_TYPES.RELATIONAL_OPERATOR },
-  { label: 'Literal', value: ENTITY_TYPES.LITERAL }
+/*   { label: 'Relational Operator', value: ENTITY_TYPES.RELATIONAL_OPERATOR },
+  { label: 'Literal', value: ENTITY_TYPES.LITERAL } */
 ]
 
 export const relationalOperatorOptions = [

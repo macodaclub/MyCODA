@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, Text } from 'vue'
 import SelectButton from 'primevue/selectbutton'
 
 import DataTable from 'primevue/datatable'
@@ -958,29 +958,29 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
 <template>
   <div class="query-builder-section">
     <div class="section-header">
-      <div>
-        <p>
-          Create your ontology query interactively or select a predefined query.
-        </p>
-      </div>
-
       <div class="actions">
         <Select v-model="selectedPredefinedQuery" :options="predefinedQueryOptions" optionLabel="label"
-          optionValue="value" placeholder="Select a predefined query..." class="predefined-query-select"
+          optionValue="value" placeholder="Select a predefined query here..." class="predefined-query-select"
           :disabled="!canUseQueryBuilder" @change="loadPredefinedQuery" />
-
         <div class="action-group">
           <Button label="New query" icon="pi pi-file" severity="secondary" outlined :disabled="!canUseQueryBuilder"
             @click="startNewQuery" />
 
+          <Button label="Add row" icon="pi pi-plus" severity="secondary" outlined :disabled="!canClearQuery" @click="addQueryRow" />
+
           <Button label="Clear" icon="pi pi-trash" severity="secondary" outlined :disabled="!canClearQuery"
             @click="clearQuery" />
-        </div>
+<!--           <Button label="Generate query" icon="pi pi-code" severity="secondary" outlined
+          :disabled="queryMode !== 'builder' || !canGenerateQuery" @click="generateQuery" />
 
+          <Button label="Run query" icon="pi pi-play" severity="secondary" :loading="isRunningQuery" :disabled="!canRunQuery"
+          @click="executeQuery" />            
+ -->        </div>
         <div class="action-group">
+          <!--
           <Button label="Add row" icon="pi pi-plus" :disabled="!canUseQueryBuilder" @click="addQueryRow" />
 
-          <Button label="Object property" icon="pi pi-share-alt" severity="secondary" outlined
+           <Button label="Object property" icon="pi pi-share-alt" severity="secondary" outlined
             :disabled="!canAddObjectPropertyRow" @click="addObjectPropertyRow" />
 
           <Button label="Class" icon="pi pi-box" severity="secondary" outlined :disabled="!canAddClassRow"
@@ -994,11 +994,10 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
 
           <Button label="Filter" icon="pi pi-filter" severity="secondary" outlined :disabled="!canAddFilterRows"
             @click="addFilterRows" />
-        </div>
+ -->        </div>
       </div>
     </div>
-
-
+               <div>Or create your own query using the <i><b>New query</b></i> button and <i><b>Add row</b></i> button to select ontology classes, properties, individuals and use operators and literals.</div>
 
     <Message v-if="isLoadingEntities" severity="info" :closable="false">
       Loading ontology entities...
@@ -1033,10 +1032,10 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
  -->
     <div class="query-table-section">
       <div class="query-table-header">
-        <h3>Query creation</h3>
+<!--         <h3>Query creation</h3>
         <p>
           Build the query step by step using classes, properties, individuals, operators and literals.
-        </p>
+        </p> -->
       </div>
 
       <DataTable :value="queryRows" dataKey="id" responsiveLayout="scroll" stripedRows showGridlines
@@ -1095,10 +1094,10 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
     </div>
     <div class="query-actions-section">
       <div class="query-actions-header">
-        <h3>Build and execute</h3>
+<!--         <h3>Build and execute</h3>
         <p>
           Generate the SQWRL query and run it against the ontology.
-        </p>
+        </p> -->
       </div>
       <div class="generate-actions">
         <Button label="Generate query" icon="pi pi-code" severity="secondary" outlined
@@ -1206,7 +1205,7 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
 }
 
 .predefined-query-select {
-  min-width: 420px;
+  min-width: 350px;
 }
 
 @media (max-width: 900px) {

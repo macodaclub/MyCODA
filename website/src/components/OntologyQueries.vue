@@ -69,10 +69,16 @@ const hasEntities = computed(() => entityData.value.length > 0)
               <span>Interactive Query Builder</span>
             </div>
           </Tab>
-          <Tab value="taxonomy">
+          <Tab value="ontology-visualization">
             <div class="tab-title">
               <i class="pi pi-sitemap"></i>
               <span>Ontology Visualization</span>
+            </div>
+          </Tab>
+          <Tab value="ontology-statistics">
+            <div class="tab-title">
+              <i class="pi pi-sitemap"></i>
+              <span>Ontology Statistics</span>
             </div>
           </Tab>
         </TabList>
@@ -122,7 +128,7 @@ const hasEntities = computed(() => entityData.value.length > 0)
             </section>
           </TabPanel>
 
-          <TabPanel value="taxonomy">
+          <TabPanel value="ontology-visualization">
             <section class="tab-panel-content">
               <div class="section-header">
                 <div>
@@ -134,8 +140,25 @@ const hasEntities = computed(() => entityData.value.length > 0)
                 </p>
               </div>
 
-              <!-- Aqui entra depois a tabela de taxonomia -->
-              <!-- <OntologyTaxonomyTable :data="taxonomyData" /> -->
+              <!-- Aqui entra depois a visualização da ontologia -->
+
+            </section>
+          </TabPanel>
+
+          <TabPanel value="ontology-statistics">
+            <section class="tab-panel-content">
+              <div class="section-header">
+                <div>
+                  <h2>Ontology Statistics</h2>
+                </div>
+
+                <p>
+                  Ontology: number of classes, individuals, object properties and data properties.
+                </p>
+              </div>
+
+              <!-- Aqui entra depois a visualização da ontologia -->
+
             </section>
           </TabPanel>
 

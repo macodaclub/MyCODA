@@ -158,7 +158,8 @@ function createInitialFilters() {
 </script>
 
 <template>
-<!--     <div class="entity-summary">
+<div class="entity-summary">
+<!--
 <div
   class="summary-card"
   :class="{ active: activeTypeFilter === null }"
@@ -189,7 +190,7 @@ function createInitialFilters() {
   <strong>{{ totalIndividuals }}</strong>
 </div>
 
-    <div
+   <div
     class="summary-card"
     :class="{ active: activeTypeFilter === ENTITY_TYPES.OBJECT_PROPERTY }"
     v-tooltip="'Filter by object properties'"
@@ -207,12 +208,30 @@ function createInitialFilters() {
     >
     <span>Datatype Properties</span>
     <strong>{{ totalDatatypeProperties }}</strong>
-    </div>
-</div> -->
+    </div> -->
+</div>
+
+
+
+
+
   <div>
     <div class="table-toolbar">
-
+        <div>
+                <InputText
+                v-model="filters.global.value"
+                :placeholder="entityTableText.globalSearchPlaceholder"
+                class="w-full md:w-20rem"
+            />
+        </div>
         <div class="toolbar-actions">
+            <Button
+            :label="entityTableText.clearFiltersLabel"
+            icon="pi pi-filter-slash"
+            severity="secondary"
+            outlined
+            @click="clearFilters"
+            />
             <Button
             :label="entityTableText.exportCsvLabel"
             icon="pi pi-download"
@@ -221,23 +240,9 @@ function createInitialFilters() {
              class="mr-2"
             @click="exportEntitiesCsv"
             />
-
-            <Button
-            :label="entityTableText.clearFiltersLabel"
-            icon="pi pi-filter-slash"
-            severity="secondary"
-            outlined
-            @click="clearFilters"
-            />
         </div>
 
-        <div>
-                <InputText
-                v-model="filters.global.value"
-                :placeholder="entityTableText.globalSearchPlaceholder"
-                class="w-full md:w-20rem"
-            />
-        </div>
+
     </div>
     
     <div v-if="hasActiveFilters" class="filter-alert">
@@ -425,7 +430,7 @@ function createInitialFilters() {
 <style scoped>
 .table-toolbar {
   display: flex;
-  justify-content: space-between;
+  /* justify-content: space-between; */
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
@@ -433,9 +438,8 @@ function createInitialFilters() {
 
 .toolbar-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
-  
+  /* justify-content: flex-end; */
+  /* margin-top: 1rem;   */
 }
 
 .entity-details {

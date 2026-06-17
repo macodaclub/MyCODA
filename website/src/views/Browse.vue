@@ -5,7 +5,7 @@ import OntologyQueries from "@/components/OntologyQueries.vue";
 </script>
 
 <template>
-  <main class="browse-page">
+  <main class="browse-ontology">
      <!-- <EntitiesTree usesRouter />
       <EntitiesTable :entities="entities"/>
         <TaxonomyTable/>
