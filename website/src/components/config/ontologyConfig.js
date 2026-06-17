@@ -1,5 +1,5 @@
 export const ontologyConfig = {
-  useMockData: true,
+  useMockData: false,
   mockDelayMs: 500,
   entitiesEndpoint: '/api/ontology/entities',
 };

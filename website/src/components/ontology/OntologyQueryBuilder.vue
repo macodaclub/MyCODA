@@ -1033,7 +1033,7 @@ function normalizeAdvancedQueryToExecutableQuery(query) {
  -->
     <div class="query-table-section">
       <div class="query-table-header">
-        <h3>Query construction</h3>
+        <h3>Query creation</h3>
         <p>
           Build the query step by step using classes, properties, individuals, operators and literals.
         </p>
