@@ -1,0 +1,18 @@
+name: Reload ontology
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ontologies/MaCODA.owl"
+
+jobs:
+  reload:
+    runs-on: self-hosted
+
+    steps:
+      - name: Reload ontology in running backend
+        run: |
+          curl -fsS -X POST "https://mycoda.ddns.net/api/webhooks/github/reload-ontology" \
+            -H "X-Reload-Secret: ${{ secrets.RELOAD_ONTOLOGY_SECRET }}"

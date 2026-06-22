@@ -18,4 +18,5 @@ fun Routing.apiRoutes(
     editorRoutes(ontologyManager)
     searchRoutes(ontologyManager)
     curatorRoutes(ontologyManager)
+    webhookRoutes(ontologyManager)
 }
