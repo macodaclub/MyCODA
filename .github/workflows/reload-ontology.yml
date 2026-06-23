@@ -12,8 +12,9 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - name: Debug secret length
-      env:
-        RELOAD_SECRET: ${{ secrets.RELOAD_ONTOLOGY_SECRET }}
-      run: |
-        echo "Secret length: ${#RELOAD_SECRET}"
+      - name: Reload ontology in running backend
+        env:
+          RELOAD_SECRET: ${{ secrets.RELOAD_ONTOLOGY_SECRET }}
+        run: |
+          curl -i -X POST "https://mycoda.iscte-iul.pt/api/webhooks/github/reload-ontology" \
+            -H "X-Reload-Secret: ${RELOAD_SECRET}"
