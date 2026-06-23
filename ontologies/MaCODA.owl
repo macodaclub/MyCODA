@@ -1751,7 +1751,7 @@ Control Syst. Eng., Univ. Sheffield, Sheffield, U.K., 1995</rdfs:comment>
 
     <!-- ADICIONADO: DOI associado ao GF-NSGA-II -->
     <!-- Isto permite que a query has doi(?x1, ?v1) devolva o DOI -->
-    <hasDoi rdf:datatype="http://www.w3.org/2001/XMLSchema#string">10.1007/s00500-015-1630-1</hasDoi>
+    <!-- <hasDoi rdf:datatype="http://www.w3.org/2001/XMLSchema#string">10.1007/s00500-015-1630-1</hasDoi> -->
 
     <OWLObjectProperty_031566c5_f99c_4f6b_8555_595acea9068f rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#GaussionFunctionOnHyperplane"/>
     <OWLObjectProperty_15fc460f_4fef_470f_87e3_dc02347ed396 rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#ParametersInGaussionFunction"/>
