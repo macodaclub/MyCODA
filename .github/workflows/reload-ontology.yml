@@ -16,5 +16,5 @@ jobs:
         env:
           RELOAD_SECRET: ${{ secrets.RELOAD_ONTOLOGY_SECRET }}
         run: |
-          curl -i -X POST "https://mycoda.iscte-iul.pt/api/webhooks/github/reload-ontology" \
+          curl -fsS -X POST "https://mycoda.iscte-iul.pt/api/webhooks/github/reload-ontology" \
             -H "X-Reload-Secret: ${RELOAD_SECRET}"
