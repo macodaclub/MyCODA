@@ -1744,7 +1744,6 @@ Control Syst. Eng., Univ. Sheffield, Sheffield, U.K., 1995</rdfs:comment>
 
     <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_643650de_6ffc_44d1_a837_c19e8cbb8d57"/>
 
-    <!-- Isto permite que a query Meta Heuristic(?x1) encontre este indivíduo -->
     <!-- <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_78aa5e30_4a52_440d_b144_1b2414334f9e"/> -->
 
     <!-- ADICIONADO: DOI associado ao GF-NSGA-II -->
