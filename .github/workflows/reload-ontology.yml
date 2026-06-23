@@ -14,5 +14,5 @@ jobs:
     steps:
       - name: Reload ontology in running backend
         run: |
-          curl -fsS -X POST "https://mycoda.ddns.net/api/webhooks/github/reload-ontology" \
+          curl -fsS -X POST "https://mycoda.iscte-iul.pt/api/webhooks/github/reload-ontology" \
             -H "X-Reload-Secret: ${{ secrets.RELOAD_ONTOLOGY_SECRET }}"

@@ -1740,7 +1740,7 @@ Control Syst. Eng., Univ. Sheffield, Sheffield, U.K., 1995</rdfs:comment>
 
 
  <!-- FOI ALTERADA PARA TESTES, EXISTE BACKUP PARA REPOR -->
- <!-- <owl:NamedIndividual rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#GF-NSGA-II"> -->
+    <owl:NamedIndividual rdf:about="https://mycoda.ddns.net/ontologies/MYCODA#GF-NSGA-II">
 
     <!-- Tipo original: Preference-based Multi-Objective Evolutionary Algorithm -->
     <rdf:type rdf:resource="https://mycoda.ddns.net/ontologies/MYCODA#OWLClass_643650de_6ffc_44d1_a837_c19e8cbb8d57"/>
