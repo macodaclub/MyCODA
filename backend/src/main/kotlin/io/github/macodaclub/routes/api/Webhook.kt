@@ -12,6 +12,16 @@ fun Routing.webhookRoutes(ontologyManager: OntologyManager) {
             val providedSecret = call.request.headers["X-Reload-Secret"]
             val expectedSecret = System.getenv("RELOAD_ONTOLOGY_SECRET")
 
+            println("========== DEBUG RELOAD ONTOLOGY ==========")
+            println("providedSecret: [$providedSecret]")
+            println("expectedSecret: [$expectedSecret]")
+            println("providedSecret is null: ${providedSecret == null}")
+            println("expectedSecret is null: ${expectedSecret == null}")
+            println("providedSecret length: ${providedSecret?.length}")
+            println("expectedSecret length: ${expectedSecret?.length}")
+            println("secrets are equal: ${providedSecret == expectedSecret}")
+            println("===========================================")
+
             if (expectedSecret.isNullOrBlank() || providedSecret != expectedSecret) {
                 call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
                 return@post
