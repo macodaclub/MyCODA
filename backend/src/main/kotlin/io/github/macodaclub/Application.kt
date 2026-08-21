@@ -1,7 +1,7 @@
 package io.github.macodaclub
 
+import io.github.macodaclub.config.AppEnvironment
 import io.github.macodaclub.plugins.*
-import io.github.macodaclub.utils.contextReceiver
 import io.ktor.server.application.*
 
 fun main(args: Array<String>) {
@@ -9,12 +9,27 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
+    val appEnvironment = AppEnvironment.current()
+
     val ontologyManager = configureOntology()
-    val ghRepo = configureGithub()
+
     configureHTTP()
     configureMonitoring()
     configureSerialization()
-    configureDatabase()
-    configureCuratorAuthentication()
-    configureRouting(ontologyManager, ghRepo)
+
+    if (appEnvironment == AppEnvironment.PRD) {
+        configureDatabase()
+        configureCuratorAuthentication()
+
+        val ghRepo = configureGithub()
+
+        configureRouting(
+            ontologyManager,
+            ghRepo
+        )
+    } else {
+        configureRouting(
+            ontologyManager
+        )
+    }
 }

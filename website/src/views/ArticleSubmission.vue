@@ -1,4 +1,5 @@
 <script setup>
+
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import FloatLabel from 'primevue/floatlabel';
@@ -23,7 +24,14 @@ import {useDialog} from 'primevue/usedialog';
 import {useConfirm} from "primevue/useconfirm";
 import {useDebounceFn} from "@vueuse/core"
 import {useRouter} from 'vue-router'
-import {computed, defineAsyncComponent, reactive, ref, watch} from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue'
 import _ from "lodash"
 import {useOntologyStore} from "@/store";
 import {camelCaseToCapitalized, deepToRaw, delay, generateIriSuffix} from "@/utils/utils/utils.js";
@@ -122,6 +130,58 @@ const identifiedTerms = computed(() => {
 
   return result;
 });
+
+
+onMounted(() => {
+  const searchParams =
+    new URLSearchParams(window.location.search)
+
+  const importId =
+    searchParams.get('import')
+
+  if (!importId) {
+    return
+  }
+
+  const storageKey =
+    `mycoda-article-${importId}`
+
+  const storedData =
+    localStorage.getItem(storageKey)
+
+  if (!storedData) {
+    return
+  }
+
+  try {
+    const data = JSON.parse(storedData)
+
+    titleInput.value =
+      data.title ?? ''
+
+    abstractInput.value =
+      data.abstract ?? ''
+
+    keywordsInput.value =
+      data.keywords ?? ''
+
+    authorsInput.value =
+      data.authors ?? ''
+
+    referenceInput.value =
+      data.reference ?? ''
+
+    doiInput.value =
+      data.doi ?? ''
+
+    localStorage.removeItem(storageKey)
+  } catch (error) {
+    console.error(
+      'Failed to import OpenAIRE dataset:',
+      error,
+    )
+  }
+})
 
 const isEntityEditorDialogVisible = ref(false);
 watch(isEntityEditorDialogVisible, (to) => {

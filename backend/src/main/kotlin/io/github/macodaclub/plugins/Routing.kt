@@ -1,5 +1,6 @@
 package io.github.macodaclub.plugins
 
+import io.github.macodaclub.config.AppEnvironment
 import io.github.macodaclub.routes.apiRoutes
 import io.github.macodaclub.routes.ontologyBrowseRedirectionRoutes
 import io.github.macodaclub.routes.staticRoutes
@@ -9,11 +10,18 @@ import org.kohsuke.github.GHRepository
 
 fun Application.configureRouting(
     ontologyManager: OntologyManager,
-    ghRepo: GHRepository,
+    ghRepo: GHRepository? = null
 ) {
+    val appEnvironment = AppEnvironment.current()
+
     routing {
         staticRoutes()
         ontologyBrowseRedirectionRoutes()
-        apiRoutes(ontologyManager, ghRepo)
+
+        if (appEnvironment == AppEnvironment.PRD) {
+            apiRoutes(ontologyManager, ghRepo!!)
+        } else {
+            apiRoutes(ontologyManager)
+        }
     }
 }

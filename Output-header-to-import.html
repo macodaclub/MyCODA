@@ -1,0 +1,342 @@
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <!--  <link href="https://unpkg.com/tabulator-tables@4.8.4/dist/css/tabulator.min.css" rel="stylesheet">  -->
+      <link href="https://vbasto-gmail.github.io/mycoda/tabulator.min.css" rel="stylesheet">
+  <!--  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.4/dist/js/tabulator.min.js"></script>  -->
+    <script type="text/javascript" src="https://vbasto-gmail.github.io/mycoda/tabulator.min.js"></script>
+<!-- <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script> -->
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
+
+</head>
+<body>
+	<h1><a href="http://localhost:1880/index">Optimization Benchmarking Datasets Index</a></h1>
+
+	<form id="myForm" method="POST" action="http://localhost:1880/rdm">
+
+		<input name="filteringCriteriaHiddenFieldToSendAsTheQueryString" id="queryString" size="100" type="hidden">
+		<input name="filteringCriteriaHiddenFieldToSendAsJsonObject" id="queryJsonObject" size="100" type="hidden">
+
+		<!-- queryJsonObject is sent to the webserver and returned to update the query table (to preserve the content of the query table when 
+			the page is refreshed with the query results) -->
+	</form>	
+
+	<h2>Research Products (RP) Querying:</h2>
+	<hr>
+	<br>
+	<i>Build your query interactively using the table below or select a predefined query and customize it:</i>
+	<br><br>
+	<div id="query-table-buttons">
+		<button id="add-row-tablequery" style="height:35px;">Add a new filtering criterion</button>
+		<!-- <button id="del-row">Remove row (1)</button> -->
+		<button id="clear" style="height:35px;">Reset the filtering criteria</button>
+		<select id="predefinedqueries" onchange="predefinedQueriesSelectEvent(this.value)" style="height:35px; width:580px;"> <!-- style="height:35px; width:580px;" -->
+			<option value="0" selected>Select a predefined query ...</option>
+			<option value="1">What are the datasets published by author 'Carola Doerr' ?</option>
+			<option value="2">What are the publications of author 'Carola Doerr' in '2025' and '2026' sorted by publication date in descendent order ?</option>
+			<option value="3">What are the publications of author 'Carola Doerr' in '2024' and '2025' sorted by citation count in descendent order ?</option>
+			<option value="4">What are the 'software' published by author 'Carola Doerr' sorted by publication date in descendent order ?</option>
+			<option value="5">What are the 'datasets' published by 'Sorbonne University' since '2021' with keywords 'Benchmark' sorted by popularity in descendent order ?</option>
+			<option value="6">What are the 'datasets' published in 'France' in '2025' with keywords 'Benchmark' sorted by citation count in descendent order ?</option>
+			<option value="7">What are the research products related to project 'Proj-123' ?</option>
+<!--			<option value="8">What are the 'datasets' indexed in the Optimization Library (OPL) with '3 objectives' and variable type 'continuous' ?</option>
+			<option value="9">What are the 'datasets' published in 'France' in '2025' with keywords 'Benchmark' and '3 objectives' ?</option> -->
+			<option value="8">What are the 'datasets' published by author 'Carola Doerr' with 'bbob' in the title and '1 objective' ?</option>
+			<option value="9">What are the BBOB-COCO datasets for the 'noisy' 'CMA-ESPLUSSEL' and 'mixint' 'CMA-ESwM' benchmarkings ?</option>
+		</select>
+		<button id="submitButton" style="height:35px;">Submit</button>
+	</div>
+	<br>
+	<script type="text/javascript">
+		// queryTableIndexOfLastFocus is a global variable that stores the row index of the query table criteria being edited by the user before/when a Dialog is open
+		// When the Dialog is closed, it is needed to know which line of the table was being edited by the user to update its values with the values inserted/selected in the Dialog
+		var queryTableIndexOfLastFocus;
+		function openDialog(dialogId, dialogField, URL, valueInQueryTableCell) { 
+			// Dialog fields must be reseted to not preserve the value for other criteria that use the (same) Dialog next
+			// Dialog fields can be a "date" field "calendarDialogField" from "calendarDialog" or a text field "browseDialogField" from "browseDialog"
+			// or a list "select" field "fetchedAPIDialogSelect" with many child options from "fetchedAPIDialog"
+			//calendarDialogField.value = null; browseDialogField.value = null;
+			dialogField.value = null;
+			// If the dialogField is a select/option control, all options that were created dynamically in openDialog must be removed from the Dialog, to be clean/reusable in other query criteria
+			if (dialogId == "selectMultipleEntriesDialog") {
+				const listSelectMultipleEntriesDialog = document.getElementById(dialogField.id);  if (listSelectMultipleEntriesDialog != null) { while (listSelectMultipleEntriesDialog.hasChildNodes()) {listSelectMultipleEntriesDialog.removeChild(listSelectMultipleEntriesDialog.firstChild);} }	
+				// If an (complementaryStandaloneSources) URL is given as parameter (e.g. https://coco-platform.org/testsuites/bbob/data-archive.html)
+				// data from this URL must be retrieved, by invoking a service/endpoint implemented in the backend giving it the URL 
+				if (URL == "" || URL == null || URL == undefined) {
+					for(var item in listOfOutputFields) {
+						var opt = document.createElement("option");
+						opt.value = listOfOutputFields[item].field; opt.innerHTML = listOfOutputFields[item].title;
+						document.getElementById(dialogField.id).appendChild(opt);		
+					}
+				}
+				else {
+
+				}
+			}
+			// Show this URL for the users to search themselves the data (e.g. ORCID, ROR Id) in this website 
+			if (dialogId == "browseDialog" && URL != null && URL != undefined && URL != "") { 
+				var tmp = document.getElementById("browseDialogURL");
+				tmp.href = URL;
+				tmp.innerHTML = URL;
+				var tmp2 = document.getElementById("browseDialogField");
+				tmp2.value = valueInQueryTableCell;
+				tmp2.focus();
+				//tmp.blur(); // Remove focus from this field (visually is not nice to have focus on this field when the browseDialog opens)
+			}
+			// Fetch the data to populate the Dialog from the URL/API 
+			if (dialogId == "fetchedAPIDialog" && URL != null && URL != undefined && URL != "") {
+				const listFetchedAPIDialogSelect = document.getElementById(dialogField.id); if (listFetchedAPIDialogSelect != null) { while (listFetchedAPIDialogSelect.hasChildNodes()) {listFetchedAPIDialogSelect.removeChild(listFetchedAPIDialogSelect.firstChild);} }	
+				fetch(URL)
+							.then((response)=>{
+								if(response.ok){
+									return response.json();
+								}
+								else{
+									throw new Error('Something went wrong!');
+								}
+							})
+							.then((data)=>{
+								data.forEach(function(item){
+									var opt = document.createElement("option");
+									opt.value = item.code; opt.innerHTML = item.title;
+									document.getElementById("fetchedAPIDialogSelect").appendChild(opt);
+								});
+							})
+							.catch((error)=>{
+								alert("error: " + error);
+							});
+							/*document.getElementById(dialogField).options[valueInQueryTableCell].selected = 'selected';
+							alert("option: " + JSON.stringify(document.getElementById("fetchedAPIDialogSelect").options));
+							for (let option of document.getElementById("fetchedAPIDialogSelect").options) 
+							{alert("option: " + option.value); if (option.value == "Portugal") { option.selected = true; break;} } */
+			}
+
+			// Show the column headers (for filtering purposes) of the complementaryStandaloneSources (e.g. OPL-Github, BBOB, Nevergrad)
+			if (dialogId == "complementaryStandaloneSourcesDialog") { 
+				var tmp2 = document.getElementById("complementaryStandaloneSourcesDialogField");
+				tmp2.value = valueInQueryTableCell;
+
+//				var div = document.createElement("div"); //	<div id="output-table"></div>
+//				div.id = "tableComplementaryStandaloneSourcesDialog";
+//				document.getElementById("FormComplementaryStandaloneSourcesDialog").appendChild(div);	
+			}
+
+			document.getElementById(dialogId).showModal();
+			document.getElementById("dialogField").focus();
+		}
+
+		function closeDialog(dialogId, dialogField) {
+			//var tabulatorCell = document.getElementById("popupFormResultField").value;
+			//document.getElementById("popupFormResultField").setAttribute('value', calendarDialogField.value);
+			//cell.setValue(calendarDialogField.value);
+			//var topRow = tablequery.getRows("visible")[0];
+			//var rowData = topRow.getData("data");
+			//topRow.setData({filteringCriterion:"fromPublicationDate", filteringCriterionValue:"ABCD", includeExcludeFilter:true, sortedByField:"relevance", sortedInAscOrDescOrder:"DESC"});
+			//var rowData = topRow.getData();
+			//topRow.setData([{id:2, filteringCriterion:"fromPublicationDate", filteringCriterionValue:"ABCD", includeExcludeFilter:true, sortedByField:"relevance", sortedInAscOrDescOrder:"DESC"}]);
+			//var cell = topRow.getColumn("filteringCriterion");
+			//var cell = row.getCell("filteringCriterion");
+			var tableQueryData = tablequery.getData();	
+			var filteringCriterionValue;
+			var result = [];
+			for (var i = 0; i < tableQueryData.length; i++){
+				if (i == queryTableIndexOfLastFocus) {
+					var filteringCriterion = tableQueryData[i].filteringCriterion;
+
+					if (dialogId == "selectMultipleEntriesDialog") { // The result returned by the dialog is an array
+						var options = document.getElementById(dialogField.id);
+						for (j = 0; j < options.length; j++){
+							if (options[j].selected == true) {result.push(options[j].value)}
+						}
+						if (result.length == 0) {filteringCriterionValue = "";} // if result array is empty, return "" for the user not to visualize "[]" in the GUI
+						else {filteringCriterionValue = JSON.stringify(result);}
+					}
+					else { filteringCriterionValue = dialogField.value; } // The result returned by the dialog is a single value
+
+					var includeExcludeFilter = tableQueryData[i].includeExcludeFilter;
+					var sortedByField = tableQueryData[i].sortedByField;
+					var sortedInAscOrDescOrder = tableQueryData[i].sortedInAscOrDescOrder;
+					tableQueryData[i] = {"filteringCriterion":filteringCriterion, "filteringCriterionValue":filteringCriterionValue, "includeExcludeFilter":includeExcludeFilter, "sortedByField":sortedByField, "sortedInAscOrDescOrder":sortedInAscOrDescOrder};
+				}
+			}
+			tablequery.setData(tableQueryData); // Couldn't update only the query table cell. Had to populate the full table with previous data and the cell edited by the user with new data 
+			document.getElementById(dialogId).close();
+		}
+
+/*		function fetchOrganizationOpenAIREIdGivenOrgROR(URL) {
+	function fetchOrganizationOpenAIREIdGivenOrgROR(URL) { 
+		var result = "";
+		fetch(URL)
+							.then((response)=>{
+								if(response.ok){
+									return response.json();
+								}
+								else{
+									throw new Error('Something went wrong!');
+								}
+							})
+							.then((data)=>{
+									result = JSON.stringify(data);
+									alert ("result1: " + result);
+							})
+							.catch((error)=>{
+								alert("error: " + error);
+							});
+			//alert ("result2: " + result);
+		return result;
+	}
+*/
+	</script>
+
+	<dialog id="calendarDialog"> <!-- Dialog model/template for date selection in a calendar control for the user to select and to be used in the more generic query form -->
+		<form method="dialog">
+			<input type="date" id="calendarDialogField">
+			<!-- <div>
+			<button value="cancel" formmethod="dialog">Cancel</button>
+			<button id="confirmBtn" value="default">Confirm</button>
+			</div> -->
+			<p align="center"><button id="calendarDialogButton" value="confirm" onclick="closeDialog('calendarDialog', calendarDialogField)">OK</button></p>
+		</form>
+	</dialog>
+
+	<dialog id="fetchedAPIDialog"> <!-- Dialog model/template for external data to be shown in a single select/option field for the user to select and to be used in the more generic query form -->	
+		<form method="dialog">
+			<select id="fetchedAPIDialogSelect">
+				<!-- Created dynamically from https://unstats.un.org/sdgapi/v1/sdg/Goal/List?includechildren=false -->
+			</select>
+			<p align="center"><button value="confirm" onclick="closeDialog('fetchedAPIDialog', fetchedAPIDialogSelect)">OK</button></p>
+		</form>
+	</dialog>
+
+	<dialog id="browseDialog">	<!-- Dialog model/template for external data to be shown/queried flexibily for the user to select a single value to be used in the more generic query form -->
+		Please find the <b><i>id</i></b> you need in the following search engine 
+		<!-- <a href="" id="browseDialogURL" name="browseDialogURL" target="_blank" rel="noopener noreferrer"> -->
+		<a href="" id="browseDialogURL" name="browseDialogURL" onclick="window.open(this.href, 'new', 'popup'); return false;">
+		</a> .
+		<br><br>
+		<form method="dialog">
+			<input type="text" id="browseDialogField" autofocus placeholder="Insert here the id you found ..." size="50">
+			<!-- <select id="browseDialogSelect">
+				<option value="">ROR Id (Research Organization Registry)</option> 
+				<option value="">GRID Id (Global Research Identifier Database) - In 2021 GRID migrated Org IDs to ROR (1:1 mapping)</option>
+				https://www.digital-science.com/blog/2021/07/grid-passes-torch-to-ror/
+				As ROR is seeded by GRID data, both datasets are almost identical, which makes it easy for users to transition – it is basically a 1:1 mapping.  
+				<option value="">ISNI (International Standard Name Identifier - ISO Standard)</option>  search page https://isni.org/isn/0000_0000_5319_3214/ ISNI Sorbonne https://isni.org/isni/000000041937060X
+				<option value="">Wikidata</option>  https://www.wikidata.org/
+			</select> -->
+			<p align="center"><button value="confirm" onclick="closeDialog('browseDialog', browseDialogField)">OK</button></p>
+		</form>
+
+	</dialog>
+
+	<dialog id="selectMultipleEntriesDialog">	<!-- Dialog model/template that allows the user to select multiple entries in a list box (e.g list of filtering output fields) -->
+		Please select the fields you want to have in the result of your filtering.<br>
+		Hold down the Ctrl (windows) or Command (Mac) button to select multiple options.
+		<br><br>
+		<form method="dialog">
+			<select id="filteringOutputFields" multiple style="height:320px;">
+			</select>
+			<p align="center"><button value="confirm" onclick="closeDialog('selectMultipleEntriesDialog', filteringOutputFields)">OK</button></p>			
+		</form>
+	</dialog>
+
+	<dialog id="complementaryStandaloneSourcesDialog">	<!-- Dialog model/template that allows the user to define multiple additiona/refined filters for complementaryStandaloneSources such as OPL-Github, BBOB, Nevergrad -->
+		Please define/refine the filtering criteria to apply to the complementary standalone sources.<br>
+		<br><br>
+		<form id="FormComplementaryStandaloneSourcesDialog" method="dialog">
+			<input type="text" id="complementaryStandaloneSourcesDialogField" size="100">
+			<br><br>
+			<div id="complementaryStandaloneSourcesDialog-table"></div>
+			<p align="center"><button value="confirm" onclick="closeDialog('complementaryStandaloneSourcesDialog', complementaryStandaloneSourcesDialogField)">OK</button></p>			
+		</form>
+	</dialog>
+
+	<div id="query-table"></div>
+	<br>
+	<u>Note</u>: <i>Filters criteria (lines of the table) are combined using the logical AND operator. If a filter is provided multiple times (in multiple lines of the table), its values are combined with OR.<br>
+		'Include/Exclude Filter' corresponds to the NOT operator, to exclude specific terms from your search results. This refines your search by filtering out unwanted results.</i>
+	<br>
+	<br>
+	<hr>
+
+	<script type="text/javascript">
+		//var tablepredefinedqueries = {};
+		var tablepredefinedqueries = [
+			{"filteringCriterion":"", "filteringCriterionValue":"", "sortedByField":"", "sortedInAscOrDescOrder":"", "includeExcludeFilter":"include"},
+        ];
+        tablepredefinedqueries.push([
+			{"filteringCriterion":"authorFullName", "filteringCriterionValue":"Carola Doerr", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"dataset", "includeExcludeFilter":"include"},
+        ]);        
+        tablepredefinedqueries.push([
+			{"filteringCriterion":"authorFullName", "filteringCriterionValue":"Carola Doerr", "sortedByField":"publicationDate", "sortedInAscOrDescOrder":"DESC", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"publication", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"fromPublicationDate", "filteringCriterionValue":"2025-01-01", "includeExcludeFilter":"include"},			
+			{"filteringCriterion":"toPublicationDate", "filteringCriterionValue":"2026-12-31", "includeExcludeFilter":"include"},
+		]);
+        tablepredefinedqueries.push([
+			{"filteringCriterion":"authorFullName", "filteringCriterionValue":"Carola Doerr", "sortedByField":"citationCount", "sortedInAscOrDescOrder":"DESC", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"publication", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"fromPublicationDate", "filteringCriterionValue":"2024-01-01", "includeExcludeFilter":"include"},			
+			{"filteringCriterion":"toPublicationDate", "filteringCriterionValue":"2025-12-31", "includeExcludeFilter":"include"},
+		]);		
+		tablepredefinedqueries.push([
+			{"filteringCriterion":"authorFullName", "filteringCriterionValue":"Carola Doerr", "sortedByField":"publicationDate", "sortedInAscOrDescOrder":"DESC", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"software", "includeExcludeFilter":"include"},
+        ]);
+		tablepredefinedqueries.push([
+			{"filteringCriterion":"rorId", "filteringCriterionValue":"https://ror.org/02en5vm52", "sortedByField":"popularity", "sortedInAscOrDescOrder":"DESC", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"dataset", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"fromPublicationDate", "filteringCriterionValue":"2021-01-01", "includeExcludeFilter":"include"},			
+			{"filteringCriterion":"subjects", "filteringCriterionValue":"Benchmark", "includeExcludeFilter":"include"},
+		]);
+		tablepredefinedqueries.push([
+			{"filteringCriterion":"countryCode", "filteringCriterionValue":"FR", "sortedByField":"citationCount", "sortedInAscOrDescOrder":"DESC", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"dataset", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"fromPublicationDate", "filteringCriterionValue":"2025-01-01", "includeExcludeFilter":"include"},			
+			{"filteringCriterion":"toPublicationDate", "filteringCriterionValue":"2025-12-31", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"subjects", "filteringCriterionValue":"Benchmark", "includeExcludeFilter":"include"},
+		]);
+        tablepredefinedqueries.push([
+			{"filteringCriterion":"relProjectCode", "filteringCriterionValue":"Proj-123", "sortedByField":"publicationDate", "sortedInAscOrDescOrder":"DESC", "includeExcludeFilter":"include"},
+        ]);
+/*        
+        tablepredefinedqueries.push([
+			{"filteringCriterion":"CSS-OPL_objectives", "filteringCriterionValue":"3", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"CSS-OPL_variable type", "filteringCriterionValue":"continuous", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"showFieldInOutputTable", "filteringCriterionValue":"[\"CSS-OPL_name\",\"CSS-OPL_suite/generator/single\",\"CSS-OPL_objectives\",\"CSS-OPL_dimensionality\",\"CSS-OPL_variable type\",\"CSS-OPL_constraints\",\"CSS-OPL_dynamic\",\"CSS-OPL_noise\",\"CSS-OPL_multimodal\",\"CSS-OPL_multi-fidelity\",\"CSS-OPL_other info\",\"CSS-OPL_reference\",\"CSS-OPL_implementation\",\"CSS-OPL_source (real-world/artificial)\",\"CSS-OPL_textual description\"]", "includeExcludeFilter":"include"},
+		]);
+		tablepredefinedqueries.push([
+			{"filteringCriterion":"countryCode", "filteringCriterionValue":"FR", "sortedByField":"citationCount", "sortedInAscOrDescOrder":"DESC", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"dataset","includeExcludeFilter":"include"},
+			{"filteringCriterion":"fromPublicationDate", "filteringCriterionValue":"2025-01-01", "includeExcludeFilter":"include"},			
+			{"filteringCriterion":"toPublicationDate", "filteringCriterionValue":"2025-12-31", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"subjects", "filteringCriterionValue":"Benchmark", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"CSS-OPL_objectives", "filteringCriterionValue":"3", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"showFieldInOutputTable", "filteringCriterionValue":"[\"type\",\"mainTitle\",\"auxAuthorsORCIDHTML\",\"relatedMaterials\",\"CSS-OPL_name\",\"CSS-OPL_suite/generator/single\",\"CSS-OPL_objectives\",\"CSS-OPL_reference\"]", "includeExcludeFilter":"include"},
+		]);
+*/
+        tablepredefinedqueries.push([
+			{"filteringCriterion":"authorFullName", "filteringCriterionValue":"Carola Doerr", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"type", "filteringCriterionValue":"dataset", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"mainTitle", "filteringCriterionValue":"bbob", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"CSS-OPL_name", "filteringCriterionValue":"bbob", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"CSS-OPL_objectives", "filteringCriterionValue":"1", "includeExcludeFilter":"include"},			
+			{"filteringCriterion":"showFieldInOutputTable", "filteringCriterionValue":"[\"type\",\"mainTitle\",\"auxAuthorsORCIDHTML\",\"relatedMaterials\",\"CSS-OPL_name\",\"CSS-OPL_suite/generator/single\",\"CSS-OPL_objectives\",\"CSS-OPL_reference\"]", "includeExcludeFilter":"include"},			
+		]);
+		tablepredefinedqueries.push([
+			{"filteringCriterion":"https://coco-platform.org/testsuites/bbob-noisy/data-archive.html", "filteringCriterionValue":"https://raw.githubusercontent.com/numbbo/data-archive/gh-pages/data-archive/bbob-noisy/2009/CMA-ESPLUSSEL_auger_noisy.tgz", "includeExcludeFilter":"include"},
+			{"filteringCriterion":"https://coco-platform.org/testsuites/bbob-mixint/data-archive.html", "filteringCriterionValue":"https://raw.githubusercontent.com/numbbo/data-archive/gh-pages/data-archive/bbob-mixint/2022/CMA-ESwM_Hamano.zip", "includeExcludeFilter":"include"},
+		]);
+		function predefinedQueriesSelectEvent(predefinedQueryIndex) {
+			tablequery.setData(tablepredefinedqueries[predefinedQueryIndex]); 
+		}
+		
+		// Initializes complementaryStandaloneSourcesDialogTableData used in the complementaryStandaloneSourcesDialog
+		var complementaryStandaloneSourcesDialogTableData = [];
+
+		// Initializes tableQueryData with one line (its more intuitive in the GUI to have an initial empty line than having only the table header)
+		var tableQueryData = [{"filteringCriterion":"", "filteringCriterionValue":"", "sortedByField":"", "sortedInAscOrDescOrder":"", "includeExcludeFilter":""}];
+		// tableQueryData is replaced by the data returned by the web server

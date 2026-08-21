@@ -4,7 +4,7 @@ ktor:
       - "io.github.macodaclub.ApplicationKt.module"
   development: "$DEVELOPMENT:false"
   deployment:
-    port: "$PORT:80"
+    port: "$PORT:8080"
   frontendPort: "$FRONTEND_PORT:null"
   hostName: "$HOST_NAME:null"
   security:

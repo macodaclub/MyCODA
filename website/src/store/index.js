@@ -13,7 +13,7 @@ import { nonNulls } from '@/utils/utils/utils.js';
 // the first argument is a unique id of the store across your application
 export const useOntologyStore = defineStore('ontology', () => {
   const backendHost = import.meta.env.DEV
-    ? `http://localhost:${import.meta.env.BACKEND_PORT ? import.meta.env.BACKEND_PORT : '8081'}`
+    ? `http://localhost:${import.meta.env.BACKEND_PORT || '8080'}`
     : location.origin;
 
   const entities = ref([]);
@@ -85,6 +85,7 @@ export const useOntologyStore = defineStore('ontology', () => {
   async function fetchOntologyInfo() {
     const url = new URL(`${backendHost}/api/ontologyInfo`);
     const response = await fetch(url);
+    console.log(response);
     if (!response.ok)
       return console.error('Failed to fetch ontology info', response);
     return await response.json();
@@ -228,7 +229,7 @@ export const useOntologyStore = defineStore('ontology', () => {
   }
 
   async function runSqwrlQuery(queryString) {
-    console.log(queryString)
+    console.log(queryString);
     const url = new URL(`${backendHost}/api/sqwrl`);
 
     const response = await fetch(url, {
@@ -240,7 +241,7 @@ export const useOntologyStore = defineStore('ontology', () => {
         queryString,
       }),
     });
-    console.log(response)
+    console.log(response);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -249,6 +250,299 @@ export const useOntologyStore = defineStore('ontology', () => {
 
     return await response.json();
   }
+
+  /**
+   * Executa uma pesquisa de datasets através do backend MyCODA.
+   *
+   * O pedido contêm os critérios, ordenação, campos selecionados
+   * e paginação. A query string OpenAIRE é construída pelo backend.
+   *
+   * @param {Object} request Pedido no formato DatasetSearchRequest.
+   * @param {AbortSignal|null} signal Permite cancelar o pedido HTTP.
+   * @returns {Promise<Object>} Resposta normalizada da pesquisa.
+   */
+  async function searchDatasets(request, signal = null) {
+    const url = new URL(`${backendHost}/api/datasets/search`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(request),
+      signal,
+    });
+
+    const contentType = response.headers.get('content-type') ?? '';
+
+    const responseObj = contentType.includes('application/json')
+      ? await response.json().catch(() => null)
+      : null;
+
+    if (!response.ok) {
+      const error = new Error(
+        responseObj?.message ??
+        `Failed to search datasets. HTTP status: ${response.status}`
+      );
+
+      error.code = responseObj?.code ?? 'DATASET_SEARCH_ERROR';
+      error.status = response.status;
+
+      throw error;
+    }
+
+    return {
+      queryString: responseObj?.queryString ?? '',
+      page: responseObj?.page ?? request.page ?? 1,
+      pageSize: responseObj?.pageSize ?? request.pageSize ?? 20,
+      totalResults: responseObj?.totalResults ?? null,
+      hasNextPage: responseObj?.hasNextPage ?? false,
+      selectedFields: responseObj?.selectedFields ?? [],
+      results: responseObj?.results ?? [],
+      warnings: responseObj?.warnings ?? [],
+    };
+  }
+
+  /**
+   * Carrega um vocabulário de datasets exposto pelo backend MyCODA.
+   *
+   * @param {string} vocabulary Nome do vocabulário.
+   * @returns {Promise<Array>} Opções { code, title }.
+   */
+  async function fetchDatasetVocabulary(vocabulary) {
+    const url = new URL(
+      `${backendHost}/api/datasets/vocabularies/${encodeURIComponent(vocabulary)}`
+    )
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    const responseObj = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      throw new Error(
+        responseObj?.message ??
+        `Failed to load dataset vocabulary: ${vocabulary}.`
+      )
+    }
+
+    return responseObj ?? []
+  }
+
+  /** Compatibilidade com chamadas existentes. */
+  async function fetchDatasetCountries() {
+    return fetchDatasetVocabulary('countries')
+  }
+
+  /**
+   * Pesquisa problemas de otimização na OPL.
+   *
+   * @param {Object} request Pedido de pesquisa OPL
+   * @param {AbortSignal|null} signal Sinal opcional para cancelar o pedido
+   * @returns {Promise<Object>} Resultados normalizados da pesquisa
+   */
+  async function searchOplDatasets(request, signal = null) {
+    const url = new URL(
+      `${backendHost}/api/datasets/opl/search`
+    )
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(request),
+      signal,
+    })
+
+    const contentType =
+      response.headers.get('content-type') ?? ''
+
+    const responseObj =
+      contentType.includes('application/json')
+        ? await response.json().catch(() => null)
+        : null
+
+    if (!response.ok) {
+      const error = new Error(
+        responseObj?.message ??
+        `Failed to search OPL datasets. HTTP status: ${response.status}`
+      )
+
+      error.code =
+        responseObj?.code ?? 'OPL_DATASET_SEARCH_ERROR'
+
+      error.status = response.status
+
+      throw error
+    }
+
+    return {
+      page:
+        responseObj?.page ??
+        request.page ??
+        1,
+
+      pageSize:
+        responseObj?.pageSize ??
+        request.pageSize ??
+        20,
+
+      totalResults:
+        responseObj?.totalResults ?? 0,
+
+      hasNextPage:
+        responseObj?.hasNextPage ?? false,
+
+      results:
+        responseObj?.results ?? [],
+
+      warnings:
+        responseObj?.warnings ?? [],
+    }
+  }
+
+
+  /**
+   * Executa uma pesquisa híbrida OpenAIRE + OPL.
+   *
+   * O backend separa os critérios por fonte e devolve os resultados
+   * agrupados em openAire e opl.
+   *
+   * @param {Object} request Pedido de pesquisa híbrida.
+   * @param {AbortSignal|null} signal Sinal opcional para cancelar o pedido.
+   * @returns {Promise<Object>} Resposta híbrida normalizada.
+   */
+ /**
+ * Executa uma pesquisa híbrida OpenAIRE + OPL.
+ *
+ * @param {Object} request Pedido da pesquisa híbrida.
+ * @param {AbortSignal|null} signal Sinal opcional de cancelamento.
+ * @returns {Promise<Object>} Resposta híbrida normalizada.
+ */
+async function searchHybridDatasets(request, signal = null) {
+  const url = new URL(
+    `${backendHost}/api/datasets/hybrid/search`
+  )
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(request),
+    signal,
+  })
+
+  const contentType =
+    response.headers.get('content-type') ?? ''
+
+  const responseObj =
+    contentType.includes('application/json')
+      ? await response.json().catch(() => null)
+      : null
+
+  if (!response.ok) {
+    const error = new Error(
+      responseObj?.message ??
+        `Failed to perform hybrid dataset search. HTTP status: ${response.status}`
+    )
+
+    error.code =
+      responseObj?.code ?? 'HYBRID_DATASET_SEARCH_ERROR'
+
+    error.status = response.status
+
+    throw error
+  }
+
+  return {
+    page:
+      responseObj?.page ??
+      request.page ??
+      1,
+
+    pageSize:
+      responseObj?.pageSize ??
+      request.pageSize ??
+      20,
+
+    totalResults:
+      responseObj?.totalResults ?? 0,
+
+    hasNextPage:
+      responseObj?.hasNextPage ?? false,
+
+    selectedFields:
+      responseObj?.selectedFields ?? [],
+
+    results:
+      responseObj?.results ?? [],
+
+    openAire:
+      responseObj?.openAire ?? null,
+
+    opl:
+      responseObj?.opl ?? null,
+
+    warnings:
+      responseObj?.warnings ?? [],
+  }
+}
+
+async function fetchOntologyGraph(
+  iri,
+  type,
+  depth = 1,
+) {
+  const url = new URL(
+    `${backendHost}/api/ontology/graph`,
+  )
+
+  url.search = new URLSearchParams(
+    nonNulls({
+      iri,
+      type,
+      depth,
+    }),
+  ).toString()
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+
+  const responseObj =
+    await response.json().catch(() => null)
+
+  if (!response.ok) {
+    const error = new Error(
+      responseObj?.message ??
+        'Failed to load ontology graph.',
+    )
+
+    error.code =
+      responseObj?.code ??
+      'ONTOLOGY_GRAPH_ERROR'
+
+    error.status = response.status
+
+    throw error
+  }
+
+  return {
+    nodes: responseObj?.nodes ?? [],
+    edges: responseObj?.edges ?? [],
+  }
+}
+
 
   return {
     backendHost,
@@ -266,5 +560,11 @@ export const useOntologyStore = defineStore('ontology', () => {
     fetchSearchEntities,
     fetchIndividualProperties,
     runSqwrlQuery,
+    searchDatasets,
+    fetchDatasetVocabulary,
+    fetchDatasetCountries,
+    searchOplDatasets,
+    searchHybridDatasets,
+    fetchOntologyGraph,
   };
 });

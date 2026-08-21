@@ -1,0 +1,113 @@
+
+    var outputTableColumns = []; // outputTableColumns define the fields and the formatting of the output table
+    tableQueryData = tablequery.getData();
+    for (var i = 0; i < tableQueryData.length; i++){
+        if (tableQueryData[i].filteringCriterion == "showFieldInOutputTable") {
+            var outputFieldsArray = JSON.parse(tableQueryData[i].filteringCriterionValue);
+                for (var j = 0; j < outputFieldsArray.length; j++) {
+                    var result = listOfOutputFields.find((jsonArrayLine) => {return jsonArrayLine.field === outputFieldsArray[j]});                   
+                    //alert("JSON.stringify(result): " + JSON.stringify(result));                
+                    outputTableColumns.push(result);
+                    //alert("JSON.stringify(outputTableColumns): " + JSON.stringify(outputTableColumns));
+                }
+            break;
+        }
+    }
+
+    if (outputTableColumns.length == 0) { // If the user didn't define any fields to be shown in the output table, the following fields are set by default 
+
+        // If the user defined OpenAIRE filtering criteria then the following subset of OpenAIRE fields are added to the output table  
+        // This subset of fields is added to the output table (and not the ones corresponding to the filtering criteria) because
+        //  there are filtering criteria (e.g. authorFullName) that doesn't exist as output fields (e.g output field is authors)
+        for (var i = 0; i < tableQueryData.length; i++){
+            if (tableQueryData[i].filteringCriterion in listOfFilteringCriteriaFields) {
+                outputTableColumns = [
+                    {title:"RP Type", field:"type", headerFilter:"input", headerMenu:headerMenu},
+                    {title:"Title", field:"mainTitle", headerFilter:"input", headerMenu:headerMenu, width:500},
+                    {title:"Pub Date", field:"publicationDate", hozAlign:"center", headerFilter:"input", headerMenu:headerMenu},
+                    {title:"Authors", field:"auxAuthorsORCIDHTML", formatter:"html", headerFilter:"input", headerMenu:headerMenu, width:300},
+                    {title:"Publisher", field:"publisher", headerFilter:"input", headerMenu:headerMenu},
+                    //{title:"Scientific Event", field:"container.name", headerFilter:"input", headerMenu:headerMenu},
+                    {title:"Citations", field:"indicators.citationImpact.citationCount", hozAlign:"center", headerFilter:"input", headerMenu:headerMenu},
+                    {title:"Related Materials", field:"relatedMaterials", formatter:"html", headerFilter:"input", headerMenu:headerMenu}
+                ];
+                // break; // If there is one OpenAIRE filtering criteria, it is enough adding these fields to the output table once
+            }
+        }
+
+        // If the user didn't define any fields to be shown in the output table but defined complementaryStandaloneSources 
+        // filtering criteria, the filtering criteria fields are added to the output table
+        for (var i = 0; i < tableQueryData.length; i++){
+          if (tableQueryData[i].filteringCriterion.includes("CSS-OPL")) 
+            {
+                //var result = listOfOutputFields.find((jsonArrayLine) => {return jsonArrayLine.field === outputFieldsArray[j]});                   
+                  var result = listOfOutputFields.find((jsonArrayLine) => {return jsonArrayLine.field === tableQueryData[i].filteringCriterion});
+                //alert("JSON.stringify(result): " + JSON.stringify(result));                
+                outputTableColumns.push(result);
+                //alert("JSON.stringify(outputTableColumns): " + JSON.stringify(outputTableColumns));
+            }
+            // The complementaryStandaloneSources CSS-BBOB is treated differently (the key and values are swapped in the query table)
+            if (listOfFilteringCriteriaFieldsPlusNonOpenAIRECriteria[tableQueryData[i].filteringCriterion].includes("CSS-BBOB")) 
+            { 
+                // 
+                var result = listOfOutputFields.find((jsonArrayLine) => {return jsonArrayLine.field === tableQueryData[i].filteringCriterion});
+                result = listOfOutputFields.find((jsonArrayLine) => {return jsonArrayLine.field === listOfFilteringCriteriaFieldsPlusNonOpenAIRECriteria[tableQueryData[i].filteringCriterion]});                
+                //alert ("listOfFilteringCriteriaFieldsPlusNonOpenAIRECriteria[tableQueryData[i].filteringCriterion]: " + listOfFilteringCriteriaFieldsPlusNonOpenAIRECriteria[tableQueryData[i].filteringCriterion]);
+                //alert ("result: " + JSON.stringify(result));
+                outputTableColumns.push(result);
+            } 
+        }
+    }
+//alert("outputTableColumns: " + JSON.stringify(outputTableColumns));
+
+var table = new Tabulator("#output-table", {
+		data:tableResultsData,
+		layout:"fitDataStretch",
+		rowContextMenu: rowMenu, //add context menu to rows 
+		pagination:"local",
+		paginationSize:20,
+		paginationSizeSelector:[5, 10, 20, 40, 80, 100],
+		movableColumns:true,
+		paginationCounter:"rows",
+		columns: outputTableColumns,
+	});
+
+
+    
+    var complementaryStandaloneSourcesDialogData = [];
+    var tableComplementaryStandaloneSourcesDialog = new Tabulator("#complementaryStandaloneSourcesDialog-table", {
+		data:complementaryStandaloneSourcesDialogData,
+		layout:"fitDataStretch",
+		pagination:"local",
+		paginationSize:5,
+		columns:[
+                {title:"Complementary Standalone Source Filtering Field", field:"complementaryStandaloneSourceFilteringField", editor:"select", editorParams:
+                    function(cell){ 
+                        //case 'citationCountClass': 
+                        return ["C1", "C2"];
+                        //break;
+                        //default: alert("Please select a filtering criterion before filling this cell ...");
+                    //return result;
+                }, width:340},
+                {title:"Complementary Standalone Source Filtering Value", field:"complementaryStandaloneSourceFilteringValue", headerFilter:"input"}
+                ],
+	});
+
+
+
+
+/* var table = new Tabulator("#output-table", {
+    height:"311px",
+    layout:"fitColumns",
+    placeholder:"No Data Set",
+    columns: outputTableColumns,
+//        placeholder:"No Data Set",
+//        pagination:true,
+//        paginationMode:"remote",
+//        ajaxURL:"http://localhost:1880/ajax",
+//        ajaxParams:{token:"authorFullName=Carola Doerr"}, // ajaxParams:{token:"ABC123"},
+	});
+*/
+	</script>
+ </body> 
+</html>
