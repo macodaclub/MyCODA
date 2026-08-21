@@ -15,21 +15,25 @@ import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 
-/**
- * Cliente OpenAIRE dedicado à resolução de organizações.
- *
- * O frontend pode fornecer um ROR no critério relOrganizationId;
- * este cliente resolve-o para o identificador interno OpenAIRE exigido
- * pela pesquisa de research products.
- */
+
 object OpenAireOrganizationClient {
 
     private const val BASE_URL =
         "https://api.openaire.eu/graph/v3/organizations"
 
-    private val httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build()
+
+    private val openAireTimeoutSeconds: Long =
+        System.getenv("OpenAIRETimeout")
+            ?.toLongOrNull()
+            ?.takeIf { timeout -> timeout > 0 }
+            ?: 50L
+
+    private val httpClient: HttpClient =
+        HttpClient.newBuilder()
+            .connectTimeout(
+                Duration.ofSeconds(openAireTimeoutSeconds)
+            )
+            .build()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -39,26 +43,31 @@ object OpenAireOrganizationClient {
         val normalizedRor =
             ResearchIdentifierService.normalizeRor(rawRor)
 
-        val encodedRor = URLEncoder.encode(
-            normalizedRor,
-            StandardCharsets.UTF_8
-        )
+        val encodedRor =
+            URLEncoder.encode(
+                normalizedRor,
+                StandardCharsets.UTF_8
+            )
 
         val url =
             "$BASE_URL?pid=$encodedRor&page=1&pageSize=10"
 
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .timeout(Duration.ofSeconds(30))
-            .header("Accept", "application/json")
-            .header("User-Agent", "MyCODA/1.0")
-            .GET()
-            .build()
+        val request =
+            HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(
+                    Duration.ofSeconds(openAireTimeoutSeconds)
+                )
+                .header("Accept", "application/json")
+                .header("User-Agent", "MyCODA/1.0")
+                .GET()
+                .build()
 
-        val response = httpClient.send(
-            request,
-            HttpResponse.BodyHandlers.ofString()
-        )
+        val response =
+            httpClient.send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+            )
 
         if (response.statusCode() !in 200..299) {
             throw RuntimeException(
@@ -67,22 +76,27 @@ object OpenAireOrganizationClient {
             )
         }
 
-        val root = json
-            .parseToJsonElement(response.body())
-            .jsonObject
+        val root =
+            json
+                .parseToJsonElement(response.body())
+                .jsonObject
 
-        val results = root["results"]
-            ?.asJsonArrayOrNull()
-            ?: emptyList()
+        val results =
+            root["results"]
+                ?.asJsonArrayOrNull()
+                ?: emptyList()
 
-        val matchingOrganization = results
-            .mapNotNull { it.asJsonObjectOrNull() }
-            .firstOrNull { organization ->
-                organizationContainsRor(
-                    organization = organization,
-                    expectedRor = normalizedRor
-                )
-            }
+        val matchingOrganization =
+            results
+                .mapNotNull { element ->
+                    element.asJsonObjectOrNull()
+                }
+                .firstOrNull { organization ->
+                    organizationContainsRor(
+                        organization = organization,
+                        expectedRor = normalizedRor
+                    )
+                }
 
         requireNotNull(matchingOrganization) {
             "No OpenAIRE organization was found for ROR $normalizedRor."
@@ -98,25 +112,31 @@ object OpenAireOrganizationClient {
         organization: JsonObject,
         expectedRor: String
     ): Boolean {
-        val pids = organization["pids"]
-            ?.asJsonArrayOrNull()
-            ?: return false
+        val pids =
+            organization["pids"]
+                ?.asJsonArrayOrNull()
+                ?: return false
 
         return pids.any { element ->
-            val pid = element.asJsonObjectOrNull()
-                ?: return@any false
+            val pid =
+                element.asJsonObjectOrNull()
+                    ?: return@any false
 
-            val scheme = getString(pid, "scheme")
+            val scheme =
+                getString(pid, "scheme")
+
             if (!scheme.equals("ROR", ignoreCase = true)) {
                 return@any false
             }
 
-            val rawValue = getString(pid, "value")
-                ?: return@any false
+            val rawValue =
+                getString(pid, "value")
+                    ?: return@any false
 
-            val normalized = ResearchIdentifierService
-                .tryNormalizeRor(rawValue)
-                ?: return@any false
+            val normalized =
+                ResearchIdentifierService
+                    .tryNormalizeRor(rawValue)
+                    ?: return@any false
 
             normalized == expectedRor
         }
@@ -125,9 +145,10 @@ object OpenAireOrganizationClient {
     private fun getString(
         obj: JsonObject,
         field: String
-    ): String? = obj[field]
-        ?.asJsonPrimitiveOrNull()
-        ?.contentOrNull
+    ): String? =
+        obj[field]
+            ?.asJsonPrimitiveOrNull()
+            ?.contentOrNull
 
     private fun JsonElement.asJsonPrimitiveOrNull(): JsonPrimitive? =
         this as? JsonPrimitive

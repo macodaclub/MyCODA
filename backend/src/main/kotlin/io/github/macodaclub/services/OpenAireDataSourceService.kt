@@ -20,9 +20,19 @@ object OpenAireDataSourceService {
     private const val BASE_URL =
         "https://api.openaire.eu/graph/v1/dataSources"
 
-    private val httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build()
+
+    private val openAireTimeoutSeconds: Long =
+        System.getenv("OpenAIRETimeout")
+            ?.toLongOrNull()
+            ?.takeIf { timeout -> timeout > 0 }
+            ?: 50L
+
+    private val httpClient: HttpClient =
+        HttpClient.newBuilder()
+            .connectTimeout(
+                Duration.ofSeconds(openAireTimeoutSeconds)
+            )
+            .build()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -47,18 +57,22 @@ object OpenAireDataSourceService {
                 "&page=1" +
                 "&pageSize=10"
 
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .timeout(Duration.ofSeconds(30))
-            .header("Accept", "application/json")
-            .header("User-Agent", "MyCODA/1.0")
-            .GET()
-            .build()
+        val request =
+            HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(
+                    Duration.ofSeconds(openAireTimeoutSeconds)
+                )
+                .header("Accept", "application/json")
+                .header("User-Agent", "MyCODA/1.0")
+                .GET()
+                .build()
 
-        val response = httpClient.send(
-            request,
-            HttpResponse.BodyHandlers.ofString()
-        )
+        val response =
+            httpClient.send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+            )
 
         if (response.statusCode() !in 200..299) {
             throw RuntimeException(
@@ -68,8 +82,8 @@ object OpenAireDataSourceService {
         }
 
         val root = json
-            .parseToJsonElement(response.body())
-            .jsonObject
+                .parseToJsonElement(response.body())
+                .jsonObject
 
         val results =
             root["results"] as? JsonArray

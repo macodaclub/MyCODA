@@ -18,7 +18,7 @@ import java.net.http.HttpResponse
 import java.time.Duration
 
 /**
- * Cliente responsável pela comunicação com a OpenAIRE Graph API
+ * sponsável pela comunicação com a OpenAIRE Graph API
  * e pela conversão dos research products para o modelo do MyCODA.
  */
 data class OpenAireSearchPage(
@@ -30,11 +30,21 @@ data class OpenAireSearchPage(
 
 object OpenAireResearchProductClient {
 
-    private const val BASE_URL = "https://api.openaire.eu/graph/v3/research-products"
+    private const val BASE_URL =
+        "https://api.openaire.eu/graph/v3/research-products"
 
-    private val httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build()
+    private val openAireTimeoutSeconds: Long =
+        System.getenv("OpenAIRETimeout")
+            ?.toLongOrNull()
+            ?.takeIf { timeout -> timeout > 0 }
+            ?: 50L
+
+    private val httpClient: HttpClient =
+        HttpClient.newBuilder()
+            .connectTimeout(
+                Duration.ofSeconds(openAireTimeoutSeconds)
+            )
+            .build()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -44,18 +54,22 @@ object OpenAireResearchProductClient {
      * Executa uma pesquisa OpenAIRE com a query previamente construída.
      */
     fun search(queryString: String): OpenAireSearchPage {
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(buildUrl(queryString)))
-            .timeout(Duration.ofSeconds(30))
-            .header("Accept", "application/json")
-            .header("User-Agent", "MyCODA/1.0")
-            .GET()
-            .build()
+        val request =
+            HttpRequest.newBuilder()
+                .uri(URI.create(buildUrl(queryString)))
+                .timeout(
+                    Duration.ofSeconds(openAireTimeoutSeconds)
+                )
+                .header("Accept", "application/json")
+                .header("User-Agent", "MyCODA/1.0")
+                .GET()
+                .build()
 
-        val response = httpClient.send(
-            request,
-            HttpResponse.BodyHandlers.ofString()
-        )
+        val response =
+            httpClient.send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+            )
 
         if (response.statusCode() !in 200..299) {
             throw RuntimeException(
@@ -64,37 +78,47 @@ object OpenAireResearchProductClient {
             )
         }
 
-        val root = json
-            .parseToJsonElement(response.body())
-            .jsonObject
+        val root =
+            json
+                .parseToJsonElement(response.body())
+                .jsonObject
 
-        val header = root["header"]
-            ?.asJsonObjectOrNull()
+        val header =
+            root["header"]
+                ?.asJsonObjectOrNull()
 
-        val totalResults = header
-            ?.get("numFound")
-            ?.asJsonPrimitiveOrNull()
-            ?.longOrNull
+        val totalResults =
+            header
+                ?.get("numFound")
+                ?.asJsonPrimitiveOrNull()
+                ?.longOrNull
 
-        val responsePage = header
-            ?.get("page")
-            ?.asJsonPrimitiveOrNull()
-            ?.intOrNull
+        val responsePage =
+            header
+                ?.get("page")
+                ?.asJsonPrimitiveOrNull()
+                ?.intOrNull
 
-        val responsePageSize = header
-            ?.get("pageSize")
-            ?.asJsonPrimitiveOrNull()
-            ?.intOrNull
+        val responsePageSize =
+            header
+                ?.get("pageSize")
+                ?.asJsonPrimitiveOrNull()
+                ?.intOrNull
 
-        val results = root["results"]
-            ?.asJsonArrayOrNull()
-            ?.mapIndexedNotNull { index, item ->
-                val researchProduct = item.asJsonObjectOrNull()
-                    ?: return@mapIndexedNotNull null
+        val results =
+            root["results"]
+                ?.asJsonArrayOrNull()
+                ?.mapIndexedNotNull { index, item ->
+                    val researchProduct =
+                        item.asJsonObjectOrNull()
+                            ?: return@mapIndexedNotNull null
 
-                mapResearchProduct(index, researchProduct)
-            }
-            ?: emptyList()
+                    mapResearchProduct(
+                        index = index,
+                        obj = researchProduct
+                    )
+                }
+                ?: emptyList()
 
         return OpenAireSearchPage(
             results = results,
@@ -108,7 +132,8 @@ object OpenAireResearchProductClient {
      * Constrói o URL final a partir da query já codificada.
      */
     private fun buildUrl(queryString: String): String {
-        val normalizedQuery = queryString.trim()
+        val normalizedQuery =
+            queryString.trim()
 
         return if (normalizedQuery.isBlank()) {
             BASE_URL
@@ -124,7 +149,8 @@ object OpenAireResearchProductClient {
         index: Int,
         obj: JsonObject
     ): DatasetSearchResult {
-        val authorDetails = extractAuthorDetails(obj)
+        val authorDetails =
+            extractAuthorDetails(obj)
 
         return DatasetSearchResult(
             id = getString(obj, "id")
@@ -241,17 +267,20 @@ object OpenAireResearchProductClient {
     private fun extractAuthorDetails(
         obj: JsonObject
     ): List<DatasetAuthor> {
-        val authors = obj["authors"]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val authors =
+            obj["authors"]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return authors.mapNotNull { element ->
-            val author = element.asJsonObjectOrNull()
-                ?: return@mapNotNull null
+            val author =
+                element.asJsonObjectOrNull()
+                    ?: return@mapNotNull null
 
-            val name = getString(author, "fullName")
-                ?: buildAuthorName(author)
-                ?: return@mapNotNull null
+            val name =
+                getString(author, "fullName")
+                    ?: buildAuthorName(author)
+                    ?: return@mapNotNull null
 
             DatasetAuthor(
                 name = name,
@@ -266,13 +295,15 @@ object OpenAireResearchProductClient {
     private fun buildAuthorName(
         author: JsonObject
     ): String? {
-        val firstName = getString(author, "name")
-            ?.trim()
-            .orEmpty()
+        val firstName =
+            getString(author, "name")
+                ?.trim()
+                .orEmpty()
 
-        val surname = getString(author, "surname")
-            ?.trim()
-            .orEmpty()
+        val surname =
+            getString(author, "surname")
+                ?.trim()
+                .orEmpty()
 
         return listOf(
             firstName,
@@ -293,20 +324,24 @@ object OpenAireResearchProductClient {
     private fun extractAuthorOrcid(
         author: JsonObject
     ): String? {
-        val pid = author["pid"]
-            ?.asJsonObjectOrNull()
-            ?: return null
+        val pid =
+            author["pid"]
+                ?.asJsonObjectOrNull()
+                ?: return null
 
-        val identifier = pid["id"]
-            ?.asJsonObjectOrNull()
-            ?: return null
+        val identifier =
+            pid["id"]
+                ?.asJsonObjectOrNull()
+                ?: return null
 
-        val scheme = getString(
-            identifier,
-            "scheme"
-        ) ?: return null
+        val scheme =
+            getString(
+                identifier,
+                "scheme"
+            ) ?: return null
 
-        if (!scheme.equals(
+        if (
+            !scheme.equals(
                 "orcid",
                 ignoreCase = true
             )
@@ -326,11 +361,12 @@ object OpenAireResearchProductClient {
     private fun extractInstanceType(
         obj: JsonObject
     ): String? {
-        val instances = obj["instances"]
-            ?.asJsonArrayOrNull()
-            ?: obj["instance"]
+        val instances =
+            obj["instances"]
                 ?.asJsonArrayOrNull()
-            ?: return null
+                ?: obj["instance"]
+                    ?.asJsonArrayOrNull()
+                ?: return null
 
         return instances
             .mapNotNull {
@@ -353,9 +389,10 @@ object OpenAireResearchProductClient {
     private fun extractScientificEvent(
         obj: JsonObject
     ): String? {
-        val container = obj["container"]
-            ?.asJsonObjectOrNull()
-            ?: return null
+        val container =
+            obj["container"]
+                ?.asJsonObjectOrNull()
+                ?: return null
 
         return getString(
             container,
@@ -370,13 +407,15 @@ object OpenAireResearchProductClient {
         obj: JsonObject,
         field: String
     ): String? {
-        val indicators = obj["indicators"]
-            ?.asJsonObjectOrNull()
-            ?: return null
+        val indicators =
+            obj["indicators"]
+                ?.asJsonObjectOrNull()
+                ?: return null
 
-        val citationImpact = indicators["citationImpact"]
-            ?.asJsonObjectOrNull()
-            ?: return null
+        val citationImpact =
+            indicators["citationImpact"]
+                ?.asJsonObjectOrNull()
+                ?: return null
 
         return getString(
             citationImpact,
@@ -387,19 +426,19 @@ object OpenAireResearchProductClient {
     /**
      * Obtém o número de citações.
      *
-     * A OpenAIRE pode devolver citationCount como número decimal,
-     * por exemplo 0.0 ou 5.0.
      */
     private fun extractCitationCount(
         obj: JsonObject
     ): Int? {
-        val indicators = obj["indicators"]
-            ?.asJsonObjectOrNull()
-            ?: return null
+        val indicators =
+            obj["indicators"]
+                ?.asJsonObjectOrNull()
+                ?: return null
 
-        val citationImpact = indicators["citationImpact"]
-            ?.asJsonObjectOrNull()
-            ?: return null
+        val citationImpact =
+            indicators["citationImpact"]
+                ?.asJsonObjectOrNull()
+                ?: return null
 
         return citationImpact["citationCount"]
             ?.asJsonPrimitiveOrNull()
@@ -508,9 +547,10 @@ object OpenAireResearchProductClient {
     private fun extractPids(
         obj: JsonObject
     ): List<String> {
-        val pids = obj["pids"]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val pids =
+            obj["pids"]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return extractPidArray(
             pids
@@ -521,21 +561,24 @@ object OpenAireResearchProductClient {
         pids: JsonArray
     ): List<String> {
         return pids.mapNotNull { item ->
-            val pid = item
-                .asJsonObjectOrNull()
-                ?: return@mapNotNull null
+            val pid =
+                item
+                    .asJsonObjectOrNull()
+                    ?: return@mapNotNull null
 
-            val scheme = getString(
-                pid,
-                "scheme"
-            )
-                ?.lowercase()
+            val scheme =
+                getString(
+                    pid,
+                    "scheme"
+                )
+                    ?.lowercase()
 
-            val value = getString(
-                pid,
-                "value"
-            )
-                ?: return@mapNotNull null
+            val value =
+                getString(
+                    pid,
+                    "value"
+                )
+                    ?: return@mapNotNull null
 
             when (scheme) {
                 "doi" ->
@@ -553,9 +596,10 @@ object OpenAireResearchProductClient {
         obj: JsonObject,
         field: String
     ): List<String> {
-        val array = obj[field]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val array =
+            obj[field]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return array.mapNotNull { item ->
             item
@@ -567,14 +611,16 @@ object OpenAireResearchProductClient {
     private fun extractInstanceUrls(
         obj: JsonObject
     ): List<String> {
-        val instances = obj["instances"]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val instances =
+            obj["instances"]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return instances.flatMap { item ->
-            val instance = item
-                .asJsonObjectOrNull()
-                ?: return@flatMap emptyList()
+            val instance =
+                item
+                    .asJsonObjectOrNull()
+                    ?: return@flatMap emptyList()
 
             extractStringArray(
                 instance,
@@ -586,14 +632,16 @@ object OpenAireResearchProductClient {
     private fun extractInstancePids(
         obj: JsonObject
     ): List<String> {
-        val instances = obj["instances"]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val instances =
+            obj["instances"]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return instances.flatMap { item ->
-            val instance = item
-                .asJsonObjectOrNull()
-                ?: return@flatMap emptyList()
+            val instance =
+                item
+                    .asJsonObjectOrNull()
+                    ?: return@flatMap emptyList()
 
             val pids =
                 instance["pids"]
@@ -609,14 +657,16 @@ object OpenAireResearchProductClient {
     private fun extractInstanceAlternateIdentifiers(
         obj: JsonObject
     ): List<String> {
-        val instances = obj["instances"]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val instances =
+            obj["instances"]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return instances.flatMap { item ->
-            val instance = item
-                .asJsonObjectOrNull()
-                ?: return@flatMap emptyList()
+            val instance =
+                item
+                    .asJsonObjectOrNull()
+                    ?: return@flatMap emptyList()
 
             val alternateIdentifiers =
                 instance["alternateIdentifiers"]
@@ -700,9 +750,10 @@ object OpenAireResearchProductClient {
     private fun extractSubjects(
         obj: JsonObject
     ): List<String> {
-        val subjects = obj["subjects"]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val subjects =
+            obj["subjects"]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return subjects
             .mapNotNull { element ->
@@ -734,9 +785,10 @@ object OpenAireResearchProductClient {
         obj: JsonObject,
         expectedScheme: String
     ): List<String> {
-        val subjects = obj["subjects"]
-            ?.asJsonArrayOrNull()
-            ?: return emptyList()
+        val subjects =
+            obj["subjects"]
+                ?.asJsonArrayOrNull()
+                ?: return emptyList()
 
         return subjects
             .mapNotNull { element ->
@@ -756,7 +808,8 @@ object OpenAireResearchProductClient {
                     )
                         ?: return@mapNotNull null
 
-                if (!scheme.equals(
+                if (
+                    !scheme.equals(
                         expectedScheme,
                         ignoreCase = true
                     )
