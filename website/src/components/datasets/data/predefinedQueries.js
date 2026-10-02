@@ -7,7 +7,7 @@ import { defaultOplOutputFields } from './oplQueryOptions.js'
  *
  * Cada query identifica a respetiva fonte:
  * - OPENAIRE: research products obtidos através da OpenAIRE;
- * - OPL: problemas de otimização existentes na ontologia;
+ * - OPL: problems, suites and generators obtained from the official OPL catalogue;
  * - BBOB: fonte a implementar posteriormente.
  *
  * O frontend filtra esta lista de acordo com a fonte selecionada.
@@ -368,6 +368,7 @@ export const predefinedQueriesDatasets = [
   sort: [],
 
   selectedFields: [
+    'source',
     'type',
     'title',
     'publicationDate',
@@ -388,7 +389,7 @@ export const predefinedQueriesDatasets = [
 },
 
   /**
-   * Query OPL usada como exemplo da pesquisa direta na ontologia.
+   * Query OPL usada como exemplo da pesquisa direta no catálogo oficial OpenOptimizationOrg/OPL.
    */
   {
     id: 'opl-bbob-single-objective',

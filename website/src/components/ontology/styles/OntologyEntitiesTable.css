@@ -1,0 +1,130 @@
+.table-toolbar {
+  display: flex;
+  /* justify-content: space-between; */
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  /* justify-content: flex-end; */
+  /* margin-top: 1rem;   */
+}
+
+.entity-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1rem;
+}
+
+.detail-row strong {
+  color: var(--text-color);
+}
+
+.detail-row span {
+  color: var(--text-color-secondary);
+  line-height: 1.5;
+}
+
+/* css mostrar um resumo das entidades */
+
+.entity-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.entity-name {
+  font-weight: 700;
+  color: #f36b21;
+}
+
+.summary-card {
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--surface-50);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+  border-color: #f36b21;
+  background: #fff7ed;
+  transform: translateY(-1px);
+}
+.summary-card span {
+  display: block;
+  color: var(--text-color-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.summary-card strong {
+  font-size: 1.4rem;
+  color: var(--text-color);
+}
+
+.summary-card.active {
+  border-color: #f36b21;
+  background: #fff0e8;
+  box-shadow: 0 6px 14px rgba(243, 107, 33, 0.12);
+}
+
+.summary-card.active span {
+  color: #b9470d;
+}
+
+.summary-card.active strong {
+  color: #f36b21;
+}
+
+@media (max-width: 1100px) {
+  .entity-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*iltro não encontra resultados.*/
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-color-secondary);
+}
+
+.empty-state i {
+  font-size: 2rem;
+  color: #f36b21;
+}
+
+.empty-state strong {
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+.filter-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #b9470d;
+  border: 1px solid #fed7aa;
+}
+
+.filter-alert i {
+  color: #f36b21;
+}

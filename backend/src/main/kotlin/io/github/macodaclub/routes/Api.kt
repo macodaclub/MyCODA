@@ -22,8 +22,8 @@ fun Routing.apiRoutes(
     datasetRoutes()
     datasetVocabularyRoutes()
 
-    oplDatasetRoutes(ontologyManager)
-    hybridDatasetRoutes(ontologyManager)
+    oplDatasetRoutes()
+    hybridDatasetRoutes()
     ontologyGraphRoutes(ontologyManager)
 
     if (appEnvironment == AppEnvironment.PRD) {
