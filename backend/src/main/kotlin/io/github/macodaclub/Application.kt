@@ -24,12 +24,12 @@ fun Application.module() {
         val ghRepo = configureGithub()
 
         configureRouting(
-            ontologyManager,
-            ghRepo
+            ontologyManager = ontologyManager,
+            ghRepo = ghRepo
         )
     } else {
         configureRouting(
-            ontologyManager
+            ontologyManager = ontologyManager
         )
     }
 }

@@ -19,9 +19,14 @@ fun Application.configureRouting(
         ontologyBrowseRedirectionRoutes()
 
         if (appEnvironment == AppEnvironment.PRD) {
-            apiRoutes(ontologyManager, ghRepo!!)
+            apiRoutes(
+                ontologyManager = ontologyManager,
+                ghRepo = ghRepo
+            )
         } else {
-            apiRoutes(ontologyManager)
+            apiRoutes(
+                ontologyManager = ontologyManager
+            )
         }
     }
 }

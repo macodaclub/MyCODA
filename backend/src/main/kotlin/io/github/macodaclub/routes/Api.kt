@@ -27,7 +27,18 @@ fun Routing.apiRoutes(
     ontologyGraphRoutes(ontologyManager)
 
     if (appEnvironment == AppEnvironment.PRD) {
-        articleSubmissionRoutes(ontologyManager, ghRepo!!)
+        if (ghRepo != null) {
+            articleSubmissionRoutes(
+                ontologyManager,
+                ghRepo
+            )
+        } else {
+            println(
+                "WARNING: GitHub integration unavailable. " +
+                "Article submission routes will not be enabled."
+            )
+        }
+
         curatorRoutes(ontologyManager)
     }
 }
