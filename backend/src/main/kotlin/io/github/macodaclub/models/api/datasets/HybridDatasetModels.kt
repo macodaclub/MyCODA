@@ -2,6 +2,9 @@ package io.github.macodaclub.models.api.datasets
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Pedido de pesquisa híbrida OpenAIRE + OPL.
+ */
 @Serializable
 data class HybridDatasetSearchRequest(
     val criteria: List<DatasetSearchCriterion>,
@@ -12,41 +15,28 @@ data class HybridDatasetSearchRequest(
 )
 
 /**
- * Linha da pesquisa OpenAIRE + OPL.
+ * Resultado associado entre um research product OpenAIRE
+ * e um problema existente na OPL.
  *
- * O fluxo Node-RED ativo concatena os resultados das duas fontes; não exige
- * que um registo OpenAIRE tenha uma correspondência OPL. Por isso cada linha
- * identifica a sua fonte e preenche apenas os campos dessa fonte.
+ * Os campos OpenAIRE e OPL permanecem separados semanticamente,
+ * apesar de serem devolvidos na mesma linha.
  */
 @Serializable
 data class HybridDatasetResult(
     val id: String,
-    val source: DatasetSourceType,
 
     // OpenAIRE
-    val openAireId: String? = null,
-    val type: String? = null,
-    val instanceType: String? = null,
-    val title: String? = null,
-    val abstract: String? = null,
-    val subjects: List<String> = emptyList(),
-    val authors: String? = null,
-    val authorDetails: List<DatasetAuthor> = emptyList(),
-    val publicationDate: String? = null,
+    val openAireId: String,
+    val type: String,
+    val title: String,
+    val authors: String,
+    val publicationDate: String,
     val publisher: String? = null,
-    val scientificEvent: String? = null,
     val citations: Int? = null,
-    val influenceClass: String? = null,
-    val popularityClass: String? = null,
-    val impulseClass: String? = null,
-    val citationCountClass: String? = null,
     val relatedMaterials: String? = null,
-    val countryCode: String? = null,
-    val sdg: List<String> = emptyList(),
-    val fos: List<String> = emptyList(),
 
     // OPL
-    val oplId: String? = null,
+    val oplId: String,
     val oplName: String? = null,
     val oplLongName: String? = null,
     val oplDescription: String? = null,
@@ -55,31 +45,22 @@ data class HybridDatasetResult(
     val oplVariableDimensions: List<String> = emptyList(),
     val oplConstraintTypes: List<String> = emptyList(),
     val oplNumberOfConstraints: List<String> = emptyList(),
-    val oplConstraintHardness: List<String> = emptyList(),
-    val oplConstraintEquality: List<String> = emptyList(),
     val oplModality: String? = null,
     val oplNoiseType: String? = null,
     val oplType: String? = null,
-    val oplProblemSources: List<String> = emptyList(),
-    val oplDynamicTypes: List<String> = emptyList(),
-    val oplFidelityLevels: List<String> = emptyList(),
-    val oplEvaluationTimes: List<String> = emptyList(),
-    val oplProblems: List<String> = emptyList(),
-    val oplInstances: List<String> = emptyList(),
-    val oplCodeExamples: List<String> = emptyList(),
-    val oplImplementationIds: List<String> = emptyList(),
-    val oplImplementationNames: List<String> = emptyList(),
-    val oplImplementationLinks: List<String> = emptyList(),
-    val oplImplementationLanguages: List<String> = emptyList(),
-    val oplImplementationEvaluationTimes: List<String> = emptyList(),
-    val oplTags: List<String> = emptyList(),
-    val oplAllowsPartialEvaluation: String? = null,
-    val oplCanEvaluateObjectivesIndependently: String? = null,
     val oplAuthors: List<String> = emptyList(),
     val oplReferenceTitles: List<String> = emptyList(),
     val oplLinks: List<String> = emptyList()
 )
 
+/**
+ * Resposta da pesquisa híbrida.
+ *
+ * results contém as linhas OpenAIRE + OPL já associadas.
+ *
+ * openAire e opl são mantidos temporariamente para permitir
+ * análise e compatibilidade durante a migração do frontend.
+ */
 @Serializable
 data class HybridDatasetSearchResponse(
     val page: Int,

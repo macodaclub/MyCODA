@@ -48,7 +48,6 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.6")
     implementation("org.codehaus.janino:janino:3.1.12")
     implementation("io.ktor:ktor-server-config-yaml")
-    implementation("org.yaml:snakeyaml:2.3")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-auth")
     implementation("io.ktor:ktor-server-caching-headers")

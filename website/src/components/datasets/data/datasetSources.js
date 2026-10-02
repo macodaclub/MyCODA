@@ -22,6 +22,9 @@ export const datasetSourceOptions = [
 /**
  * Valor guardado pelo Select de critérios.
  *
+ * Em pesquisas simples o field é suficiente. Em HYBRID é necessário
+ * preservar também a fonte para evitar colisões entre campos com o mesmo
+ * nome (por exemplo type e authors).
  */
 export function getCriterionSelection(source, field, querySource) {
   if (!field) {

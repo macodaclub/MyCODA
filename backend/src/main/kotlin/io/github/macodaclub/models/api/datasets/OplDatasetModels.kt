@@ -2,6 +2,9 @@ package io.github.macodaclub.models.api.datasets
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Pedido enviado pelo frontend para pesquisar problemas OPL.
+ */
 @Serializable
 data class OplDatasetSearchRequest(
     val criteria: List<OplDatasetSearchCriterion> = emptyList(),
@@ -11,6 +14,9 @@ data class OplDatasetSearchRequest(
     val sortOrder: String? = null
 )
 
+/**
+ * Critério individual da pesquisa OPL.
+ */
 @Serializable
 data class OplDatasetSearchCriterion(
     val field: String,
@@ -19,10 +25,7 @@ data class OplDatasetSearchCriterion(
 )
 
 /**
- * Entidade pesquisável da OPL oficial (problem, suite ou generator).
- *
- * source identifica a origem técnica do registo; problemSources representa
- * o campo `source` do problems.yaml (por exemplo artificial / real-world).
+ * Resultado de um problema de otimização da OPL.
  */
 @Serializable
 data class OplDatasetResult(
@@ -35,32 +38,18 @@ data class OplDatasetResult(
     val variableDimensions: List<String> = emptyList(),
     val constraintTypes: List<String> = emptyList(),
     val numberOfConstraints: List<String> = emptyList(),
-    val constraintHardness: List<String> = emptyList(),
-    val constraintEquality: List<String> = emptyList(),
     val modality: String? = null,
     val noiseType: String? = null,
     val type: String? = null,
     val source: String = "OPL",
-    val problemSources: List<String> = emptyList(),
-    val dynamicTypes: List<String> = emptyList(),
-    val fidelityLevels: List<String> = emptyList(),
-    val evaluationTimes: List<String> = emptyList(),
-    val problems: List<String> = emptyList(),
-    val instances: List<String> = emptyList(),
-    val codeExamples: List<String> = emptyList(),
-    val implementationIds: List<String> = emptyList(),
-    val implementationNames: List<String> = emptyList(),
-    val implementationLinks: List<String> = emptyList(),
-    val implementationLanguages: List<String> = emptyList(),
-    val implementationEvaluationTimes: List<String> = emptyList(),
-    val tags: List<String> = emptyList(),
-    val allowsPartialEvaluation: String? = null,
-    val canEvaluateObjectivesIndependently: String? = null,
     val authors: List<String> = emptyList(),
     val referenceTitles: List<String> = emptyList(),
     val links: List<String> = emptyList()
 )
 
+/**
+ * Resposta devolvida para o frontend.
+ */
 @Serializable
 data class OplDatasetSearchResponse(
     val page: Int,
@@ -68,6 +57,5 @@ data class OplDatasetSearchResponse(
     val totalResults: Int,
     val hasNextPage: Boolean,
     val results: List<OplDatasetResult>,
-    val warnings: List<String> = emptyList(),
-    val sourceUrl: String? = null
+    val warnings: List<String> = emptyList()
 )

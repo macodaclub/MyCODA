@@ -12,16 +12,35 @@ import Clipboard from '@/components/Clipboard.vue'
 import OntologyGraph from '@/components/ontology/OntologyGraph.vue'
 
 const props = defineProps({
-  usesRouter: { type: Boolean, default: false },
-  initialSelectedIri: { type: [String, null], default: null },
-  initialSelectedEntityType: { type: [String, null], default: 'Class' },
-  allowEdits: { type: Boolean, default: false },
+  usesRouter: {
+    type: Boolean,
+    default: false,
+  },
+  initialSelectedIri: {
+    type: [String, null],
+    default: null,
+  },
+  initialSelectedEntityType: {
+    type: [String, null],
+    default: 'Class',
+  },
+  allowEdits: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const router = useRouter()
 const route = useRoute()
 const ontologyStore = useOntologyStore()
-const { fetchOntologyInfo, fetchTaxonomyTree, fetchExpandedTaxonomyTree, fetchSelectedTaxonomyTree, fetchEntityInfo } = ontologyStore
+
+const {
+  fetchOntologyInfo,
+  fetchTaxonomyTree,
+  fetchExpandedTaxonomyTree,
+  fetchSelectedTaxonomyTree,
+  fetchEntityInfo,
+} = ontologyStore
 
 const ontologyInfo = ref(null)
 const taxonomyTree = ref(null)
@@ -32,13 +51,25 @@ const selectedEntityInfo = ref(null)
 const showGraph = ref(false)
 
 const entityTypesWithCounts = computed(() => [
-  { value: 'Class', label: `Classes${ontologyInfo.value === null ? '' : ` (${ontologyInfo.value.counts.classes})`}` },
-  { value: 'Property', label: `Properties${ontologyInfo.value === null ? '' : ` (${ontologyInfo.value.counts.properties})`}` },
-  { value: 'Individual', label: `Individuals${ontologyInfo.value === null ? '' : ` (${ontologyInfo.value.counts.individuals})`}` },
+  {
+    value: 'Class',
+    label: `Classes${ontologyInfo.value === null ? '' : ` (${ontologyInfo.value.counts.classes})`}`,
+  },
+  {
+    value: 'Property',
+    label: `Properties${ontologyInfo.value === null ? '' : ` (${ontologyInfo.value.counts.properties})`}`,
+  },
+  {
+    value: 'Individual',
+    label: `Individuals${ontologyInfo.value === null ? '' : ` (${ontologyInfo.value.counts.individuals})`}`,
+  },
 ])
 
 const infoPanelTitle = computed(() => {
-  if (selectedIri.value && selectedEntityType.value) return `${selectedEntityType.value} Information`
+  if (selectedIri.value && selectedEntityType.value) {
+    return `${selectedEntityType.value} Information`
+  }
+
   return 'Ontology Information'
 })
 
@@ -50,103 +81,50 @@ onMounted(async () => {
     return
   }
 
-  if (selectedIri.value != null) await selectEntity(selectedIri.value, selectedEntityType.value)
-  else await deselectEntity(selectedEntityType.value)
+  if (selectedIri.value != null) {
+    await selectEntity(selectedIri.value, selectedEntityType.value)
+  } else {
+    await deselectEntity(selectedEntityType.value)
+  }
 })
 
 if (props.usesRouter) {
-  watch(() => route.fullPath, async fullPath => {
-    await selectEntityFromPath(fullPath)
+  watch(route, async to => {
+    expandedKeys.value = {}
+    await selectEntityFromPath(to.fullPath)
   })
 }
 
-async function loadAllTaxonomyRoots(type) {
-  let tree = await fetchTaxonomyTree([], type)
-  if (!Array.isArray(tree)) return []
-
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const previousLength = tree.length
-    const nextTree = await fetchTaxonomyTree(tree, type)
-    if (!Array.isArray(nextTree) || nextTree.length <= previousLength) break
-    tree = nextTree
-  }
-
-  return tree
-}
-
 async function onTreeNodeExpand(node) {
-  const directChildrenCount = node.data?.directChildrenCount ?? 0
-  if (directChildrenCount === 0) return
+  if (
+    node.children === undefined ||
+    node.children.length < node.data.directChildrenCount
+  ) {
+    node.loading = true
 
-  node.loading = true
-
-  try {
-    for (let attempt = 0; attempt < directChildrenCount + 1; attempt += 1) {
-      const previousLength = node.children?.length ?? 0
-      if (previousLength >= directChildrenCount) break
-
-      const children = await fetchExpandedTaxonomyTree(node)
-      if (!Array.isArray(children)) break
-
-      node.children = children
-      if (node.children.length <= previousLength) break
+    try {
+      node.children = await fetchExpandedTaxonomyTree(node)
+    } finally {
+      node.loading = false
     }
-  } finally {
-    node.loading = false
   }
 }
 
-function collectExpandedKeys(tree) {
-  const keys = {}
-  const stack = [...(tree ?? [])]
-
-  while (stack.length > 0) {
-    const currentNode = stack.pop()
-
-    if (currentNode?.children?.length) {
-      keys[currentNode.key] = true
-      stack.push(...currentNode.children)
-    }
-  }
-
-  return keys
-}
-
-function mergeTaxonomyTrees(currentTree = [], selectedTree = []) {
-  const mergeNodes = (currentNodes = [], incomingNodes = []) => {
-    const merged = [...currentNodes]
-    const indexByKey = new Map(merged.map((node, index) => [node.key, index]))
-
-    for (const incomingNode of incomingNodes) {
-      const existingIndex = indexByKey.get(incomingNode.key)
-
-      if (existingIndex === undefined) {
-        indexByKey.set(incomingNode.key, merged.length)
-        merged.push(incomingNode)
-        continue
-      }
-
-      const existingNode = merged[existingIndex]
-      const hasChildren = existingNode.children !== undefined || incomingNode.children !== undefined
-
-      merged[existingIndex] = {
-        ...existingNode,
-        ...incomingNode,
-        ...(hasChildren ? { children: mergeNodes(existingNode.children ?? [], incomingNode.children ?? []) } : {}),
-      }
-    }
-
-    return merged
-  }
-
-  return mergeNodes(currentTree ?? [], selectedTree ?? [])
+async function onTreeRootExpand() {
+  taxonomyTree.value = await fetchTaxonomyTree(
+    taxonomyTree.value,
+    selectedEntityType.value,
+  )
 }
 
 async function onSelectEntity(iri, type) {
   if (!iri) return
 
   if (props.usesRouter) {
-    await router.push({ path: '/browse', query: { iri, type } })
+    await router.push({
+      path: '/browse',
+      query: { iri, type },
+    })
     return
   }
 
@@ -164,54 +142,60 @@ async function selectEntityFromPath(path) {
 
   const typeParam = queryParams.find(value => value.name === 'type')
   const iriParam = queryParams.find(value => value.name === 'iri')
-  const type = typeParam?.value ?? selectedEntityType.value
 
-  if (iriParam) await selectEntity(decodeURIComponent(iriParam.value), type)
-  else await deselectEntity(type)
+  const type = typeParam?.value ?? selectedEntityType.value
+  selectedEntityType.value = type
+
+  if (iriParam) {
+    await selectEntity(decodeURIComponent(iriParam.value), type)
+  } else {
+    await deselectEntity(type)
+  }
 }
 
 async function selectEntity(iri, requestedType) {
-  const previousType = selectedEntityType.value
   const result = await fetchSelectedTaxonomyTree(iri, requestedType)
   if (!result) return
 
   const { tree, type } = result
-  const typeChanged = previousType !== type
-  let baseTree = taxonomyTree.value
+  const expandedKeysObj = {}
+  const stack = [...tree]
 
-  if (!Array.isArray(baseTree) || typeChanged) baseTree = await loadAllTaxonomyRoots(type)
+  while (stack.length > 0) {
+    const currentObj = stack.pop()
 
-  taxonomyTree.value = mergeTaxonomyTrees(baseTree, tree)
+    if (currentObj.children?.length) {
+      expandedKeysObj[currentObj.key] = true
+      stack.push(...currentObj.children)
+    }
+  }
 
-  const pathExpandedKeys = collectExpandedKeys(tree)
-  expandedKeys.value = { ...(typeChanged ? {} : expandedKeys.value), ...pathExpandedKeys }
-
+  taxonomyTree.value = tree
+  expandedKeys.value = expandedKeysObj
   selectedIri.value = iri
   selectedEntityType.value = type
   selectedEntityInfo.value = await fetchEntityInfo(iri, type)
 }
 
 async function deselectEntity(type) {
-  const typeChanged = selectedEntityType.value !== type
-
   selectedIri.value = null
   selectedEntityInfo.value = null
-  selectedEntityType.value = type
-
-  if (typeChanged) expandedKeys.value = {}
-  taxonomyTree.value = await loadAllTaxonomyRoots(type)
+  expandedKeys.value = {}
+  taxonomyTree.value = await fetchTaxonomyTree([], type)
 }
 
 async function onSelectEntityType({ value }) {
   const type = value
-
   selectedIri.value = null
   selectedEntityInfo.value = null
   expandedKeys.value = {}
   showGraph.value = false
 
   if (props.usesRouter) {
-    await router.push({ path: '/browse', query: { type } })
+    await router.push({
+      path: '/browse',
+      query: { type },
+    })
     return
   }
 
@@ -227,20 +211,32 @@ function closeGraph() {
 }
 
 async function onSelectGraphEntity(iri, type) {
-  if (!iri || type === 'Datatype' || type === 'Literal' || type === 'AnnotationValue') return
+  if (
+    !iri ||
+    type === 'Datatype' ||
+    type === 'Literal' ||
+    type === 'AnnotationValue'
+  ) {
+    return
+  }
 
   await onSelectEntity(iri, type)
   showGraph.value = true
 }
 
-defineExpose({ selectEntity })
+defineExpose({
+  selectEntity,
+})
 </script>
 
 <template>
   <div class="root">
     <div class="taxonomy-tree-panel">
       <div class="tree-header">
-        <RouterLink to="/browse"><h4 class="font-semibold text-lg">MyCODA Ontology</h4></RouterLink>
+        <RouterLink to="/browse">
+          <h4 class="font-semibold text-lg">MyCODA Ontology</h4>
+        </RouterLink>
+
         <SelectButton
           v-model="selectedEntityType"
           :options="entityTypesWithCounts"
@@ -253,27 +249,71 @@ defineExpose({ selectEntity })
       </div>
 
       <Tree
-        v-model:expandedKeys="expandedKeys"
         :value="taxonomyTree"
+        :expanded-keys="expandedKeys"
         loading-mode="icon"
         pt:root:class="overflow-auto"
         @node-expand="onTreeNodeExpand"
         @node-select.prevent
       >
         <template #default="{ node }">
-          <a :href="node.data.iri" :class="{ 'selected-entity': node.data.iri === selectedIri }" @click.prevent="onSelectEntity(node.data.iri, node.data.type)">
+          <a
+            :href="node.data.iri"
+            :class="{ 'selected-entity': node.data.iri === selectedIri }"
+            @click.prevent="onSelectEntity(node.data.iri, node.data.type)"
+          >
             {{ node.label }}
           </a>
-          <span v-if="!node.leaf" class="tree-children-count">({{ node.data.allChildrenCount }})</span>
+
+          <span v-if="!node.leaf" class="tree-children-count">
+            ({{ node.data.allChildrenCount }})
+          </span>
+
+          <Button
+            v-if="
+              node.children &&
+              node.data.directChildrenCount > node.children.length &&
+              expandedKeys &&
+              expandedKeys[node.key] === true
+            "
+            size="small"
+            label="…"
+            severity="secondary"
+            outlined
+            style="margin-left: 6px; padding: 0.1rem 0.3rem"
+            @click="onTreeNodeExpand(node)"
+          />
         </template>
       </Tree>
+
+      <Button
+        v-if="taxonomyTree && taxonomyTree.length === 1"
+        size="small"
+        label="…"
+        severity="secondary"
+        outlined
+        style="margin-left: 1.7rem; margin-bottom: 1.5rem; padding: 0.1rem 0.3rem"
+        @click="onTreeRootExpand"
+      />
     </div>
 
     <div class="info-panel">
       <div v-if="showGraph" class="graph-panel-content">
-        <div class="graph-panel-actions">
-          <Button label="Close graph" icon="pi pi-times" size="small" severity="secondary" outlined @click="closeGraph" />
+        <div class="graph-panel-header">
+          <h4 class="font-semibold text-lg">
+            {{ selectedEntityInfo?.entity?.label ?? 'Ontology Graph' }}
+          </h4>
+
+          <Button
+            label="Close graph"
+            icon="pi pi-times"
+            size="small"
+            severity="secondary"
+            outlined
+            @click="closeGraph"
+          />
         </div>
+
         <OntologyGraph
           :selected-iri="selectedIri"
           :selected-entity-info="selectedEntityInfo"
@@ -285,18 +325,51 @@ defineExpose({ selectEntity })
       <template v-else>
         <div class="info-panel-title flex flex-row flex-wrap place-content-between items-center gap-2">
           <h4 class="font-semibold text-lg">{{ infoPanelTitle }}</h4>
+
           <div class="info-panel-actions">
-            <Button label="View graph" icon="pi pi-sitemap" size="small" severity="secondary" @click="openGraph" />
+            <Button
+              label="View graph"
+              icon="pi pi-sitemap"
+              size="small"
+              severity="secondary"
+              @click="openGraph"
+            />
+
+            <Clipboard v-if="selectedIri" v-slot="{ copy, copied }" :text="selectedIri">
+              <Button
+                :label="copied ? 'Copied IRI' : 'Copy IRI'"
+                :icon="copied ? 'pi pi-check' : 'pi pi-clipboard'"
+                size="small"
+                outlined
+                severity="secondary"
+                @click="copy()"
+              />
+            </Clipboard>
           </div>
         </div>
 
-        <div class="header-divider"><Divider layout="horizontal" align="center" /></div>
+        <div class="header-divider">
+          <Divider layout="horizontal" align="center" />
+        </div>
 
         <div class="info-fields">
           <template v-if="ontologyInfo && selectedIri === null">
-            <div v-for="annotation in ontologyInfo.annotations" :key="`${annotation.property}-${annotation.value}`" class="info-field">
+            <div
+              v-for="annotation in ontologyInfo.annotations"
+              :key="`${annotation.property}-${annotation.value}`"
+              class="info-field"
+            >
               <h4 class="capitalize font-semibold">{{ annotation.property }}</h4>
-              <a v-if="annotation.value.startsWith('http')" :href="annotation.value" target="_blank" rel="noopener noreferrer">{{ annotation.value }}</a>
+
+              <a
+                v-if="annotation.value.startsWith('http')"
+                :href="annotation.value"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ annotation.value }}
+              </a>
+
               <p v-else>{{ annotation.value }}</p>
             </div>
           </template>
@@ -307,8 +380,15 @@ defineExpose({ selectEntity })
               <p>{{ selectedEntityInfo.comment }}</p>
             </div>
 
-            <div v-if="selectedEntityInfo.entity.type === 'Class' && selectedEntityInfo.classInfo?.equivalentClasses?.length" class="info-field">
+            <div
+              v-if="
+                selectedEntityInfo.entity.type === 'Class' &&
+                selectedEntityInfo.classInfo?.equivalentClasses?.length
+              "
+              class="info-field"
+            >
               <h4 class="capitalize font-semibold">Synonyms</h4>
+
               <a
                 v-for="equivalentClass in selectedEntityInfo.classInfo.equivalentClasses"
                 :key="equivalentClass.iri"
@@ -319,18 +399,39 @@ defineExpose({ selectEntity })
               </a>
             </div>
 
-            <div v-if="selectedEntityInfo.annotations?.length" class="info-field">
+            <div
+              v-if="selectedEntityInfo.annotations?.length"
+              class="info-field"
+            >
               <h4 class="capitalize font-semibold">Annotations</h4>
-              <DataTable :value="selectedEntityInfo.annotations" striped-rows pt:root:class="mt-2">
+
+              <DataTable
+                :value="selectedEntityInfo.annotations"
+                striped-rows
+                pt:root:class="mt-2"
+              >
                 <Column field="property" header="Property">
                   <template #body="{ data }">
-                    <a :href="data.property.iri" class="font-medium" @click.prevent>{{ data.property.label }}</a>
+                    <a :href="data.property.iri" class="font-medium" @click.prevent>
+                      {{ data.property.label }}
+                    </a>
                   </template>
                 </Column>
+
                 <Column field="values" header="Value(s)">
                   <template #body="{ data }">
                     <template v-for="(entity, index) in data.values" :key="`${entity.iri ?? entity.label}-${index}`">
-                      <a :href="entity.iri" @click.prevent="entity.type !== 'Datatype' ? onSelectEntity(entity.iri, entity.type) : undefined">{{ entity.label }}</a>
+                      <a
+                        :href="entity.iri"
+                        @click.prevent="
+                          entity.type !== 'Datatype'
+                            ? onSelectEntity(entity.iri, entity.type)
+                            : undefined
+                        "
+                      >
+                        {{ entity.label }}
+                      </a>
+
                       <span v-if="index < data.values.length - 1" class="font-medium">, </span>
                     </template>
                   </template>
@@ -338,9 +439,20 @@ defineExpose({ selectEntity })
               </DataTable>
             </div>
 
-            <template v-if="selectedEntityInfo.entity.type === 'Individual' && selectedEntityInfo.individualInfo">
-              <div v-if="selectedEntityInfo.individualInfo.types?.length" class="info-field">
-                <h4 class="capitalize font-semibold">Type{{ selectedEntityInfo.individualInfo.types.length > 1 ? 's' : '' }}</h4>
+            <template
+              v-if="
+                selectedEntityInfo.entity.type === 'Individual' &&
+                selectedEntityInfo.individualInfo
+              "
+            >
+              <div
+                v-if="selectedEntityInfo.individualInfo.types?.length"
+                class="info-field"
+              >
+                <h4 class="capitalize font-semibold">
+                  Type{{ selectedEntityInfo.individualInfo.types.length > 1 ? 's' : '' }}
+                </h4>
+
                 <a
                   v-for="type in selectedEntityInfo.individualInfo.types"
                   :key="type.iri"
@@ -351,18 +463,43 @@ defineExpose({ selectEntity })
                 </a>
               </div>
 
-              <div v-if="selectedEntityInfo.individualInfo.properties?.length" class="info-field">
+              <div
+                v-if="selectedEntityInfo.individualInfo.properties?.length"
+                class="info-field"
+              >
                 <h4 class="capitalize font-semibold">Properties</h4>
-                <DataTable :value="selectedEntityInfo.individualInfo.properties" striped-rows pt:root:class="mt-2">
+
+                <DataTable
+                  :value="selectedEntityInfo.individualInfo.properties"
+                  striped-rows
+                  pt:root:class="mt-2"
+                >
                   <Column field="property" header="Property">
                     <template #body="{ data }">
-                      <a :href="data.property.iri" class="font-medium" @click.prevent="onSelectEntity(data.property.iri, 'Property')">{{ data.property.label }}</a>
+                      <a
+                        :href="data.property.iri"
+                        class="font-medium"
+                        @click.prevent="onSelectEntity(data.property.iri, 'Property')"
+                      >
+                        {{ data.property.label }}
+                      </a>
                     </template>
                   </Column>
+
                   <Column field="values" header="Value(s)">
                     <template #body="{ data }">
                       <template v-for="(entity, index) in data.values" :key="`${entity.iri ?? entity.label}-${index}`">
-                        <a :href="entity.iri" @click.prevent="entity.type !== 'Datatype' ? onSelectEntity(entity.iri, entity.type) : undefined">{{ entity.label }}</a>
+                        <a
+                          :href="entity.iri"
+                          @click.prevent="
+                            entity.type !== 'Datatype'
+                              ? onSelectEntity(entity.iri, entity.type)
+                              : undefined
+                          "
+                        >
+                          {{ entity.label }}
+                        </a>
+
                         <span v-if="index < data.values.length - 1" class="font-medium">, </span>
                       </template>
                     </template>
@@ -371,17 +508,38 @@ defineExpose({ selectEntity })
               </div>
             </template>
 
-            <template v-if="selectedEntityInfo.entity.type === 'Property' && selectedEntityInfo.propertyInfo">
+            <template
+              v-if="
+                selectedEntityInfo.entity.type === 'Property' &&
+                selectedEntityInfo.propertyInfo
+              "
+            >
               <div v-if="selectedEntityInfo.propertyInfo.domain" class="info-field">
                 <h4 class="capitalize font-semibold">Domain</h4>
-                <a :href="selectedEntityInfo.propertyInfo.domain.iri" @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.domain.iri, selectedEntityInfo.propertyInfo.domain.type)">
+                <a
+                  :href="selectedEntityInfo.propertyInfo.domain.iri"
+                  @click.prevent="
+                    onSelectEntity(
+                      selectedEntityInfo.propertyInfo.domain.iri,
+                      selectedEntityInfo.propertyInfo.domain.type,
+                    )
+                  "
+                >
                   {{ selectedEntityInfo.propertyInfo.domain.label }}
                 </a>
               </div>
 
               <div v-if="selectedEntityInfo.propertyInfo.range" class="info-field">
                 <h4 class="capitalize font-semibold">Range</h4>
-                <a :href="selectedEntityInfo.propertyInfo.range.iri" @click.prevent="onSelectEntity(selectedEntityInfo.propertyInfo.range.iri, selectedEntityInfo.propertyInfo.range.type)">
+                <a
+                  :href="selectedEntityInfo.propertyInfo.range.iri"
+                  @click.prevent="
+                    onSelectEntity(
+                      selectedEntityInfo.propertyInfo.range.iri,
+                      selectedEntityInfo.propertyInfo.range.type,
+                    )
+                  "
+                >
                   {{ selectedEntityInfo.propertyInfo.range.label }}
                 </a>
               </div>
@@ -482,9 +640,11 @@ defineExpose({ selectEntity })
   margin: 1.5rem 2rem;
 }
 
-.graph-panel-actions {
+.graph-panel-header {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 @media (max-width: 900px) {

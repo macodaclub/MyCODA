@@ -1,9 +1,8 @@
 package io.github.macodaclub.routes.api
 
 import io.github.macodaclub.models.api.datasets.HybridDatasetSearchRequest
+import io.github.macodaclub.plugins.OntologyManager
 import io.github.macodaclub.services.HybridDatasetSearchService
-import io.github.macodaclub.services.OplSourceTimeoutException
-import io.github.macodaclub.services.OplSourceUnavailableException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.plugins.BadRequestException
@@ -21,7 +20,9 @@ import java.net.http.HttpTimeoutException
  *
  * POST /api/datasets/hybrid/search
  */
-fun Routing.hybridDatasetRoutes() {
+fun Routing.hybridDatasetRoutes(
+    ontologyManager: OntologyManager
+) {
     route("/api") {
         route("/datasets") {
             route("/hybrid") {
@@ -32,6 +33,7 @@ fun Routing.hybridDatasetRoutes() {
 
                         val response =
                             HybridDatasetSearchService.search(
+                                ontologyManager = ontologyManager,
                                 request = request
                             )
 
@@ -64,22 +66,6 @@ fun Routing.hybridDatasetRoutes() {
                                 code = "INVALID_REQUEST_BODY",
                                 message =
                                     "The hybrid dataset search contains invalid fields or values."
-                            )
-                        )
-                    } catch (exception: OplSourceTimeoutException) {
-                        call.respond(
-                            HttpStatusCode.GatewayTimeout,
-                            DatasetErrorResponse(
-                                code = "OPL_TIMEOUT",
-                                message = exception.message ?: "The OPL source did not respond within the expected time."
-                            )
-                        )
-                    } catch (exception: OplSourceUnavailableException) {
-                        call.respond(
-                            HttpStatusCode.BadGateway,
-                            DatasetErrorResponse(
-                                code = "OPL_SOURCE_UNAVAILABLE",
-                                message = exception.message ?: "The OPL source is unavailable."
                             )
                         )
                     } catch (exception: HttpTimeoutException) {

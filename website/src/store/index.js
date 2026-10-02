@@ -7,7 +7,10 @@ import {
 } from '@/utils/owlparser/utils.js';
 import { nonNulls } from '@/utils/utils/utils.js';
 
-
+// You can name the return value of `defineStore()` anything you want,
+// but it's best to use the name of the store and surround it with `use`
+// and `Store` (e.g. `useUserStore`, `useCartStore`, `useProductStore`)
+// the first argument is a unique id of the store across your application
 export const useOntologyStore = defineStore('ontology', () => {
   const backendHost = import.meta.env.DEV
     ? `http://localhost:${import.meta.env.BACKEND_PORT || '8080'}`
@@ -366,31 +369,62 @@ export const useOntologyStore = defineStore('ontology', () => {
         : null
 
     if (!response.ok) {
-      const error = new Error(responseObj?.message ?? `Failed to search OPL datasets. HTTP status: ${response.status}`)
-      error.code = responseObj?.code ?? 'OPL_DATASET_SEARCH_ERROR'
+      const error = new Error(
+        responseObj?.message ??
+        `Failed to search OPL datasets. HTTP status: ${response.status}`
+      )
+
+      error.code =
+        responseObj?.code ?? 'OPL_DATASET_SEARCH_ERROR'
+
       error.status = response.status
+
       throw error
     }
 
     return {
-      page: responseObj?.page ?? request.page ?? 1,
-      pageSize: responseObj?.pageSize ?? request.pageSize ?? 20,
-      totalResults: responseObj?.totalResults ?? 0,
-      hasNextPage: responseObj?.hasNextPage ?? false,
-      results: responseObj?.results ?? [],
-      warnings: responseObj?.warnings ?? [],
-      sourceUrl: responseObj?.sourceUrl ?? null,
+      page:
+        responseObj?.page ??
+        request.page ??
+        1,
+
+      pageSize:
+        responseObj?.pageSize ??
+        request.pageSize ??
+        20,
+
+      totalResults:
+        responseObj?.totalResults ?? 0,
+
+      hasNextPage:
+        responseObj?.hasNextPage ?? false,
+
+      results:
+        responseObj?.results ?? [],
+
+      warnings:
+        responseObj?.warnings ?? [],
     }
   }
 
 
   /**
-   * Executa uma pesquisa combinada OpenAIRE + OPL.
+   * Executa uma pesquisa híbrida OpenAIRE + OPL.
    *
-   * @param {Object} request Pedido da pesquisa combinada.
-   * @param {AbortSignal|null} signal Sinal opcional de cancelamento.
-   * @returns {Promise<Object>} Resposta combinada normalizada.
+   * O backend separa os critérios por fonte e devolve os resultados
+   * agrupados em openAire e opl.
+   *
+   * @param {Object} request Pedido de pesquisa híbrida.
+   * @param {AbortSignal|null} signal Sinal opcional para cancelar o pedido.
+   * @returns {Promise<Object>} Resposta híbrida normalizada.
    */
+ /**
+ * Executa uma pesquisa híbrida OpenAIRE + OPL.
+ *
+ * @param {Object} request Pedido da pesquisa híbrida.
+ * @param {AbortSignal|null} signal Sinal opcional de cancelamento.
+ * @returns {Promise<Object>} Resposta híbrida normalizada.
+ */
 async function searchHybridDatasets(request, signal = null) {
   const url = new URL(
     `${backendHost}/api/datasets/hybrid/search`
@@ -429,13 +463,36 @@ async function searchHybridDatasets(request, signal = null) {
   }
 
   return {
-    page: responseObj?.page ?? request.page ?? 1,
-    pageSize: responseObj?.pageSize ?? request.pageSize ?? 20, totalResults: responseObj?.totalResults ?? 0, hasNextPage: responseObj?.hasNextPage ?? false,
-    selectedFields: responseObj?.selectedFields ?? [],
-    results: responseObj?.results ?? [],
-    openAire: responseObj?.openAire ?? null,
-    opl: responseObj?.opl ?? null,
-    warnings: responseObj?.warnings ?? [],
+    page:
+      responseObj?.page ??
+      request.page ??
+      1,
+
+    pageSize:
+      responseObj?.pageSize ??
+      request.pageSize ??
+      20,
+
+    totalResults:
+      responseObj?.totalResults ?? 0,
+
+    hasNextPage:
+      responseObj?.hasNextPage ?? false,
+
+    selectedFields:
+      responseObj?.selectedFields ?? [],
+
+    results:
+      responseObj?.results ?? [],
+
+    openAire:
+      responseObj?.openAire ?? null,
+
+    opl:
+      responseObj?.opl ?? null,
+
+    warnings:
+      responseObj?.warnings ?? [],
   }
 }
 

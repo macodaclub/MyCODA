@@ -1,9 +1,8 @@
 package io.github.macodaclub.routes.api
 
 import io.github.macodaclub.models.api.datasets.OplDatasetSearchRequest
+import io.github.macodaclub.plugins.OntologyManager
 import io.github.macodaclub.services.OplDatasetSearchService
-import io.github.macodaclub.services.OplSourceTimeoutException
-import io.github.macodaclub.services.OplSourceUnavailableException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.plugins.BadRequestException
@@ -14,42 +13,65 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import kotlinx.serialization.SerializationException
 
-/** POST /api/datasets/opl/search */
-fun Routing.oplDatasetRoutes() {
+/**
+ * Endpoints para pesquisa de problemas
+ * de otimização existentes na OPL.
+ */
+fun Routing.oplDatasetRoutes(
+    ontologyManager: OntologyManager
+) {
     route("/api/datasets/opl") {
+
         post("/search") {
             try {
-                val request = call.receive<OplDatasetSearchRequest>()
-                call.respond(HttpStatusCode.OK, OplDatasetSearchService.search(request))
+                val request =
+                    call.receive<OplDatasetSearchRequest>()
+
+                val response =
+                    OplDatasetSearchService.search(
+                        ontologyManager = ontologyManager,
+                        request = request
+                    )
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    response
+                )
             } catch (exception: IllegalArgumentException) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    DatasetErrorResponse("INVALID_OPL_QUERY", exception.message ?: "The OPL query is invalid.")
+                    DatasetErrorResponse(
+                        code = "INVALID_OPL_QUERY",
+                        message = exception.message
+                            ?: "The OPL query is invalid."
+                    )
                 )
             } catch (exception: BadRequestException) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    DatasetErrorResponse("INVALID_REQUEST_BODY", "The OPL search request body is invalid.")
+                    DatasetErrorResponse(
+                        code = "INVALID_REQUEST_BODY",
+                        message =
+                            "The OPL search request body is invalid."
+                    )
                 )
             } catch (exception: SerializationException) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    DatasetErrorResponse("INVALID_REQUEST_BODY", "The OPL search request contains invalid fields or values.")
-                )
-            } catch (exception: OplSourceTimeoutException) {
-                call.respond(
-                    HttpStatusCode.GatewayTimeout,
-                    DatasetErrorResponse("OPL_TIMEOUT", exception.message ?: "The OPL source timed out.")
-                )
-            } catch (exception: OplSourceUnavailableException) {
-                call.respond(
-                    HttpStatusCode.BadGateway,
-                    DatasetErrorResponse("OPL_SOURCE_UNAVAILABLE", exception.message ?: "The OPL source is unavailable.")
+                    DatasetErrorResponse(
+                        code = "INVALID_REQUEST_BODY",
+                        message =
+                            "The OPL search request contains invalid fields or values."
+                    )
                 )
             } catch (exception: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    DatasetErrorResponse("INTERNAL_OPL_ERROR", exception.message ?: "An unexpected error occurred while searching OPL.")
+                    DatasetErrorResponse(
+                        code = "INTERNAL_OPL_ERROR",
+                        message = exception.message
+                            ?: "An unexpected error occurred while searching OPL."
+                    )
                 )
             }
         }
