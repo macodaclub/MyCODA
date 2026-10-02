@@ -58,12 +58,34 @@ import {
 } from './data/datasetQueryOptions'
 
 const ontologyStore = useOntologyStore()
+const OPL_DEFAULT_SOURCE_URL = 'https://raw.githubusercontent.com/OpenOptimizationOrg/OPL/refs/heads/main/problems.yaml'
 
 const defaultHybridOutputFields = [
   ...new Set([
+    'source',
     ...defaultOutputFields,
     ...defaultHybridOplOutputFields,
   ]),
+]
+
+const additionalOplColumnDefinitions = [
+  { oplField: 'constraintHardness', hybridField: 'oplConstraintHardness', header: 'Constraint hardness' },
+  { oplField: 'constraintEquality', hybridField: 'oplConstraintEquality', header: 'Equality constraints' },
+  { oplField: 'problemSources', hybridField: 'oplProblemSources', header: 'Problem source' },
+  { oplField: 'dynamicTypes', hybridField: 'oplDynamicTypes', header: 'Dynamic type' },
+  { oplField: 'fidelityLevels', hybridField: 'oplFidelityLevels', header: 'Fidelity levels' },
+  { oplField: 'evaluationTimes', hybridField: 'oplEvaluationTimes', header: 'Evaluation times' },
+  { oplField: 'problems', hybridField: 'oplProblems', header: 'Suite problems' },
+  { oplField: 'instances', hybridField: 'oplInstances', header: 'Instances' },
+  { oplField: 'codeExamples', hybridField: 'oplCodeExamples', header: 'Code examples' },
+  { oplField: 'implementationIds', hybridField: 'oplImplementationIds', header: 'Implementation IDs' },
+  { oplField: 'implementationNames', hybridField: 'oplImplementationNames', header: 'Implementations' },
+  { oplField: 'implementationLinks', hybridField: 'oplImplementationLinks', header: 'Implementation links' },
+  { oplField: 'implementationLanguages', hybridField: 'oplImplementationLanguages', header: 'Implementation languages' },
+  { oplField: 'implementationEvaluationTimes', hybridField: 'oplImplementationEvaluationTimes', header: 'Implementation evaluation times' },
+  { oplField: 'tags', hybridField: 'oplTags', header: 'Tags' },
+  { oplField: 'allowsPartialEvaluation', hybridField: 'oplAllowsPartialEvaluation', header: 'Allows partial evaluation' },
+  { oplField: 'canEvaluateObjectivesIndependently', hybridField: 'oplCanEvaluateObjectivesIndependently', header: 'Objectives independently evaluable' },
 ]
 
 const selectedSource = ref(DATASET_SOURCES.OPENAIRE)
@@ -76,6 +98,7 @@ const selectedFields = ref([...defaultOutputFields])
 const results = ref([])
 const errorMessage = ref('')
 const warnings = ref([])
+const oplSourceUrl = ref(null)
 const loading = ref(false)
 
 const currentPage = ref(1)
@@ -118,6 +141,13 @@ const isOplSource = computed(
 
 const isHybridSource = computed(
   () => selectedSource.value === DATASET_SOURCES.HYBRID,
+)
+
+const activeAdditionalOplColumns = computed(() =>
+  additionalOplColumnDefinitions.map(column => ({
+    field: isHybridSource.value ? column.hybridField : column.oplField,
+    header: isHybridSource.value ? `OPL ${column.header}` : column.header,
+  })),
 )
 
 const activePredefinedQueries = computed(() =>
@@ -378,6 +408,7 @@ const activeSortFields = computed(() => {
   if (isHybridSource.value) {
     return [
       { label: 'No sorting', value: '' },
+      { label: 'Result source', value: 'source' },
       ...hybridOpenAireSortFields,
       ...hybridOplSortFields,
     ]
@@ -391,6 +422,7 @@ const activeSortFields = computed(() => {
 const activeOutputFieldOptions = computed(() => {
   if (isHybridSource.value) {
     return [
+      { label: 'Result source', value: 'source' },
       ...hybridOpenAireOutputFieldOptions,
       ...hybridOplOutputFieldOptions,
     ]
@@ -425,11 +457,11 @@ const resultsHeading = computed(() => {
 
 const criteriaNote = computed(() => {
   if (isHybridSource.value) {
-    return 'Filter criteria are combined using AND. Repeated values for the same filter are combined using OR. For OpenAIRE, Exclude is supported only for title and keywords; OPL supports Include/Exclude for all exposed fields.'
+    return 'Criteria are applied independently to OpenAIRE and OPL. The two result sets are then combined in one table, following the active Node-RED flow. Repeated INCLUDE values for the same filter are combined using OR.'
   }
 
   if (isOplSource.value) {
-    return 'Filter criteria are combined using AND. Repeated values for the same filter are combined using OR. Include/Exclude is supported for the exposed OPL fields.'
+    return 'Filter criteria are combined using AND. Repeated INCLUDE values for the same filter are combined using OR. OPL results are loaded from the official external OPL catalogue, not from the MyCODA ontology.'
   }
 
   return 'Filter criteria are combined using AND. Repeated values for the same filter are combined using OR. Exclude is supported only for title and keywords.'
@@ -541,12 +573,47 @@ function createEmptyResultFilters() {
     source: { value: null, matchMode: 'contains' },
     referenceTitles: { value: null, matchMode: 'contains' },
     links: { value: null, matchMode: 'contains' },
+    constraintHardness: { value: null, matchMode: 'contains' },
+    constraintEquality: { value: null, matchMode: 'contains' },
+    problemSources: { value: null, matchMode: 'contains' },
+    dynamicTypes: { value: null, matchMode: 'contains' },
+    fidelityLevels: { value: null, matchMode: 'contains' },
+    evaluationTimes: { value: null, matchMode: 'contains' },
+    problems: { value: null, matchMode: 'contains' },
+    instances: { value: null, matchMode: 'contains' },
+    codeExamples: { value: null, matchMode: 'contains' },
+    implementationIds: { value: null, matchMode: 'contains' },
+    implementationNames: { value: null, matchMode: 'contains' },
+    implementationLinks: { value: null, matchMode: 'contains' },
+    implementationLanguages: { value: null, matchMode: 'contains' },
+    implementationEvaluationTimes: { value: null, matchMode: 'contains' },
+    tags: { value: null, matchMode: 'contains' },
+    allowsPartialEvaluation: { value: null, matchMode: 'contains' },
+    canEvaluateObjectivesIndependently: { value: null, matchMode: 'contains' },
+
 
     // OPL aliases used by Hybrid
     oplId: { value: null, matchMode: 'contains' },
     oplType: { value: null, matchMode: 'contains' },
     oplSource: { value: null, matchMode: 'contains' },
     oplAuthors: { value: null, matchMode: 'contains' },
+    oplConstraintHardness: { value: null, matchMode: 'contains' },
+    oplConstraintEquality: { value: null, matchMode: 'contains' },
+    oplProblemSources: { value: null, matchMode: 'contains' },
+    oplDynamicTypes: { value: null, matchMode: 'contains' },
+    oplFidelityLevels: { value: null, matchMode: 'contains' },
+    oplEvaluationTimes: { value: null, matchMode: 'contains' },
+    oplProblems: { value: null, matchMode: 'contains' },
+    oplInstances: { value: null, matchMode: 'contains' },
+    oplCodeExamples: { value: null, matchMode: 'contains' },
+    oplImplementationIds: { value: null, matchMode: 'contains' },
+    oplImplementationNames: { value: null, matchMode: 'contains' },
+    oplImplementationLinks: { value: null, matchMode: 'contains' },
+    oplImplementationLanguages: { value: null, matchMode: 'contains' },
+    oplImplementationEvaluationTimes: { value: null, matchMode: 'contains' },
+    oplTags: { value: null, matchMode: 'contains' },
+    oplAllowsPartialEvaluation: { value: null, matchMode: 'contains' },
+    oplCanEvaluateObjectivesIndependently: { value: null, matchMode: 'contains' },
   }
 }
 
@@ -621,6 +688,7 @@ function resetSearchState() {
   results.value = []
   errorMessage.value = ''
   warnings.value = []
+  oplSourceUrl.value = null
   currentPage.value = 1
   pageSize.value = 20
   hasNextPage.value = false
@@ -894,23 +962,6 @@ function validateCriteria() {
     }
   })
 
-  if (isHybridSource.value) {
-    const sourceSet = new Set(
-      criteria.value.map(criterion => criterion.source),
-    )
-
-    if (!sourceSet.has(DATASET_SOURCES.OPENAIRE)) {
-      throw new Error(
-        'A Hybrid query requires at least one OpenAIRE criterion.',
-      )
-    }
-
-    if (!sourceSet.has(DATASET_SOURCES.OPL)) {
-      throw new Error(
-        'A Hybrid query requires at least one OPL criterion.',
-      )
-    }
-  }
 }
 
 function buildSortRequest() {
@@ -1016,6 +1067,21 @@ function normalizeOplResult(result) {
     variableDimensions: normalizeList(result.variableDimensions),
     constraintTypes: normalizeList(result.constraintTypes),
     numberOfConstraints: normalizeList(result.numberOfConstraints),
+    constraintHardness: normalizeList(result.constraintHardness),
+    constraintEquality: normalizeList(result.constraintEquality),
+    problemSources: normalizeList(result.problemSources),
+    dynamicTypes: normalizeList(result.dynamicTypes),
+    fidelityLevels: normalizeList(result.fidelityLevels),
+    evaluationTimes: normalizeList(result.evaluationTimes),
+    problems: normalizeList(result.problems),
+    instances: normalizeList(result.instances),
+    codeExamples: normalizeList(result.codeExamples),
+    implementationIds: normalizeList(result.implementationIds),
+    implementationNames: normalizeList(result.implementationNames),
+    implementationLinks: normalizeList(result.implementationLinks),
+    implementationLanguages: normalizeList(result.implementationLanguages),
+    implementationEvaluationTimes: normalizeList(result.implementationEvaluationTimes),
+    tags: normalizeList(result.tags),
     authors: normalizeList(result.authors),
     referenceTitles: normalizeList(result.referenceTitles),
     links: normalizeList(result.links),
@@ -1051,8 +1117,25 @@ function normalizeHybridResult(result) {
     // Explicit OPL aliases used by Hybrid
     oplId: result.oplId ?? '',
     oplType: result.oplType ?? '',
-    oplSource: 'OPL',
+    oplSource: result.source === 'OPL' ? 'OPL' : '',
     oplAuthors: normalizeList(result.oplAuthors),
+    oplConstraintHardness: normalizeList(result.oplConstraintHardness),
+    oplConstraintEquality: normalizeList(result.oplConstraintEquality),
+    oplProblemSources: normalizeList(result.oplProblemSources),
+    oplDynamicTypes: normalizeList(result.oplDynamicTypes),
+    oplFidelityLevels: normalizeList(result.oplFidelityLevels),
+    oplEvaluationTimes: normalizeList(result.oplEvaluationTimes),
+    oplProblems: normalizeList(result.oplProblems),
+    oplInstances: normalizeList(result.oplInstances),
+    oplCodeExamples: normalizeList(result.oplCodeExamples),
+    oplImplementationIds: normalizeList(result.oplImplementationIds),
+    oplImplementationNames: normalizeList(result.oplImplementationNames),
+    oplImplementationLinks: normalizeList(result.oplImplementationLinks),
+    oplImplementationLanguages: normalizeList(result.oplImplementationLanguages),
+    oplImplementationEvaluationTimes: normalizeList(result.oplImplementationEvaluationTimes),
+    oplTags: normalizeList(result.oplTags),
+    oplAllowsPartialEvaluation: result.oplAllowsPartialEvaluation ?? '',
+    oplCanEvaluateObjectivesIndependently: result.oplCanEvaluateObjectivesIndependently ?? '',
   }
 }
 
@@ -1129,6 +1212,11 @@ async function runQuery({ resetPage = true } = {}) {
       : response?.totalResults ?? null
 
     warnings.value = response?.warnings ?? []
+    oplSourceUrl.value = isHybridSource.value
+      ? response?.opl?.sourceUrl ?? OPL_DEFAULT_SOURCE_URL
+      : isOplSource.value
+        ? response?.sourceUrl ?? OPL_DEFAULT_SOURCE_URL
+        : null
   } catch (error) {
     errorMessage.value = error?.message ?? 'Failed to search datasets.'
     results.value = []
@@ -1235,6 +1323,10 @@ onMounted(() => {
           }}
         </p>
 
+        <p v-if="isOplSource || isHybridSource" class="opl-source-reference">
+          OPL source:
+          <a :href="oplSourceUrl || OPL_DEFAULT_SOURCE_URL" target="_blank" rel="noopener noreferrer">OpenOptimizationOrg/OPL catalogue (problems.yaml)</a>
+        </p>
 
       </div>
     </section>
@@ -1529,6 +1621,26 @@ onMounted(() => {
             columnResizeMode="fit"
             @filter="onResultsFilter"
           >
+          <template v-for="column in activeAdditionalOplColumns" :key="column.field">
+            <Column
+              v-if="isOutputFieldSelected(column.field)"
+              :field="column.field"
+              :header="column.header"
+              :show-filter-menu="false"
+              style="min-width: 220px"
+            >
+              <template #filter="{ filterModel, filterCallback }">
+                <InputText v-model="filterModel.value" :placeholder="`Filter ${column.header.toLowerCase()}`" class="w-full" @input="filterCallback()" />
+              </template>
+              <template #body="{ data }">
+                <a v-if="column.field.toLowerCase().includes('link') && data[column.field]" :href="String(data[column.field]).split(',')[0].trim()" target="_blank" rel="noopener noreferrer">
+                  {{ String(data[column.field]).split(',')[0].trim() }}
+                </a>
+                <span v-else>{{ data[column.field] ?? '' }}</span>
+              </template>
+            </Column>
+          </template>
+
           <Column
             v-if="isOutputFieldSelected('oplId')"
             field="oplId"
@@ -1829,18 +1941,21 @@ onMounted(() => {
           </Column>
 
           <Column
+            v-if="!isOplSource"
             header="Add to ontology"
             :show-filter-menu="false"
             style="width: 150px"
           >
             <template #body="{ data }">
               <Button
+                v-if="!isHybridSource || data.source === 'OPENAIRE'"
                 label="Add"
                 icon="pi pi-plus"
                 size="small"
                 outlined
                 @click="addDatasetToOntology(data)"
               />
+              <span v-else>—</span>
             </template>
           </Column>
 
